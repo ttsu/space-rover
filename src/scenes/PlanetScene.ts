@@ -28,6 +28,10 @@ export class PlanetScene extends Scene {
     this.rover = new Rover(this.engineRef.drawWidth / 2, this.engineRef.drawHeight / 2)
     this.add(this.rover)
 
+    this.rover.onDamaged = () => {
+      this.engineRef.currentScene.camera.shake(4, 4, 200)
+    }
+
     const planet = generatePlanet(this, this.engineRef, this.rover)
     this.basePos = planet.base.pos.clone()
 

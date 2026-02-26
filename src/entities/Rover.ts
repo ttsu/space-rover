@@ -15,9 +15,14 @@ export class Rover extends Actor {
 
   health = ROVER_BASE_HEALTH
 
+  // Callback set by the scene to react to damage (e.g., camera shake)
+  onDamaged?: (amount: number) => void
+
   private currentSpeed = 0
   private isDisabled = false
   private slowFactorThisFrame = 1
+  private readonly baseColor = Color.fromHex('#f97316')
+  private damageFlashTimer = 0
   private readonly maxForwardSpeed = ROVER_BASE_SPEED
   private readonly maxReverseSpeed = -ROVER_BASE_SPEED * 0.5
   private readonly acceleration = 400 // units per second^2
@@ -50,7 +55,15 @@ export class Rover extends Actor {
   }
 
   takeDamage(amount: number) {
+    if (amount <= 0) return
+
     this.health = Math.max(0, this.health - amount)
+    this.damageFlashTimer = 150
+
+    if (this.onDamaged) {
+      this.onDamaged(amount)
+    }
+
     if (this.health <= 0) {
       this.isDisabled = true
     }
@@ -116,6 +129,16 @@ export class Rover extends Actor {
     // Apply velocity based on facing direction (rotation), including any slows
     const forward = vec(Math.cos(this.rotation), Math.sin(this.rotation))
     this.vel = forward.scale(this.currentSpeed * this.slowFactorThisFrame)
+
+    // Handle brief damage flash
+    if (this.damageFlashTimer > 0) {
+      this.damageFlashTimer -= delta
+      // Simple flash: alternate between white and base color while timer runs
+      this.color =
+        Math.floor(this.damageFlashTimer / 50) % 2 === 0 ? Color.White : this.baseColor
+    } else {
+      this.color = this.baseColor
+    }
 
     // Reset slow factor for next frame
     this.slowFactorThisFrame = 1
