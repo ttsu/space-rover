@@ -72,15 +72,19 @@ export class SummaryScene extends Scene {
       return
     }
 
-    const totalPieces =
-      run.cargo.iron + run.cargo.crystal + run.cargo.gas
+    const totalPieces = run.cargo.iron + run.cargo.crystal + run.cargo.gas
+
+    const failed = run.healthRemaining <= 0
+    const header = failed
+      ? 'Mission failed.\nRover powered down.\n\n'
+      : 'Mission complete!\n\n'
 
     this.statsLabel.text =
+      header +
       `You collected ${run.cargo.iron} iron, ${run.cargo.crystal} crystal,\n` +
       `and ${run.cargo.gas} gas. That is ${totalPieces} pieces in all.\n` +
       `Capacity used: ${run.usedCapacity}/${run.maxCapacity}.\n` +
       `Best total so far: ${GameState.bestTotalCargo} pieces.`
   }
 }
-
 

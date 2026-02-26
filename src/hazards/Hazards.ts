@@ -1,6 +1,7 @@
 import { Actor, Color, Engine, vec, Font, FontUnit, Label, CollisionType } from 'excalibur'
 import type { Rover } from '../entities/Rover'
 import { recordHazardHit, type HazardKind } from '../state/GameState'
+import { LAVA_SLOW_FACTOR } from '../config/gameConfig'
 
 abstract class HazardBase extends Actor {
   protected rover: Rover
@@ -29,14 +30,19 @@ abstract class HazardBase extends Actor {
 export class LavaPool extends HazardBase {
   private tickTimer = 0
 
-  onPreUpdate(engine: Engine, delta: number): void {
-    this.tickTimer += delta
-    if (this.tickTimer < 500) return
-    this.tickTimer = 0
-
+  onPreUpdate(_engine: Engine, delta: number): void {
     const distance = this.pos.distance(this.rover.pos)
-    if (distance < (this.width + this.rover.width) / 2) {
-      this.hit(1)
+    const radius = (this.width + this.rover.width) / 2
+
+    if (distance < radius) {
+      this.rover.applySlow(LAVA_SLOW_FACTOR)
+      this.tickTimer += delta
+      if (this.tickTimer >= 500) {
+        this.tickTimer = 0
+        this.hit(1)
+      }
+    } else {
+      this.tickTimer = 0
     }
   }
 }
@@ -55,7 +61,7 @@ export class WindZone extends HazardBase {
     this.direction = vec(Math.cos(directionAngle), Math.sin(directionAngle))
   }
 
-  onPreUpdate(engine: Engine, delta: number): void {
+  onPreUpdate(_engine: Engine, delta: number): void {
     const distance = this.pos.distance(this.rover.pos)
     if (distance < Math.max(this.width, this.height)) {
       const pushStrength = 80

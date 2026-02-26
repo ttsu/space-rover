@@ -50,8 +50,10 @@ export function finishRun(
     hazardsHit: hazardsCopy,
   }
 
-  if (totalCargoPieces > GameState.bestTotalCargo) {
+  if (healthRemaining > 0 && totalCargoPieces > GameState.bestTotalCargo) {
     GameState.bestTotalCargo = totalCargoPieces
   }
 }
+
+
 

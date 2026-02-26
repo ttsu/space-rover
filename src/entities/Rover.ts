@@ -1,4 +1,4 @@
-import { Actor, Color, Engine, Keys, vec } from 'excalibur'
+import { Actor, Color, CollisionType, Engine, Keys, vec } from 'excalibur'
 import { ROVER_BASE_HEALTH, ROVER_BASE_SPEED, ROVER_MAX_CAPACITY } from '../config/gameConfig'
 import type { ResourceId } from '../resources/ResourceTypes'
 
@@ -16,6 +16,8 @@ export class Rover extends Actor {
   health = ROVER_BASE_HEALTH
 
   private currentSpeed = 0
+  private isDisabled = false
+  private slowFactorThisFrame = 1
   private readonly maxForwardSpeed = ROVER_BASE_SPEED
   private readonly maxReverseSpeed = -ROVER_BASE_SPEED * 0.5
   private readonly acceleration = 400 // units per second^2
@@ -31,6 +33,7 @@ export class Rover extends Actor {
       height: 28,
       color: Color.fromHex('#f97316'),
     })
+    this.body.collisionType = CollisionType.Active
   }
 
   remainingCapacity(): number {
@@ -48,9 +51,23 @@ export class Rover extends Actor {
 
   takeDamage(amount: number) {
     this.health = Math.max(0, this.health - amount)
+    if (this.health <= 0) {
+      this.isDisabled = true
+    }
+  }
+
+  applySlow(factor: number) {
+    if (factor < this.slowFactorThisFrame) {
+      this.slowFactorThisFrame = factor
+    }
   }
 
   onPreUpdate(engine: Engine, delta: number): void {
+    if (this.isDisabled) {
+      this.vel = vec(0, 0)
+      return
+    }
+
     const input = engine.input.keyboard
     const dt = delta / 1000
 
@@ -96,9 +113,12 @@ export class Rover extends Actor {
       this.currentSpeed = this.maxReverseSpeed
     }
 
-    // Apply velocity based on facing direction (rotation)
+    // Apply velocity based on facing direction (rotation), including any slows
     const forward = vec(Math.cos(this.rotation), Math.sin(this.rotation))
-    this.vel = forward.scale(this.currentSpeed)
+    this.vel = forward.scale(this.currentSpeed * this.slowFactorThisFrame)
+
+    // Reset slow factor for next frame
+    this.slowFactorThisFrame = 1
   }
 }
 
