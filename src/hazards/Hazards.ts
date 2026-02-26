@@ -64,9 +64,10 @@ export class WindZone extends HazardBase {
   onPreUpdate(_engine: Engine, delta: number): void {
     const distance = this.pos.distance(this.rover.pos)
     if (distance < Math.max(this.width, this.height)) {
-      const pushStrength = 80
+      const pushStrength = Math.random() * 200 + 500
       this.rover.vel = this.rover.vel.add(this.direction.scale(pushStrength * (delta / 1000)))
     }
+    this.transform.rotation += (Math.random() * 0.1) + 0.1
   }
 }
 
