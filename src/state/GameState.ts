@@ -1,4 +1,5 @@
 import type { CargoCounts } from '../entities/Rover'
+import { addToBank } from './Progress'
 
 export type HazardKind = 'lava' | 'lightning' | 'rock' | 'wind' | 'quake'
 
@@ -50,8 +51,11 @@ export function finishRun(
     hazardsHit: hazardsCopy,
   }
 
-  if (healthRemaining > 0 && totalCargoPieces > GameState.bestTotalCargo) {
-    GameState.bestTotalCargo = totalCargoPieces
+  if (healthRemaining > 0) {
+    addToBank(cargo)
+    if (totalCargoPieces > GameState.bestTotalCargo) {
+      GameState.bestTotalCargo = totalCargoPieces
+    }
   }
 }
 

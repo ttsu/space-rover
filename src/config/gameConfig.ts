@@ -7,6 +7,13 @@ export const ROVER_BASE_SPEED = 200
 export const ROVER_MAX_CAPACITY = 20
 export const ROVER_BASE_HEALTH = 5
 
+export const BLASTER_BASE_DAMAGE = 1
+export const BLASTER_BASE_FIRE_RATE = 2.5 // shots per second
+export const BLASTER_BASE_RANGE = 150
+
+export const ROVER_BASE_ACCELERATION = 400
+export const ROVER_BASE_TURN_SPEED = Math.PI
+
 export const RESOURCE_DENSITY = 0.04 // fraction of tiles with resources
 
 export const LAVA_DENSITY = 0.08

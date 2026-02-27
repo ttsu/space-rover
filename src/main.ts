@@ -3,6 +3,10 @@ import { Engine, DisplayMode, Color } from 'excalibur'
 import { MainMenuScene } from './scenes/MainMenuScene'
 import { PlanetScene } from './scenes/PlanetScene'
 import { SummaryScene } from './scenes/SummaryScene'
+import { UpgradeScene } from './scenes/UpgradeScene'
+import { loadProgress } from './state/Progress'
+
+loadProgress()
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')
 
@@ -21,6 +25,7 @@ const engine = new Engine({
 engine.add('mainMenu', new MainMenuScene(engine))
 engine.add('planet', new PlanetScene(engine))
 engine.add('summary', new SummaryScene(engine))
+engine.add('upgrade', new UpgradeScene(engine))
 
 engine.goToScene('mainMenu')
 engine.start()

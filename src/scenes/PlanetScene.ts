@@ -1,5 +1,6 @@
 import { Color, Engine, Label, Scene, vec, Font, FontUnit, Keys } from 'excalibur'
 import { Rover } from '../entities/Rover'
+import { BlasterProjectile } from '../entities/BlasterProjectile'
 import { generatePlanet } from '../world/PlanetGenerator'
 import { resetRunTracking, finishRun } from '../state/GameState'
 import { Hud } from '../ui/Hud'
@@ -32,11 +33,16 @@ export class PlanetScene extends Scene {
       this.engineRef.currentScene.camera.shake(4, 4, 200)
     }
 
+    this.rover.onFireBlaster = (x, y, angle, damage, speed, range) => {
+      const proj = new BlasterProjectile(x, y, angle, damage, speed, range)
+      this.add(proj)
+    }
+
     const planet = generatePlanet(this, this.engineRef, this.rover)
     this.basePos = planet.base.pos.clone()
 
     this.infoLabel = new Label({
-      text: 'Drive with W/S and A/D. Return to base to finish.',
+      text: 'W/S A/D drive. Space to fire blaster. Return to base to finish.',
       pos: vec(16, 24),
       color: Color.White,
       font: new Font({

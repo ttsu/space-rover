@@ -21,8 +21,8 @@ abstract class HazardBase extends Actor {
     this.kind = kind
   }
 
-  protected hit(amount: number) {
-    this.rover.takeDamage(amount)
+  protected hit(amount: number, fromLava?: boolean) {
+    this.rover.takeDamage(amount, fromLava ?? false)
     recordHazardHit(this.kind)
   }
 }
@@ -50,7 +50,7 @@ export class LavaPool extends HazardBase {
       this.tickTimer += delta
       if (this.tickTimer >= 500) {
         this.tickTimer = 0
-        this.hit(1)
+        this.hit(1, true)
       }
     }
   }
@@ -83,7 +83,7 @@ export class WindZone extends HazardBase {
 
   onPreUpdate(_engine: Engine, delta: number): void {
     if (this.roverInWind) {
-      const pushStrength = Math.random() * 200 + 500
+      const pushStrength = (Math.random() * 200 + 500) * (1 - this.rover.getWindResist())
       this.rover.vel = this.rover.vel.add(this.direction.scale(pushStrength * (delta / 1000)))
     }
     this.transform.rotation += (Math.random() * 0.1) + 0.1

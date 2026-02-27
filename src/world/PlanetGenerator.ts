@@ -10,8 +10,9 @@ import {
 } from '../config/gameConfig'
 import { Tile } from './Tile'
 import { BaseLander } from '../entities/BaseLander'
-import { RESOURCE_TYPES } from '../resources/ResourceTypes'
+import { RESOURCE_TYPES, type ResourceId } from '../resources/ResourceTypes'
 import { ResourceNode } from '../entities/ResourceNode'
+import { ResourceDeposit } from '../entities/ResourceDeposit'
 import { LavaPool, RockObstacle, WindZone, LightningZone } from '../hazards/Hazards'
 import type { Rover } from '../entities/Rover'
 
@@ -19,7 +20,7 @@ export interface PlanetGenerationResult {
   base: BaseLander
 }
 
-export function generatePlanet(scene: Scene, engine: Engine, rover: Rover): PlanetGenerationResult {
+export function generatePlanet(scene: Scene, _engine: Engine, rover: Rover): PlanetGenerationResult {
   const centerTileX = Math.floor(PLANET_WIDTH_TILES / 2)
   const centerTileY = Math.floor(PLANET_HEIGHT_TILES / 2)
 
@@ -69,13 +70,19 @@ export function generatePlanet(scene: Scene, engine: Engine, rover: Rover): Plan
     }
   }
 
+  const resourceIds: ResourceId[] = ['iron', 'crystal', 'gas']
   place(resourceCount, (gridX, gridY) => {
-    const type =
-      RESOURCE_TYPES[Math.floor(Math.random() * RESOURCE_TYPES.length)]
+    const resourceId = resourceIds[Math.floor(Math.random() * resourceIds.length)]
+    const type = RESOURCE_TYPES.find((r) => r.id === resourceId)!
     const nodeX = gridX * TILE_SIZE + TILE_SIZE / 2
     const nodeY = gridY * TILE_SIZE + TILE_SIZE / 2
-    const node = new ResourceNode(nodeX, nodeY, type)
-    scene.add(node)
+    if (resourceId === 'gas') {
+      const node = new ResourceNode(nodeX, nodeY, type)
+      scene.add(node)
+    } else {
+      const deposit = new ResourceDeposit(nodeX, nodeY, type, 4)
+      scene.add(deposit)
+    }
   })
 
   place(lavaCount, (gridX, gridY) => {
