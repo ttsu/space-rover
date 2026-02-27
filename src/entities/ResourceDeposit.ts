@@ -20,7 +20,7 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
       height: 24,
       color: resource.color,
     })
-    this.body.collisionType = CollisionType.Passive
+    this.body.collisionType = CollisionType.Fixed
     this.resource = resource
     this.sizeUnits = resource.size
     this.hp = hp
