@@ -1,5 +1,12 @@
-import { Actor, Color, CollisionType, Engine, Keys, vec } from 'excalibur'
+import { Actor, Color, CollisionType, Engine, Keys, SpriteSheet, vec, Shape } from 'excalibur'
 import type { ResourceId } from '../resources/ResourceTypes'
+import { Resources } from '../resources'
+import {
+  ROVER_SPRITE_COLUMNS,
+  ROVER_SPRITE_HEIGHT,
+  ROVER_SPRITE_ROWS,
+  ROVER_SPRITE_WIDTH,
+} from '../config/gameConfig'
 import type { RoverStats } from '../upgrades/RoverStats'
 import { computeEffectiveRoverStats } from '../upgrades/RoverStats'
 import { getAppliedUpgrades } from '../state/Progress'
@@ -48,11 +55,14 @@ export class Rover extends Actor {
     super({
       x,
       y,
-      width: 28,
-      height: 28,
+      width: ROVER_SPRITE_WIDTH,
+      height: ROVER_SPRITE_HEIGHT,
       color: Color.fromHex('#f97316'),
     })
     this.body.collisionType = CollisionType.Active
+    this.collider.set(Shape.Box(
+      ROVER_SPRITE_WIDTH - 4,
+      ROVER_SPRITE_HEIGHT - 12))
     this.roverStats = stats ?? computeEffectiveRoverStats(getAppliedUpgrades())
     const s = this.roverStats
     this.maxCapacity = s.maxCapacity
@@ -61,6 +71,20 @@ export class Rover extends Actor {
     this.maxReverseSpeed = -s.maxSpeed * 0.5
     this.acceleration = s.acceleration
     this.turnSpeed = s.turnSpeed
+
+    const spriteSheet = SpriteSheet.fromImageSource({
+      image: Resources.RoverSprite,
+      grid: {
+        rows: ROVER_SPRITE_ROWS,
+        columns: ROVER_SPRITE_COLUMNS,
+        spriteWidth: ROVER_SPRITE_WIDTH,
+        spriteHeight: ROVER_SPRITE_HEIGHT,
+      },
+    })
+    const sprite = spriteSheet.getSprite(0, 0)
+    if (sprite) {
+      this.graphics.use(sprite)
+    }
   }
 
   remainingCapacity(): number {
@@ -175,10 +199,9 @@ export class Rover extends Actor {
 
     if (this.damageFlashTimer > 0) {
       this.damageFlashTimer -= delta
-      this.color =
-        Math.floor(this.damageFlashTimer / 50) % 2 === 0 ? Color.White : this.baseColor
+      this.graphics.opacity = Math.floor(this.damageFlashTimer / 25) % 2 === 0 ? 1 : 0
     } else {
-      this.color = this.baseColor
+      this.graphics.opacity = 1
     }
 
     this.slowFactorThisFrame = 1

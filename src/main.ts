@@ -1,5 +1,6 @@
 import './style.css'
 import { Engine, DisplayMode, Color } from 'excalibur'
+import { loader } from './resources'
 import { MainMenuScene } from './scenes/MainMenuScene'
 import { PlanetScene } from './scenes/PlanetScene'
 import { SummaryScene } from './scenes/SummaryScene'
@@ -28,4 +29,4 @@ engine.add('summary', new SummaryScene(engine))
 engine.add('upgrade', new UpgradeScene(engine))
 
 engine.goToScene('mainMenu')
-engine.start()
+engine.start(loader)
