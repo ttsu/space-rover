@@ -29,20 +29,29 @@ abstract class HazardBase extends Actor {
 
 export class LavaPool extends HazardBase {
   private tickTimer = 0
+  private roverInLava = false
+
+  onInitialize(): void {
+    this.body.collisionType = CollisionType.Passive
+    this.on('collisionstart', (evt) => {
+      if (evt.other.owner === this.rover) this.roverInLava = true
+    })
+    this.on('collisionend', (evt) => {
+      if (evt.other.owner === this.rover) {
+        this.roverInLava = false
+        this.tickTimer = 0
+      }
+    })
+  }
 
   onPreUpdate(_engine: Engine, delta: number): void {
-    const distance = this.pos.distance(this.rover.pos)
-    const radius = (this.width + this.rover.width) / 2
-
-    if (distance < radius) {
+    if (this.roverInLava) {
       this.rover.applySlow(LAVA_SLOW_FACTOR)
       this.tickTimer += delta
       if (this.tickTimer >= 500) {
         this.tickTimer = 0
         this.hit(1)
       }
-    } else {
-      this.tickTimer = 0
     }
   }
 }
@@ -55,15 +64,25 @@ export class RockObstacle extends HazardBase {
 
 export class WindZone extends HazardBase {
   private direction = vec(1, 0)
+  private roverInWind = false
 
   constructor(x: number, y: number, width: number, height: number, rover: Rover, directionAngle: number) {
     super(x, y, width, height, Color.fromHex('#0ea5e930'), rover, 'wind')
     this.direction = vec(Math.cos(directionAngle), Math.sin(directionAngle))
   }
 
+  onInitialize(): void {
+    this.body.collisionType = CollisionType.Passive
+    this.on('collisionstart', (evt) => {
+      if (evt.other.owner === this.rover) this.roverInWind = true
+    })
+    this.on('collisionend', (evt) => {
+      if (evt.other.owner === this.rover) this.roverInWind = false
+    })
+  }
+
   onPreUpdate(_engine: Engine, delta: number): void {
-    const distance = this.pos.distance(this.rover.pos)
-    if (distance < Math.max(this.width, this.height)) {
+    if (this.roverInWind) {
       const pushStrength = Math.random() * 200 + 500
       this.rover.vel = this.rover.vel.add(this.direction.scale(pushStrength * (delta / 1000)))
     }
@@ -76,9 +95,20 @@ export class LightningZone extends HazardBase {
   private strikeTime = 200
   private elapsed = 0
   private hasStruck = false
+  private roverInZone = false
 
   constructor(x: number, y: number, rover: Rover) {
     super(x, y, 40, 40, Color.fromHex('#facc15'), rover, 'lightning')
+  }
+
+  onInitialize(): void {
+    this.body.collisionType = CollisionType.Passive
+    this.on('collisionstart', (evt) => {
+      if (evt.other.owner === this.rover) this.roverInZone = true
+    })
+    this.on('collisionend', (evt) => {
+      if (evt.other.owner === this.rover) this.roverInZone = false
+    })
   }
 
   onPreUpdate(engine: Engine, delta: number): void {
@@ -86,8 +116,7 @@ export class LightningZone extends HazardBase {
 
     if (!this.hasStruck && this.elapsed >= this.warningTime) {
       this.color = Color.fromHex('#e5e7eb')
-      const distance = this.pos.distance(this.rover.pos)
-      if (distance < 40) {
+      if (this.roverInZone) {
         this.hit(1)
       }
       this.showStrikeFlash(engine)
