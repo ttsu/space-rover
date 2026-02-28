@@ -1,6 +1,7 @@
 import { Actor, Color, CollisionType, Engine, Keys, SpriteSheet, vec, Shape } from 'excalibur'
 import type { ResourceId } from '../resources/ResourceTypes'
 import { Resources } from '../resources'
+import { getTouchInput, setTouchInput, getTouchControlsEnabled } from '../input/TouchInputState'
 import {
   ROVER_SPRITE_COLUMNS,
   ROVER_SPRITE_HEIGHT,
@@ -140,10 +141,17 @@ export class Rover extends Actor {
     const input = engine.input.keyboard
     const dt = delta / 1000
 
-    const turningLeft = input.isHeld(Keys.Left) || input.isHeld(Keys.A)
-    const turningRight = input.isHeld(Keys.Right) || input.isHeld(Keys.D)
-    const accelerating = input.isHeld(Keys.Up) || input.isHeld(Keys.W)
-    const braking = input.isHeld(Keys.Down) || input.isHeld(Keys.S)
+    let turningLeft = input.isHeld(Keys.Left) || input.isHeld(Keys.A)
+    let turningRight = input.isHeld(Keys.Right) || input.isHeld(Keys.D)
+    let accelerating = input.isHeld(Keys.Up) || input.isHeld(Keys.W)
+    let braking = input.isHeld(Keys.Down) || input.isHeld(Keys.S)
+    if (getTouchControlsEnabled()) {
+      const touch = getTouchInput()
+      turningLeft = turningLeft || touch.turnLeft
+      turningRight = turningRight || touch.turnRight
+      accelerating = accelerating || touch.accelerate
+      braking = braking || touch.brake
+    }
 
     if (turningLeft) {
       this.rotation -= this.turnSpeed * dt
@@ -182,7 +190,14 @@ export class Rover extends Actor {
     if (this.blasterCooldown > 0) {
       this.blasterCooldown -= delta
     }
-    const fireKey = input.wasPressed(Keys.Space) || input.wasPressed(Keys.ControlLeft)
+    let fireKey = input.wasPressed(Keys.Space) || input.wasPressed(Keys.ControlLeft)
+    if (getTouchControlsEnabled()) {
+      const touch = getTouchInput()
+      if (touch.fire) {
+        fireKey = true
+        setTouchInput({ fire: false })
+      }
+    }
     if (fireKey && this.blasterCooldown <= 0 && this.onFireBlaster) {
       const msPerShot = 1000 / this.roverStats.blasterFireRate
       this.blasterCooldown = msPerShot

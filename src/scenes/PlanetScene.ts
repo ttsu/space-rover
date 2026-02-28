@@ -1,15 +1,19 @@
-import { Color, Engine, Label, Scene, vec, Font, FontUnit, Keys } from 'excalibur'
+import { Color, Engine, Label, Scene, vec, Font, FontUnit, Keys, ScreenElement, Actor } from 'excalibur'
 import { Rover } from '../entities/Rover'
 import { BlasterProjectile } from '../entities/BlasterProjectile'
 import { generatePlanet } from '../world/PlanetGenerator'
 import { resetRunTracking, finishRun } from '../state/GameState'
 import { Hud } from '../ui/Hud'
+import { TouchControls } from '../ui/TouchControls'
+import { getTouchControlsEnabled } from '../input/TouchInputState'
 
 export class PlanetScene extends Scene {
   private engineRef: Engine
   private rover!: Rover
   private infoLabel!: Label
   private hud!: Hud
+  private returnToShipBtn?: Actor
+  private returnToShipLabel?: Label
   private basePos = vec(0, 0)
   private quakeTimer = 0
   private runEnded = false
@@ -57,6 +61,49 @@ export class PlanetScene extends Scene {
     this.hud = new Hud(this.engineRef, this.rover)
     this.add(this.hud)
 
+    if (getTouchControlsEnabled()) {
+      this.add(new TouchControls(this.engineRef))
+      const returnContainer = new ScreenElement({ x: 0, y: 0 })
+      const cx = this.engineRef.drawWidth / 2
+      const by = this.engineRef.drawHeight - 40
+      const returnBtn = new Actor({
+        pos: vec(cx, by),
+        width: 220,
+        height: 52,
+        color: Color.fromHex('#eab308'),
+      })
+      returnBtn.anchor.setTo(0.5, 0.5)
+      const returnLabel = new Label({
+        text: 'Return to ship',
+        pos: vec(cx, by),
+        color: Color.fromHex('#1c1917'),
+        font: new Font({
+          family: 'system-ui, sans-serif',
+          size: 22,
+          unit: FontUnit.Px,
+        }),
+      })
+      returnLabel.anchor.setTo(0.5, 0.5)
+      returnBtn.on('pointerup', () => {
+        if (this.runEnded) return
+        this.runEnded = true
+        finishRun(
+          this.rover.cargo,
+          this.rover.usedCapacity,
+          this.rover.maxCapacity,
+          this.rover.health,
+        )
+        this.engineRef.goToScene('summary')
+      })
+      returnContainer.addChild(returnBtn)
+      returnContainer.addChild(returnLabel)
+      returnBtn.graphics.visible = false
+      returnLabel.graphics.visible = false
+      this.returnToShipBtn = returnBtn
+      this.returnToShipLabel = returnLabel
+      this.add(returnContainer)
+    }
+
     this.camera.strategy.lockToActor(this.rover)
   }
 
@@ -97,6 +144,12 @@ export class PlanetScene extends Scene {
     }
 
     this.hud.updateFromState(closeToBase)
+
+    if (this.returnToShipBtn && this.returnToShipLabel) {
+      const show = !this.runEnded && closeToBase
+      this.returnToShipBtn.graphics.visible = show
+      this.returnToShipLabel.graphics.visible = show
+    }
   }
 }
 
