@@ -1,24 +1,34 @@
 ---
+name: ""
+overview: ""
+todos: []
+isProject: false
+---
+
+---
+
 name: Phase 2b Deeper Systems
 overview: Upgrade screen "after buying: X left" (and optional equation hint), milestones and first-time tutorial, music loop with dynamic layers, and sky/ambient in PlanetScene. Second phase of the next-phase features proposal.
 todos:
-  - id: upgrade-after-buying
-    content: "UpgradeScene: under each upgrade option show 'After buying: X [resource] left' using bank and cost; optional equation hint (e.g. '5 - 3 = 2') for younger age band"
-  - id: age-band-config
-    content: "Age band (optional): add to Saves or config (e.g. 3-5 vs 6-9); use only for hint level (equation vs plain 'X left'); no quizzing"
-  - id: milestones-data
-    content: "Milestones: define milestone IDs (e.g. firstUpgrade, bankTotal10, crystal50); store achieved set in save or localStorage"
-  - id: milestones-check-display
-    content: "Check and show milestones: on Summary or after upgrade/bank change; one-time congratulations (modal or Summary line) and optional particle/badge"
-  - id: tutorial-first-time
-    content: "First-time tutorial: overlay or tooltips (Drive WASD, Shoot deposits, Return to base); store 'tutorial seen' in save or localStorage; show only once"
-  - id: music-loader-loop
-    content: "Music: add exploration loop to loader; play in PlanetScene on activate, stop or mute when leaving; keep volume low under SFX"
-  - id: music-dynamic
-    content: "Music dynamic layer: optional tension layer when health low or in hazard; short success sting on Summary when mission complete"
-  - id: sky-ambient
-    content: "PlanetScene sky/ambient: simple gradient or parallax background (stars/horizon) so play area feels like a place; no full art pass required"
+
+- id: upgrade-after-buying
+content: "UpgradeScene: under each upgrade option show 'After buying: X [resource] left' using bank and cost; optional equation hint (e.g. '5 - 3 = 2') for younger age band"
+- id: age-band-config
+content: "Age band (optional): add to Saves or config (e.g. 3-5 vs 6-9); use only for hint level (equation vs plain 'X left'); no quizzing"
+- id: milestones-data
+content: "Milestones: define milestone IDs (e.g. firstUpgrade, bankTotal10, crystal50); store achieved set in save or localStorage"
+- id: milestones-check-display
+content: "Check and show milestones: on Summary or after upgrade/bank change; one-time congratulations (modal or Summary line) and optional particle/badge"
+- id: tutorial-first-time
+content: "First-time tutorial: overlay or tooltips (Drive WASD, Shoot deposits, Return to base); store 'tutorial seen' in save or localStorage; show only once"
+- id: music-loader-loop
+content: "Music: add exploration loop to loader; play in PlanetScene on activate, stop or mute when leaving; keep volume low under SFX"
+- id: music-dynamic
+content: "Music dynamic layer: optional tension layer when health low or in hazard; short success sting on Summary when mission complete"
+- id: sky-ambient
+content: "PlanetScene sky/ambient: simple gradient or parallax background (stars/horizon) so play area feels like a place; no full art pass required"
 isProject: false
+
 ---
 
 # Phase 2b: Deeper Systems
@@ -80,3 +90,4 @@ Part of the [Next Phase Features Proposal](next_phase_features_proposal_96eabf29
 3. Tutorial: storage + first-run overlay in PlanetScene.
 4. Music: loader, exploration loop in PlanetScene, success sting in Summary; optional tension layer.
 5. Sky/ambient background in PlanetScene.
+
