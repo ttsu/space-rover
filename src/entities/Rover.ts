@@ -100,6 +100,19 @@ export class Rover extends Actor {
     }
   }
 
+  /** Reset rover state for starting a new mission (scene re-use). */
+  resetForNewMission(): void {
+    this.health = this.roverStats.maxHealth;
+    this.isDisabled = false;
+    this.cargo = { iron: 0, crystal: 0, gas: 0 };
+    this.usedCapacity = 0;
+    this.vel = vec(0, 0);
+    this.currentSpeed = 0;
+    this.blasterCooldown = 0;
+    this.damageFlashTimer = 0;
+    this.slowFactorThisFrame = 1;
+  }
+
   remainingCapacity(): number {
     return this.maxCapacity - this.usedCapacity;
   }

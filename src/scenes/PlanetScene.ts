@@ -13,6 +13,7 @@ import {
 import { Rover } from "../entities/Rover";
 import { BlasterProjectile } from "../entities/BlasterProjectile";
 import { generatePlanet } from "../world/PlanetGenerator";
+import { TILE_SIZE } from "../config/gameConfig";
 import { resetRunTracking, finishRun } from "../state/GameState";
 import { Hud } from "../ui/Hud";
 import { TouchControls } from "../ui/TouchControls";
@@ -36,6 +37,12 @@ export class PlanetScene extends Scene {
 
   onActivate() {
     resetRunTracking();
+    if (this.rover) {
+      this.runEnded = false;
+      this.rover.resetForNewMission();
+      this.rover.pos.x = this.basePos.x;
+      this.rover.pos.y = this.basePos.y - TILE_SIZE;
+    }
   }
 
   onInitialize() {
