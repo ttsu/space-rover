@@ -8,21 +8,23 @@ import {
   Actor,
   vec,
 } from "excalibur";
-import { getBank, getAppliedUpgrades } from "../state/Progress";
-import { canAffordAnyUpgrade } from "../upgrades/UpgradeDefs";
-import { requestFullscreen } from "../fullscreen";
 import {
-  getTouchControlsEnabled,
-  setTouchControlsEnabled,
-  isTouchDeviceCapable,
-} from "../input/TouchInputState";
+  listSaves,
+  loadSave,
+  deleteSave,
+  getLastPlayedSaveId,
+  type SaveIndexEntry,
+} from "../state/Saves";
+
+function formatTotalResources(t: SaveIndexEntry["totalResourcesCollected"]): string {
+  const total = t.iron + t.crystal + t.gas;
+  return `${total} total (${t.iron} iron, ${t.crystal} crystal, ${t.gas} gas)`;
+}
 
 export class MainMenuScene extends Scene {
   private engineRef: Engine;
-  private bankLabel!: Label;
-  private upgradeButton!: Actor;
-  private touchToggleLabel?: Label;
-  private touchToggleButton?: Actor;
+  private saveListActors: Actor[] = [];
+  private saveListLabels: Label[] = [];
 
   constructor(engine: Engine) {
     super();
@@ -30,27 +32,100 @@ export class MainMenuScene extends Scene {
   }
 
   onActivate(): void {
-    this.updateBankAndUpgradeButton();
-    this.touchToggleLabel && this.updateTouchToggleLabel();
+    this.refreshSaveList();
   }
 
-  private updateBankAndUpgradeButton(): void {
-    const bank = getBank();
-    this.bankLabel.text = `Bank: ${bank.iron} iron, ${bank.crystal} crystal, ${bank.gas} gas`;
-    const applied = getAppliedUpgrades();
-    const canAfford = canAffordAnyUpgrade(bank, applied);
-    const anyAffordable = canAfford.iron || canAfford.crystal || canAfford.gas;
-    this.upgradeButton.color = anyAffordable
-      ? Color.fromHex("#8b5cf6")
-      : Color.fromHex("#6b7280");
-  }
+  private refreshSaveList(): void {
+    for (const a of this.saveListActors) a.kill();
+    for (const l of this.saveListLabels) l.kill();
+    this.saveListActors = [];
+    this.saveListLabels = [];
 
-  private updateTouchToggleLabel(): void {
-    if (this.touchToggleLabel) {
-      this.touchToggleLabel.text = getTouchControlsEnabled()
-        ? "Touch controls: On"
-        : "Touch controls: Off";
-    }
+    const saves = listSaves();
+    const lastPlayedId = getLastPlayedSaveId();
+    const cx = this.engineRef.drawWidth / 2;
+    const listStartY = this.engineRef.drawHeight / 2 - 20;
+    const rowHeight = 44;
+    const col1X = cx - 180;
+    const loadX = cx + 20;
+    const deleteX = cx + 100;
+
+    saves.forEach((entry, i) => {
+      const y = listStartY + i * rowHeight;
+      const desc = `${entry.difficulty} · ${formatTotalResources(entry.totalResourcesCollected)}`;
+      const isLastPlayed = entry.id === lastPlayedId;
+
+      const descLabel = new Label({
+        text: isLastPlayed ? `★ ${desc}` : desc,
+        pos: vec(col1X, y),
+        color: isLastPlayed ? Color.fromHex("#fbbf24") : Color.fromHex("#e5e7eb"),
+        font: new Font({
+          family: "system-ui, sans-serif",
+          size: 14,
+          unit: FontUnit.Px,
+        }),
+      });
+      descLabel.anchor.setTo(0, 0.5);
+
+      const loadBtn = new Actor({
+        pos: vec(loadX, y),
+        width: 56,
+        height: 32,
+        color: Color.fromHex("#3b82f6"),
+      });
+      loadBtn.anchor.setTo(0.5, 0.5);
+      const loadLabel = new Label({
+        text: "Load",
+        pos: loadBtn.pos.clone(),
+        color: Color.White,
+        font: new Font({
+          family: "system-ui, sans-serif",
+          size: 14,
+          unit: FontUnit.Px,
+        }),
+      });
+      loadLabel.anchor.setTo(0.5, 0.5);
+      loadBtn.on("pointerup", () => {
+        loadSave(entry.id);
+        this.engineRef.goToScene("planetRunMenu");
+      });
+
+      const deleteBtn = new Actor({
+        pos: vec(deleteX, y),
+        width: 56,
+        height: 32,
+        color: Color.fromHex("#b91c1c"),
+      });
+      deleteBtn.anchor.setTo(0.5, 0.5);
+      const deleteLabel = new Label({
+        text: "Delete",
+        pos: deleteBtn.pos.clone(),
+        color: Color.White,
+        font: new Font({
+          family: "system-ui, sans-serif",
+          size: 12,
+          unit: FontUnit.Px,
+        }),
+      });
+      deleteLabel.anchor.setTo(0.5, 0.5);
+      deleteBtn.on("pointerup", () => {
+        const confirmed =
+          typeof window !== "undefined" &&
+          window.confirm("Are you sure you want to delete this save?");
+        if (confirmed) {
+          deleteSave(entry.id);
+          this.refreshSaveList();
+        }
+      });
+
+      this.add(descLabel);
+      this.add(loadBtn);
+      this.add(loadLabel);
+      this.add(deleteBtn);
+      this.add(deleteLabel);
+      this.saveListLabels.push(descLabel);
+      this.saveListActors.push(loadBtn, loadLabel, deleteBtn, deleteLabel);
+    });
   }
 
   onInitialize() {
@@ -58,74 +133,26 @@ export class MainMenuScene extends Scene {
 
     const title = new Label({
       text: "Starship Rover",
-      pos: vec(cx, this.engineRef.drawHeight / 2 - 100),
+      pos: vec(cx, this.engineRef.drawHeight / 2 - 140),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
-        size: 48,
+        size: 40,
         unit: FontUnit.Px,
       }),
     });
     title.anchor.setTo(0.5, 0.5);
 
-    const subtitle = new Label({
-      text: "Explore planets, collect resources,\nuse your math power!",
-      pos: vec(cx, this.engineRef.drawHeight / 2 - 30),
-      color: Color.fromHex("#c1d5ff"),
-      font: new Font({
-        family: "system-ui, sans-serif",
-        size: 20,
-        unit: FontUnit.Px,
-      }),
-    });
-    subtitle.anchor.setTo(0.5, 0.5);
-
-    this.bankLabel = new Label({
-      text: "Bank: 0 iron, 0 crystal, 0 gas",
-      pos: vec(cx, this.engineRef.drawHeight / 2 + 30),
-      color: Color.fromHex("#9ca3af"),
-      font: new Font({
-        family: "system-ui, sans-serif",
-        size: 18,
-        unit: FontUnit.Px,
-      }),
-    });
-    this.bankLabel.anchor.setTo(0.5, 0.5);
-
-    const playButton = new Actor({
-      pos: vec(cx, this.engineRef.drawHeight / 2 + 90),
-      width: 200,
-      height: 56,
-      color: Color.fromHex("#3b82f6"),
-    });
-    playButton.anchor.setTo(0.5, 0.5);
-    const playLabel = new Label({
-      text: "Play",
-      pos: playButton.pos.clone(),
-      color: Color.White,
-      font: new Font({
-        family: "system-ui, sans-serif",
-        size: 28,
-        unit: FontUnit.Px,
-      }),
-    });
-    playLabel.anchor.setTo(0.5, 0.5);
-    playButton.on("pointerup", () => {
-      requestFullscreen().finally(() => {
-        this.engineRef.goToScene("planet");
-      });
-    });
-
-    this.upgradeButton = new Actor({
-      pos: vec(cx, this.engineRef.drawHeight / 2 + 158),
+    const newGameButton = new Actor({
+      pos: vec(cx, this.engineRef.drawHeight / 2 - 80),
       width: 200,
       height: 48,
-      color: Color.fromHex("#8b5cf6"),
+      color: Color.fromHex("#3b82f6"),
     });
-    this.upgradeButton.anchor.setTo(0.5, 0.5);
-    const upgradeLabel = new Label({
-      text: "Upgrade Rover",
-      pos: this.upgradeButton.pos.clone(),
+    newGameButton.anchor.setTo(0.5, 0.5);
+    const newGameLabel = new Label({
+      text: "New Game",
+      pos: newGameButton.pos.clone(),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
@@ -133,46 +160,26 @@ export class MainMenuScene extends Scene {
         unit: FontUnit.Px,
       }),
     });
-    upgradeLabel.anchor.setTo(0.5, 0.5);
-    this.upgradeButton.on("pointerup", () => {
-      this.engineRef.goToScene("upgrade");
+    newGameLabel.anchor.setTo(0.5, 0.5);
+    newGameButton.on("pointerup", () => {
+      this.engineRef.goToScene("difficultySelect");
     });
 
-    if (isTouchDeviceCapable()) {
-      this.touchToggleButton = new Actor({
-        pos: vec(cx, this.engineRef.drawHeight / 2 + 218),
-        width: 200,
-        height: 40,
-        color: Color.fromHex("#4b5563"),
-      });
-      this.touchToggleButton.anchor.setTo(0.5, 0.5);
-      this.touchToggleLabel = new Label({
-        text: getTouchControlsEnabled()
-          ? "Touch controls: On"
-          : "Touch controls: Off",
-        pos: this.touchToggleButton.pos.clone(),
-        color: Color.fromHex("#d1d5db"),
-        font: new Font({
-          family: "system-ui, sans-serif",
-          size: 18,
-          unit: FontUnit.Px,
-        }),
-      });
-      this.touchToggleLabel.anchor.setTo(0.5, 0.5);
-      this.touchToggleButton.on("pointerup", () => {
-        setTouchControlsEnabled(!getTouchControlsEnabled());
-        this.updateTouchToggleLabel();
-      });
-      this.add(this.touchToggleButton);
-      this.add(this.touchToggleLabel);
-    }
+    const savesTitle = new Label({
+      text: "Saved games",
+      pos: vec(cx, this.engineRef.drawHeight / 2 - 48),
+      color: Color.fromHex("#9ca3af"),
+      font: new Font({
+        family: "system-ui, sans-serif",
+        size: 16,
+        unit: FontUnit.Px,
+      }),
+    });
+    savesTitle.anchor.setTo(0.5, 0.5);
 
     this.add(title);
-    this.add(subtitle);
-    this.add(this.bankLabel);
-    this.add(playButton);
-    this.add(playLabel);
-    this.add(this.upgradeButton);
-    this.add(upgradeLabel);
+    this.add(newGameButton);
+    this.add(newGameLabel);
+    this.add(savesTitle);
   }
 }

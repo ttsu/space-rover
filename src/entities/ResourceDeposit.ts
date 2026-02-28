@@ -2,6 +2,7 @@ import { Actor, CollisionType, Engine, vec } from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { ResourceNode } from "./ResourceNode";
 import type { IBlasterTarget } from "./BlasterProjectile";
+import { random } from "../utils/seedRandom";
 
 const DEFAULT_HP = 4;
 
@@ -66,9 +67,9 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
     const count = 6;
     const color = this.resource.color;
     for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+      const angle = (Math.PI * 2 * i) / count + random() * 0.5;
       const vel = vec(Math.cos(angle), Math.sin(angle)).scale(
-        40 + Math.random() * 40
+        40 + random() * 40
       );
       const p = new Actor({
         x: this.pos.x,

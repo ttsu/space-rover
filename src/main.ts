@@ -1,13 +1,13 @@
 import "./style.css";
 import { Engine, DisplayMode, Color } from "excalibur";
 import { loader } from "./resources";
+import { SplashScene } from "./scenes/SplashScene";
 import { MainMenuScene } from "./scenes/MainMenuScene";
+import { DifficultySelectScene } from "./scenes/DifficultySelectScene";
+import { PlanetRunMenuScene } from "./scenes/PlanetRunMenuScene";
 import { PlanetScene } from "./scenes/PlanetScene";
 import { SummaryScene } from "./scenes/SummaryScene";
 import { UpgradeScene } from "./scenes/UpgradeScene";
-import { loadProgress } from "./state/Progress";
-
-loadProgress();
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
 
@@ -23,10 +23,13 @@ const engine = new Engine({
   backgroundColor: Color.fromHex("#050816"),
 });
 
+engine.add("splash", new SplashScene(engine));
 engine.add("mainMenu", new MainMenuScene(engine));
+engine.add("difficultySelect", new DifficultySelectScene(engine));
+engine.add("planetRunMenu", new PlanetRunMenuScene(engine));
 engine.add("planet", new PlanetScene(engine));
 engine.add("summary", new SummaryScene(engine));
 engine.add("upgrade", new UpgradeScene(engine));
 
-engine.goToScene("mainMenu");
+engine.goToScene("splash");
 engine.start(loader);

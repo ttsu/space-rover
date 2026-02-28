@@ -1,4 +1,4 @@
-import { Color, Engine, Scene } from "excalibur";
+import { Actor, Color, Engine, Scene } from "excalibur";
 import {
   BASE_SAFE_RADIUS_TILES,
   LAVA_DENSITY,
@@ -21,16 +21,29 @@ import {
   LightningZone,
 } from "../hazards/Hazards";
 import type { Rover } from "../entities/Rover";
+import { random } from "../utils/seedRandom";
+import type { Difficulty } from "../state/Saves";
+import { DIFFICULTY_MULTIPLIERS } from "../config/difficulty";
 
 export interface PlanetGenerationResult {
   base: BaseLander;
+  actors: Actor[];
+}
+
+export interface GeneratePlanetOptions {
+  difficulty?: Difficulty;
 }
 
 export function generatePlanet(
   scene: Scene,
   _engine: Engine,
-  rover: Rover
+  rover: Rover,
+  options?: GeneratePlanetOptions
 ): PlanetGenerationResult {
+  const difficulty = options?.difficulty ?? "normal";
+  const mult = DIFFICULTY_MULTIPLIERS[difficulty];
+
+  const actors: Actor[] = [];
   const centerTileX = Math.floor(PLANET_WIDTH_TILES / 2);
   const centerTileY = Math.floor(PLANET_HEIGHT_TILES / 2);
 
@@ -39,6 +52,7 @@ export function generatePlanet(
       const isCenter = x === centerTileX && y === centerTileY;
       const tile = new Tile(x, y, isCenter ? "base" : "ground");
       scene.add(tile);
+      actors.push(tile);
     }
   }
 
@@ -46,16 +60,17 @@ export function generatePlanet(
   const baseY = centerTileY * TILE_SIZE + TILE_SIZE / 2;
   const base = new BaseLander(baseX, baseY);
   scene.add(base);
+  actors.push(base);
 
   rover.pos.x = baseX;
   rover.pos.y = baseY - TILE_SIZE;
 
   const totalTiles = PLANET_WIDTH_TILES * PLANET_HEIGHT_TILES;
 
-  const resourceCount = Math.floor(totalTiles * RESOURCE_DENSITY);
-  const lavaCount = Math.floor(totalTiles * LAVA_DENSITY);
-  const rockCount = Math.floor(totalTiles * ROCK_DENSITY);
-  const stormCount = Math.floor(totalTiles * STORM_ZONE_DENSITY);
+  const resourceCount = Math.floor(totalTiles * RESOURCE_DENSITY * mult.resourceDensity);
+  const lavaCount = Math.floor(totalTiles * LAVA_DENSITY * mult.lavaDensity);
+  const rockCount = Math.floor(totalTiles * ROCK_DENSITY * mult.rockDensity);
+  const stormCount = Math.floor(totalTiles * STORM_ZONE_DENSITY * mult.stormZoneDensity);
 
   const occupied = new Set<string>();
   occupied.add(`${centerTileX},${centerTileY}`);
@@ -68,8 +83,8 @@ export function generatePlanet(
 
   function randomTile(): { x: number; y: number } {
     return {
-      x: Math.floor(Math.random() * PLANET_WIDTH_TILES),
-      y: Math.floor(Math.random() * PLANET_HEIGHT_TILES),
+      x: Math.floor(random() * PLANET_WIDTH_TILES),
+      y: Math.floor(random() * PLANET_HEIGHT_TILES),
     };
   }
 
@@ -103,16 +118,18 @@ export function generatePlanet(
   const resourceIds: ResourceId[] = ["iron", "crystal", "gas"];
   place(resourceCount, (gridX, gridY) => {
     const resourceId =
-      resourceIds[Math.floor(Math.random() * resourceIds.length)];
+      resourceIds[Math.floor(random() * resourceIds.length)];
     const type = RESOURCE_TYPES.find((r) => r.id === resourceId)!;
     const nodeX = gridX * TILE_SIZE + TILE_SIZE / 2;
     const nodeY = gridY * TILE_SIZE + TILE_SIZE / 2;
     if (resourceId === "gas") {
       const node = new ResourceNode(nodeX, nodeY, type);
       scene.add(node);
+      actors.push(node);
     } else {
       const deposit = new ResourceDeposit(nodeX, nodeY, type, 4);
       scene.add(deposit);
+      actors.push(deposit);
     }
   });
 
@@ -129,6 +146,7 @@ export function generatePlanet(
       "lava"
     );
     scene.add(lava);
+    actors.push(lava);
   });
 
   placeHazard(rockCount, (gridX, gridY) => {
@@ -144,18 +162,21 @@ export function generatePlanet(
       "rock"
     );
     scene.add(rock);
+    actors.push(rock);
   });
 
   placeHazard(stormCount, (gridX, gridY) => {
     const x = gridX * TILE_SIZE + TILE_SIZE / 2;
     const y = gridY * TILE_SIZE + TILE_SIZE / 2;
-    const angle = Math.random() * Math.PI * 2;
+    const angle = random() * Math.PI * 2;
     const wind = new WindZone(x, y, TILE_SIZE * 2, TILE_SIZE * 2, rover, angle);
     scene.add(wind);
+    actors.push(wind);
 
     const lightning = new LightningZone(x, y, rover);
     scene.add(lightning);
+    actors.push(lightning);
   });
 
-  return { base };
+  return { base, actors };
 }

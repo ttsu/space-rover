@@ -11,6 +11,7 @@ import {
 import type { Rover } from "../entities/Rover";
 import { recordHazardHit, type HazardKind } from "../state/GameState";
 import { LAVA_SLOW_FACTOR } from "../config/gameConfig";
+import { random } from "../utils/seedRandom";
 
 abstract class HazardBase extends Actor {
   protected rover: Rover;
@@ -100,12 +101,12 @@ export class WindZone extends HazardBase {
   onPreUpdate(_engine: Engine, delta: number): void {
     if (this.roverInWind) {
       const pushStrength =
-        (Math.random() * 200 + 500) * (1 - this.rover.getWindResist());
+        (random() * 200 + 500) * (1 - this.rover.getWindResist());
       this.rover.vel = this.rover.vel.add(
         this.direction.scale(pushStrength * (delta / 1000))
       );
     }
-    this.transform.rotation += Math.random() * 0.1 + 0.1;
+    this.transform.rotation += random() * 0.1 + 0.1;
   }
 }
 

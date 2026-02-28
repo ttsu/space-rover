@@ -2,8 +2,11 @@ import type { CargoCounts } from "../entities/Rover";
 import type { ResourceId } from "../resources/ResourceTypes";
 import type { UpgradeDef } from "../upgrades/UpgradeDefs";
 import { getUpgradeCost } from "../upgrades/UpgradeDefs";
-
-const STORAGE_KEY = "starship-rover-progress";
+import {
+  getCurrentSave,
+  saveCurrentSave,
+  type CargoCountsSave,
+} from "./Saves";
 
 export interface PersistedProgress {
   bank: CargoCounts;
@@ -16,94 +19,70 @@ const defaultBank: CargoCounts = {
   gas: 0,
 };
 
-function defaultProgress(): PersistedProgress {
-  return {
-    bank: { ...defaultBank },
-    appliedUpgrades: [],
-  };
-}
-
-let current: PersistedProgress = defaultProgress();
-
-function parseProgress(raw: string | null): PersistedProgress {
-  if (!raw) return defaultProgress();
-  try {
-    const data = JSON.parse(raw) as unknown;
-    if (!data || typeof data !== "object") return defaultProgress();
-    const obj = data as Record<string, unknown>;
-    const bank = obj.bank as Record<string, number> | undefined;
-    const appliedUpgrades = Array.isArray(obj.appliedUpgrades)
-      ? (obj.appliedUpgrades as string[])
-      : [];
-    const parsed: PersistedProgress = {
-      bank: {
-        iron: typeof bank?.iron === "number" ? bank.iron : 0,
-        crystal: typeof bank?.crystal === "number" ? bank.crystal : 0,
-        gas: typeof bank?.gas === "number" ? bank.gas : 0,
-      },
-      appliedUpgrades,
-    };
-    return parsed;
-  } catch {
-    return defaultProgress();
-  }
-}
-
-export function loadProgress(): PersistedProgress {
-  if (typeof window === "undefined" || !window.localStorage)
-    return defaultProgress();
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  current = parseProgress(raw);
-  return current;
-}
-
-export function saveProgress(progress: PersistedProgress): void {
-  current = progress;
-  if (typeof window === "undefined" || !window.localStorage) return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+function cargoFromSave(c: CargoCountsSave): CargoCounts {
+  return { iron: c.iron, crystal: c.crystal, gas: c.gas };
 }
 
 export function getProgress(): PersistedProgress {
+  const save = getCurrentSave();
+  if (!save)
+    return {
+      bank: { ...defaultBank },
+      appliedUpgrades: [],
+    };
   return {
-    ...current,
-    bank: { ...current.bank },
-    appliedUpgrades: [...current.appliedUpgrades],
+    bank: cargoFromSave(save.bank),
+    appliedUpgrades: [...save.appliedUpgrades],
   };
 }
 
 export function addToBank(cargo: CargoCounts): void {
-  const next: CargoCounts = {
-    iron: current.bank.iron + cargo.iron,
-    crystal: current.bank.crystal + cargo.crystal,
-    gas: current.bank.gas + cargo.gas,
-  };
-  saveProgress({ ...current, bank: next });
+  const save = getCurrentSave();
+  if (!save) return;
+  save.bank.iron += cargo.iron;
+  save.bank.crystal += cargo.crystal;
+  save.bank.gas += cargo.gas;
+  save.totalResourcesCollected.iron += cargo.iron;
+  save.totalResourcesCollected.crystal += cargo.crystal;
+  save.totalResourcesCollected.gas += cargo.gas;
+  saveCurrentSave();
 }
 
 export function getBank(): CargoCounts {
-  return { ...current.bank };
+  const save = getCurrentSave();
+  if (!save) return { ...defaultBank };
+  return cargoFromSave(save.bank);
 }
 
 export function getAppliedUpgrades(): string[] {
-  return [...current.appliedUpgrades];
+  const save = getCurrentSave();
+  if (!save) return [];
+  return [...save.appliedUpgrades];
 }
 
 export function spendFromBank(
   costs: Partial<Record<ResourceId, number>>
 ): boolean {
-  const bank = { ...current.bank };
+  const save = getCurrentSave();
+  if (!save) return false;
+  const bank = save.bank;
   for (const id of ["iron", "crystal", "gas"] as const) {
     const cost = costs[id] ?? 0;
     if (cost > 0 && bank[id] < cost) return false;
-    bank[id] -= cost;
   }
-  saveProgress({ ...current, bank });
+  for (const id of ["iron", "crystal", "gas"] as const) {
+    const cost = costs[id] ?? 0;
+    if (cost > 0) bank[id] -= cost;
+  }
+  saveCurrentSave();
   return true;
 }
 
 export function addAppliedUpgrade(upgradeId: string): void {
-  current.appliedUpgrades.push(upgradeId);
-  saveProgress(current);
+  const save = getCurrentSave();
+  if (!save) return;
+  save.appliedUpgrades.push(upgradeId);
+  saveCurrentSave();
 }
 
 export function applyUpgrade(def: UpgradeDef): boolean {

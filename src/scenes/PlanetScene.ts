@@ -18,6 +18,8 @@ import { resetRunTracking, finishRun } from "../state/GameState";
 import { Hud } from "../ui/Hud";
 import { TouchControls } from "../ui/TouchControls";
 import { getTouchControlsEnabled } from "../input/TouchInputState";
+import { getCurrentSave } from "../state/Saves";
+import { setSeed } from "../utils/seedRandom";
 
 export class PlanetScene extends Scene {
   private engineRef: Engine;
@@ -27,6 +29,7 @@ export class PlanetScene extends Scene {
   private returnToShipBtn?: Actor;
   private returnToShipLabel?: Label;
   private basePos = vec(0, 0);
+  private worldActors: Actor[] = [];
   private quakeTimer = 0;
   private runEnded = false;
 
@@ -37,8 +40,21 @@ export class PlanetScene extends Scene {
 
   onActivate() {
     resetRunTracking();
+    const save = getCurrentSave();
+    if (!save) {
+      this.engineRef.goToScene("mainMenu");
+      return;
+    }
+    for (const a of this.worldActors) a.kill();
+    this.worldActors = [];
+    setSeed(save.seed);
+    const planet = generatePlanet(this, this.engineRef, this.rover, {
+      difficulty: save.difficulty,
+    });
+    this.basePos = planet.base.pos.clone();
+    this.worldActors = planet.actors;
+    this.runEnded = false;
     if (this.rover) {
-      this.runEnded = false;
       this.rover.resetForNewMission();
       this.rover.pos.x = this.basePos.x;
       this.rover.pos.y = this.basePos.y - TILE_SIZE;
@@ -62,9 +78,6 @@ export class PlanetScene extends Scene {
       const proj = new BlasterProjectile(x, y, angle, damage, speed, range);
       this.add(proj);
     };
-
-    const planet = generatePlanet(this, this.engineRef, this.rover);
-    this.basePos = planet.base.pos.clone();
 
     this.infoLabel = new Label({
       text: "W/S A/D drive. Space to fire blaster. Return to base to finish.",

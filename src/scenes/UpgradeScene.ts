@@ -210,7 +210,7 @@ export class UpgradeScene extends Scene {
     backBtn.on("pointerup", () => {
       this.chosenResource = null;
       this.options = [];
-      this.engineRef.goToScene("mainMenu");
+      this.engineRef.goToScene("planetRunMenu");
     });
 
     this.add(this.titleLabel);

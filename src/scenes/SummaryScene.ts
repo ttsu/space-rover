@@ -69,7 +69,7 @@ export class SummaryScene extends Scene {
     });
     menuLabel.anchor.setTo(0.5, 0.5);
     menuButton.on("pointerup", () => {
-      this.engineRef.goToScene("mainMenu");
+      this.engineRef.goToScene("planetRunMenu");
     });
 
     const upgradeButton = new Actor({
