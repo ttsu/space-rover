@@ -1,5 +1,6 @@
 import type { CargoCounts } from "../entities/Rover";
 import { addToBank } from "./Progress";
+import { evaluateGoals, getGoalResults } from "./RunGoals";
 
 export type HazardKind = "lava" | "lightning" | "rock" | "wind" | "quake";
 
@@ -53,8 +54,21 @@ export function finishRun(
     hazardsHit: hazardsCopy,
   };
 
-  if (healthRemaining > 0) {
+  const survived = healthRemaining > 0;
+
+  evaluateGoals(GameState.lastRun, survived, hazardsCopy.lava);
+
+  if (survived) {
     addToBank(cargo);
+
+    for (const res of getGoalResults()) {
+      if (res.met && res.bonusAmount > 0) {
+        const bonus: CargoCounts = { iron: 0, crystal: 0, gas: 0 };
+        bonus[res.bonusResource] = res.bonusAmount;
+        addToBank(bonus);
+      }
+    }
+
     if (totalCargoPieces > GameState.bestTotalCargo) {
       GameState.bestTotalCargo = totalCargoPieces;
     }

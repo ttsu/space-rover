@@ -2,6 +2,7 @@ import { Actor, Color, Engine, Label, vec, Font, FontUnit } from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { Rover } from "./Rover";
 import { risingBurst } from "../effects/Particles";
+import { playPickup } from "../audio/sounds";
 
 export class ResourceNode extends Actor {
   resource: ResourceTypeDef;
@@ -35,6 +36,7 @@ export class ResourceNode extends Actor {
               upwardBias: 0.8,
             });
           }
+          playPickup();
           this.showPopup(engine, `+${this.sizeUnits} ${this.resource.name}`);
           this.kill();
         } else {

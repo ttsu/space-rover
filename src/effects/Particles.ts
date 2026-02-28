@@ -73,11 +73,9 @@ export function burst(
   emitter.body.collisionType = CollisionType.PreventCollision;
   scene.add(emitter);
   emitter.emitParticles(opts.count);
-  emitter.actions
-    .delay(opts.lifetimeMs + 100)
-    .callMethod(() => {
-      emitter.kill();
-    });
+  emitter.actions.delay(opts.lifetimeMs + 100).callMethod(() => {
+    emitter.kill();
+  });
 }
 
 export interface RisingBurstOptions {
@@ -138,11 +136,9 @@ export function risingBurst(
   emitter.body.collisionType = CollisionType.PreventCollision;
   scene.add(emitter);
   emitter.emitParticles(count);
-  emitter.actions
-    .delay(lifetimeMs + 100)
-    .callMethod(() => {
-      emitter.kill();
-    });
+  emitter.actions.delay(lifetimeMs + 100).callMethod(() => {
+    emitter.kill();
+  });
 }
 
 /**

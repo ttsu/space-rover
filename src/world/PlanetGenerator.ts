@@ -67,10 +67,14 @@ export function generatePlanet(
 
   const totalTiles = PLANET_WIDTH_TILES * PLANET_HEIGHT_TILES;
 
-  const resourceCount = Math.floor(totalTiles * RESOURCE_DENSITY * mult.resourceDensity);
+  const resourceCount = Math.floor(
+    totalTiles * RESOURCE_DENSITY * mult.resourceDensity
+  );
   const lavaCount = Math.floor(totalTiles * LAVA_DENSITY * mult.lavaDensity);
   const rockCount = Math.floor(totalTiles * ROCK_DENSITY * mult.rockDensity);
-  const stormCount = Math.floor(totalTiles * STORM_ZONE_DENSITY * mult.stormZoneDensity);
+  const stormCount = Math.floor(
+    totalTiles * STORM_ZONE_DENSITY * mult.stormZoneDensity
+  );
 
   const occupied = new Set<string>();
   occupied.add(`${centerTileX},${centerTileY}`);
@@ -117,8 +121,7 @@ export function generatePlanet(
 
   const resourceIds: ResourceId[] = ["iron", "crystal", "gas"];
   place(resourceCount, (gridX, gridY) => {
-    const resourceId =
-      resourceIds[Math.floor(random() * resourceIds.length)];
+    const resourceId = resourceIds[Math.floor(random() * resourceIds.length)];
     const type = RESOURCE_TYPES.find((r) => r.id === resourceId)!;
     const nodeX = gridX * TILE_SIZE + TILE_SIZE / 2;
     const nodeY = gridY * TILE_SIZE + TILE_SIZE / 2;

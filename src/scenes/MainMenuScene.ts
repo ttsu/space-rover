@@ -15,8 +15,11 @@ import {
   getLastPlayedSaveId,
   type SaveIndexEntry,
 } from "../state/Saves";
+import { playClick } from "../audio/sounds";
 
-function formatTotalResources(t: SaveIndexEntry["totalResourcesCollected"]): string {
+function formatTotalResources(
+  t: SaveIndexEntry["totalResourcesCollected"]
+): string {
   const total = t.iron + t.crystal + t.gas;
   return `${total} total (${t.iron} iron, ${t.crystal} crystal, ${t.gas} gas)`;
 }
@@ -58,7 +61,9 @@ export class MainMenuScene extends Scene {
       const descLabel = new Label({
         text: isLastPlayed ? `★ ${desc}` : desc,
         pos: vec(col1X, y),
-        color: isLastPlayed ? Color.fromHex("#fbbf24") : Color.fromHex("#e5e7eb"),
+        color: isLastPlayed
+          ? Color.fromHex("#fbbf24")
+          : Color.fromHex("#e5e7eb"),
         font: new Font({
           family: "system-ui, sans-serif",
           size: 14,
@@ -86,6 +91,7 @@ export class MainMenuScene extends Scene {
       });
       loadLabel.anchor.setTo(0.5, 0.5);
       loadBtn.on("pointerup", () => {
+        playClick();
         loadSave(entry.id);
         this.engineRef.goToScene("planetRunMenu");
       });
@@ -162,6 +168,7 @@ export class MainMenuScene extends Scene {
     });
     newGameLabel.anchor.setTo(0.5, 0.5);
     newGameButton.on("pointerup", () => {
+      playClick();
       this.engineRef.goToScene("difficultySelect");
     });
 

@@ -15,6 +15,7 @@ import {
   type UpgradeDef,
 } from "../upgrades/UpgradeDefs";
 import type { ResourceId } from "../resources/ResourceTypes";
+import { playClick } from "../audio/sounds";
 
 export class UpgradeScene extends Scene {
   private engineRef: Engine;
@@ -114,6 +115,7 @@ export class UpgradeScene extends Scene {
       label.anchor.setTo(0.5, 0.5);
       const resource = r;
       btn.on("pointerup", () => {
+        playClick();
         this.chosenResource = resource;
         this.rebuildUI();
       });
@@ -149,6 +151,7 @@ export class UpgradeScene extends Scene {
       label.anchor.setTo(0.5, 0.5);
       const def = opt;
       btn.on("pointerup", () => {
+        playClick();
         if (applyUpgrade(def)) {
           this.chosenResource = null;
           this.options = [];
@@ -208,6 +211,7 @@ export class UpgradeScene extends Scene {
     });
     backLabel.anchor.setTo(0.5, 0.5);
     backBtn.on("pointerup", () => {
+      playClick();
       this.chosenResource = null;
       this.options = [];
       this.engineRef.goToScene("planetRunMenu");

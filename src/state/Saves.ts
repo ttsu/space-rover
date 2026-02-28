@@ -73,7 +73,9 @@ function parseSave(raw: string | null): GameSave | null {
     const id = typeof obj.id === "string" ? obj.id : "";
     const seed = typeof obj.seed === "number" ? obj.seed : generateSeed();
     const difficulty =
-      obj.difficulty === "easy" || obj.difficulty === "normal" || obj.difficulty === "hard"
+      obj.difficulty === "easy" ||
+      obj.difficulty === "normal" ||
+      obj.difficulty === "hard"
         ? obj.difficulty
         : "normal";
     const bank = parseCargo(obj.bank);
@@ -81,7 +83,8 @@ function parseSave(raw: string | null): GameSave | null {
       ? (obj.appliedUpgrades as string[])
       : [];
     const totalResourcesCollected = parseCargo(obj.totalResourcesCollected);
-    const createdAt = typeof obj.createdAt === "number" ? obj.createdAt : Date.now();
+    const createdAt =
+      typeof obj.createdAt === "number" ? obj.createdAt : Date.now();
     return {
       id,
       seed,
@@ -114,7 +117,9 @@ function readIndex(): SaveIndexEntry[] {
       return {
         id: typeof o.id === "string" ? o.id : "",
         difficulty:
-          o.difficulty === "easy" || o.difficulty === "normal" || o.difficulty === "hard"
+          o.difficulty === "easy" ||
+          o.difficulty === "normal" ||
+          o.difficulty === "hard"
             ? o.difficulty
             : "normal",
         totalResourcesCollected: parseCargo(o.totalResourcesCollected),
@@ -183,7 +188,11 @@ export function createSave(difficulty: Difficulty): GameSave {
     writeIndex(index);
     storage.setItem(LAST_PLAYED_KEY, id);
   }
-  return { ...save, bank: { ...save.bank }, totalResourcesCollected: { ...save.totalResourcesCollected } };
+  return {
+    ...save,
+    bank: { ...save.bank },
+    totalResourcesCollected: { ...save.totalResourcesCollected },
+  };
 }
 
 export function deleteSave(id: string): void {
@@ -191,7 +200,8 @@ export function deleteSave(id: string): void {
   if (storage) {
     storage.removeItem(saveKey(id));
     if (currentSave?.id === id) currentSave = null;
-    if (storage.getItem(LAST_PLAYED_KEY) === id) storage.removeItem(LAST_PLAYED_KEY);
+    if (storage.getItem(LAST_PLAYED_KEY) === id)
+      storage.removeItem(LAST_PLAYED_KEY);
     const index = readIndex().filter((e) => e.id !== id);
     writeIndex(index);
   }

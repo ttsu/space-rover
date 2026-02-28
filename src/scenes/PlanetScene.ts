@@ -14,13 +14,14 @@ import { Rover } from "../entities/Rover";
 import { BlasterProjectile } from "../entities/BlasterProjectile";
 import { generatePlanet } from "../world/PlanetGenerator";
 import { TILE_SIZE } from "../config/gameConfig";
-import { resetRunTracking, finishRun } from "../state/GameState";
+import { resetRunTracking, finishRun, GameState } from "../state/GameState";
 import { Hud } from "../ui/Hud";
 import { TouchControls } from "../ui/TouchControls";
 import { getTouchControlsEnabled } from "../input/TouchInputState";
 import { getCurrentSave } from "../state/Saves";
 import { setSeed } from "../utils/seedRandom";
-import { burst } from "../effects/Particles";
+import { burst, risingBurst } from "../effects/Particles";
+import { playBlaster, playDamage, playDock, playDeath } from "../audio/sounds";
 
 export class PlanetScene extends Scene {
   private engineRef: Engine;
@@ -72,6 +73,7 @@ export class PlanetScene extends Scene {
     this.add(this.rover);
 
     this.rover.onDamaged = (amount: number) => {
+      playDamage();
       this.engineRef.currentScene.camera.shake(4, 4, 200);
       const r = this.rover.pos;
       burst(this, r.x, r.y, {
@@ -86,6 +88,7 @@ export class PlanetScene extends Scene {
     };
 
     this.rover.onFireBlaster = (x, y, angle, damage, speed, range) => {
+      playBlaster();
       const proj = new BlasterProjectile(x, y, angle, damage, speed, range);
       this.add(proj);
     };
@@ -100,7 +103,6 @@ export class PlanetScene extends Scene {
         unit: FontUnit.Px,
       }),
     });
-
     this.add(this.infoLabel);
 
     this.hud = new Hud(this.engineRef, this.rover);
@@ -131,14 +133,7 @@ export class PlanetScene extends Scene {
       returnLabel.anchor.setTo(0.5, 0.5);
       returnBtn.on("pointerup", () => {
         if (this.runEnded) return;
-        this.runEnded = true;
-        finishRun(
-          this.rover.cargo,
-          this.rover.usedCapacity,
-          this.rover.maxCapacity,
-          this.rover.health
-        );
-        this.engineRef.goToScene("summary");
+        this.triggerReturnToBase();
       });
       returnContainer.addChild(returnBtn);
       returnContainer.addChild(returnLabel);
@@ -152,9 +147,42 @@ export class PlanetScene extends Scene {
     this.camera.strategy.lockToActor(this.rover);
   }
 
-  onPreUpdate(engine: Engine, delta: number): void {
-    if (!this.runEnded && this.rover.health <= 0) {
-      this.runEnded = true;
+  private triggerReturnToBase(): void {
+    this.runEnded = true;
+    playDock();
+
+    risingBurst(this, this.basePos.x, this.basePos.y, {
+      color: Color.fromHex("#facc15"),
+      count: 20,
+      speedMin: 30,
+      speedMax: 80,
+      lifetimeMs: 600,
+      sizeMin: 3,
+      sizeMax: 8,
+      upwardBias: 0.5,
+    });
+
+    const bankedLabel = new Label({
+      text: "Cargo banked!",
+      pos: vec(
+        this.engineRef.drawWidth / 2,
+        this.engineRef.drawHeight / 2 - 40
+      ),
+      color: Color.fromHex("#facc15"),
+      font: new Font({
+        family: "system-ui, sans-serif",
+        size: 28,
+        unit: FontUnit.Px,
+      }),
+    });
+    bankedLabel.anchor.setTo(0.5, 0.5);
+    this.add(bankedLabel);
+
+    const roverTarget = this.basePos.clone();
+    this.rover.actions.moveTo(roverTarget, 120);
+
+    setTimeout(() => {
+      bankedLabel.kill();
       finishRun(
         this.rover.cargo,
         this.rover.usedCapacity,
@@ -162,6 +190,56 @@ export class PlanetScene extends Scene {
         this.rover.health
       );
       this.engineRef.goToScene("summary");
+    }, 1200);
+  }
+
+  private triggerDeath(): void {
+    this.runEnded = true;
+    playDeath();
+
+    this.engineRef.currentScene.camera.shake(8, 8, 500);
+
+    burst(this, this.rover.pos.x, this.rover.pos.y, {
+      color: Color.fromHex("#ef4444"),
+      count: 20,
+      speedMin: 40,
+      speedMax: 120,
+      lifetimeMs: 600,
+      sizeMin: 4,
+      sizeMax: 10,
+    });
+
+    const failLabel = new Label({
+      text: "Mission failed",
+      pos: vec(
+        this.engineRef.drawWidth / 2,
+        this.engineRef.drawHeight / 2 - 40
+      ),
+      color: Color.fromHex("#ef4444"),
+      font: new Font({
+        family: "system-ui, sans-serif",
+        size: 32,
+        unit: FontUnit.Px,
+      }),
+    });
+    failLabel.anchor.setTo(0.5, 0.5);
+    this.add(failLabel);
+
+    setTimeout(() => {
+      failLabel.kill();
+      finishRun(
+        this.rover.cargo,
+        this.rover.usedCapacity,
+        this.rover.maxCapacity,
+        this.rover.health
+      );
+      this.engineRef.goToScene("summary");
+    }, 1500);
+  }
+
+  onPreUpdate(engine: Engine, delta: number): void {
+    if (!this.runEnded && this.rover.health <= 0) {
+      this.triggerDeath();
       return;
     }
 
@@ -171,14 +249,7 @@ export class PlanetScene extends Scene {
     if (!this.runEnded && closeToBase) {
       const keyboard = engine.input.keyboard;
       if (keyboard.wasPressed(Keys.Enter)) {
-        this.runEnded = true;
-        finishRun(
-          this.rover.cargo,
-          this.rover.usedCapacity,
-          this.rover.maxCapacity,
-          this.rover.health
-        );
-        this.engineRef.goToScene("summary");
+        this.triggerReturnToBase();
       }
     }
 
@@ -188,7 +259,7 @@ export class PlanetScene extends Scene {
       this.engineRef.currentScene.camera.shake(5, 5, 500);
     }
 
-    this.hud.updateFromState(closeToBase);
+    this.hud.updateFromState(closeToBase, GameState.currentHazardsHit.lava);
 
     if (this.returnToShipBtn && this.returnToShipLabel) {
       const show = !this.runEnded && closeToBase;

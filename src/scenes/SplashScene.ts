@@ -9,6 +9,7 @@ import {
   vec,
 } from "excalibur";
 import { requestFullscreen } from "../fullscreen";
+import { playClick } from "../audio/sounds";
 
 export class SplashScene extends Scene {
   private engineRef: Engine;
@@ -52,6 +53,7 @@ export class SplashScene extends Scene {
     });
     startLabel.anchor.setTo(0.5, 0.5);
     startButton.on("pointerup", () => {
+      playClick();
       requestFullscreen().finally(() => {
         this.engineRef.goToScene("mainMenu");
       });

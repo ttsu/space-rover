@@ -2,11 +2,7 @@ import type { CargoCounts } from "../entities/Rover";
 import type { ResourceId } from "../resources/ResourceTypes";
 import type { UpgradeDef } from "../upgrades/UpgradeDefs";
 import { getUpgradeCost } from "../upgrades/UpgradeDefs";
-import {
-  getCurrentSave,
-  saveCurrentSave,
-  type CargoCountsSave,
-} from "./Saves";
+import { getCurrentSave, saveCurrentSave, type CargoCountsSave } from "./Saves";
 
 export interface PersistedProgress {
   bank: CargoCounts;

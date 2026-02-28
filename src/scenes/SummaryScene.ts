@@ -10,10 +10,13 @@ import {
 } from "excalibur";
 import { GameState } from "../state/GameState";
 import { getBank } from "../state/Progress";
+import { getGoalResults } from "../state/RunGoals";
+import { playClick } from "../audio/sounds";
 
 export class SummaryScene extends Scene {
   private engineRef: Engine;
   private statsLabel!: Label;
+  private goalResultLabel!: Label;
 
   constructor(engine: Engine) {
     super();
@@ -25,7 +28,7 @@ export class SummaryScene extends Scene {
       text: "Mission Summary",
       pos: vec(
         this.engineRef.drawWidth / 2,
-        this.engineRef.drawHeight / 2 - 120
+        this.engineRef.drawHeight / 2 - 150
       ),
       color: Color.White,
       font: new Font({
@@ -36,9 +39,27 @@ export class SummaryScene extends Scene {
     });
     title.anchor.setTo(0.5, 0.5);
 
+    this.goalResultLabel = new Label({
+      text: "",
+      pos: vec(
+        this.engineRef.drawWidth / 2,
+        this.engineRef.drawHeight / 2 - 110
+      ),
+      color: Color.fromHex("#fbbf24"),
+      font: new Font({
+        family: "system-ui, sans-serif",
+        size: 18,
+        unit: FontUnit.Px,
+      }),
+    });
+    this.goalResultLabel.anchor.setTo(0.5, 0.5);
+
     this.statsLabel = new Label({
       text: "",
-      pos: vec(this.engineRef.drawWidth / 2, this.engineRef.drawHeight / 2),
+      pos: vec(
+        this.engineRef.drawWidth / 2,
+        this.engineRef.drawHeight / 2 - 20
+      ),
       color: Color.fromHex("#e5e7eb"),
       font: new Font({
         family: "system-ui, sans-serif",
@@ -69,6 +90,7 @@ export class SummaryScene extends Scene {
     });
     menuLabel.anchor.setTo(0.5, 0.5);
     menuButton.on("pointerup", () => {
+      playClick();
       this.engineRef.goToScene("planetRunMenu");
     });
 
@@ -91,10 +113,12 @@ export class SummaryScene extends Scene {
     });
     upgradeLabel.anchor.setTo(0.5, 0.5);
     upgradeButton.on("pointerup", () => {
+      playClick();
       this.engineRef.goToScene("upgrade");
     });
 
     this.add(title);
+    this.add(this.goalResultLabel);
     this.add(this.statsLabel);
     this.add(menuButton);
     this.add(menuLabel);
@@ -106,7 +130,31 @@ export class SummaryScene extends Scene {
     const run = GameState.lastRun;
     if (!run) {
       this.statsLabel.text = "No mission data yet.\nExplore a planet first!";
+      this.goalResultLabel.text = "";
       return;
+    }
+
+    const results = getGoalResults();
+    if (results.length > 0) {
+      const lines = results.map(
+        (r) =>
+          (r.met ? "✓ " : "○ ") +
+          r.goal.label +
+          (r.met ? ` (+${r.bonusAmount} ${r.bonusResource})` : "")
+      );
+      const bonusTotal: Record<string, number> = { iron: 0, crystal: 0, gas: 0 };
+      for (const r of results) {
+        if (r.met && r.bonusAmount > 0) bonusTotal[r.bonusResource] += r.bonusAmount;
+      }
+      const bonusParts = (["iron", "crystal", "gas"] as const)
+        .filter((id) => bonusTotal[id] > 0)
+        .map((id) => `+${bonusTotal[id]} ${id}`);
+      this.goalResultLabel.text =
+        lines.join("\n") +
+        (bonusParts.length > 0 ? "\n\nBonus: " + bonusParts.join(", ") : "");
+      this.goalResultLabel.color = Color.fromHex("#fbbf24");
+    } else {
+      this.goalResultLabel.text = "";
     }
 
     const totalPieces = run.cargo.iron + run.cargo.crystal + run.cargo.gas;
