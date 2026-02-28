@@ -1,7 +1,7 @@
 import { ImageSource, Loader } from "excalibur";
 
 export const Resources = {
-  RoverSprite: new ImageSource("/assets/rover_sprite.png"),
+  RoverSprite: new ImageSource(`${import.meta.env.BASE_URL}assets/rover_sprite.png`),
 } as const;
 
 export const loader = new Loader();
