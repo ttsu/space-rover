@@ -9,6 +9,9 @@ export const ROVER_SPRITE_HEIGHT = 32;
 export const PLANET_WIDTH_TILES = 50;
 export const PLANET_HEIGHT_TILES = 50;
 
+/** Tile radius around base where no hazards are placed (Chebyshev distance). */
+export const BASE_SAFE_RADIUS_TILES = 3;
+
 export const ROVER_BASE_SPEED = 200;
 export const ROVER_MAX_CAPACITY = 20;
 export const ROVER_BASE_HEALTH = 5;

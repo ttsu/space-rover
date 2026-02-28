@@ -1,5 +1,6 @@
 import { Color, Engine, Scene } from "excalibur";
 import {
+  BASE_SAFE_RADIUS_TILES,
   LAVA_DENSITY,
   PLANET_HEIGHT_TILES,
   PLANET_WIDTH_TILES,
@@ -59,6 +60,12 @@ export function generatePlanet(
   const occupied = new Set<string>();
   occupied.add(`${centerTileX},${centerTileY}`);
 
+  function isInBaseVicinity(gridX: number, gridY: number): boolean {
+    const dx = Math.abs(gridX - centerTileX);
+    const dy = Math.abs(gridY - centerTileY);
+    return Math.max(dx, dy) <= BASE_SAFE_RADIUS_TILES;
+  }
+
   function randomTile(): { x: number; y: number } {
     return {
       x: Math.floor(Math.random() * PLANET_WIDTH_TILES),
@@ -73,6 +80,20 @@ export function generatePlanet(
       const { x, y } = randomTile();
       const key = `${x},${y}`;
       if (occupied.has(key)) continue;
+      occupied.add(key);
+      cb(x, y);
+      placed++;
+    }
+  }
+
+  function placeHazard(count: number, cb: (x: number, y: number) => void) {
+    let placed = 0;
+    let safety = totalTiles * 4;
+    while (placed < count && safety-- > 0) {
+      const { x, y } = randomTile();
+      const key = `${x},${y}`;
+      if (occupied.has(key)) continue;
+      if (isInBaseVicinity(x, y)) continue;
       occupied.add(key);
       cb(x, y);
       placed++;
@@ -95,7 +116,7 @@ export function generatePlanet(
     }
   });
 
-  place(lavaCount, (gridX, gridY) => {
+  placeHazard(lavaCount, (gridX, gridY) => {
     const x = gridX * TILE_SIZE + TILE_SIZE / 2;
     const y = gridY * TILE_SIZE + TILE_SIZE / 2;
     const lava = new LavaPool(
@@ -110,7 +131,7 @@ export function generatePlanet(
     scene.add(lava);
   });
 
-  place(rockCount, (gridX, gridY) => {
+  placeHazard(rockCount, (gridX, gridY) => {
     const x = gridX * TILE_SIZE + TILE_SIZE / 2;
     const y = gridY * TILE_SIZE + TILE_SIZE / 2;
     const rock = new RockObstacle(
@@ -125,7 +146,7 @@ export function generatePlanet(
     scene.add(rock);
   });
 
-  place(stormCount, (gridX, gridY) => {
+  placeHazard(stormCount, (gridX, gridY) => {
     const x = gridX * TILE_SIZE + TILE_SIZE / 2;
     const y = gridY * TILE_SIZE + TILE_SIZE / 2;
     const angle = Math.random() * Math.PI * 2;
