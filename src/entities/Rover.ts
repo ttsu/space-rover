@@ -42,7 +42,6 @@ export class Rover extends Actor {
   private blasterCooldown = 0
   private isDisabled = false
   private slowFactorThisFrame = 1
-  private readonly baseColor = Color.fromHex('#f97316')
   private damageFlashTimer = 0
   private readonly maxForwardSpeed: number
   private readonly maxReverseSpeed: number
