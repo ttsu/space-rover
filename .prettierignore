@@ -1,0 +1,6 @@
+node_modules
+dist
+.cursor
+dist-ssr
+*.pxd
+package-lock.json

@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: process.env.BASE_PATH ?? '/',
-})
+  base: process.env.BASE_PATH ?? "/",
+});

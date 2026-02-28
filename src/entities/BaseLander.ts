@@ -1,4 +1,4 @@
-import { Actor, Color } from 'excalibur'
+import { Actor, Color } from "excalibur";
 
 export class BaseLander extends Actor {
   constructor(x: number, y: number) {
@@ -7,8 +7,7 @@ export class BaseLander extends Actor {
       y,
       width: 64,
       height: 64,
-      color: Color.fromHex('#22d3ee'),
-    })
+      color: Color.fromHex("#22d3ee"),
+    });
   }
 }
-

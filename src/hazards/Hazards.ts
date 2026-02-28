@@ -1,11 +1,20 @@
-import { Actor, Color, Engine, vec, Font, FontUnit, Label, CollisionType } from 'excalibur'
-import type { Rover } from '../entities/Rover'
-import { recordHazardHit, type HazardKind } from '../state/GameState'
-import { LAVA_SLOW_FACTOR } from '../config/gameConfig'
+import {
+  Actor,
+  Color,
+  Engine,
+  vec,
+  Font,
+  FontUnit,
+  Label,
+  CollisionType,
+} from "excalibur";
+import type { Rover } from "../entities/Rover";
+import { recordHazardHit, type HazardKind } from "../state/GameState";
+import { LAVA_SLOW_FACTOR } from "../config/gameConfig";
 
 abstract class HazardBase extends Actor {
-  protected rover: Rover
-  protected kind: HazardKind
+  protected rover: Rover;
+  protected kind: HazardKind;
 
   constructor(
     x: number,
@@ -14,43 +23,43 @@ abstract class HazardBase extends Actor {
     height: number,
     color: Color,
     rover: Rover,
-    kind: HazardKind,
+    kind: HazardKind
   ) {
-    super({ x, y, width, height, color })
-    this.rover = rover
-    this.kind = kind
+    super({ x, y, width, height, color });
+    this.rover = rover;
+    this.kind = kind;
   }
 
   protected hit(amount: number, fromLava?: boolean) {
-    this.rover.takeDamage(amount, fromLava ?? false)
-    recordHazardHit(this.kind)
+    this.rover.takeDamage(amount, fromLava ?? false);
+    recordHazardHit(this.kind);
   }
 }
 
 export class LavaPool extends HazardBase {
-  private tickTimer = 0
-  private roverInLava = false
+  private tickTimer = 0;
+  private roverInLava = false;
 
   onInitialize(): void {
-    this.body.collisionType = CollisionType.Passive
-    this.on('collisionstart', (evt) => {
-      if (evt.other.owner === this.rover) this.roverInLava = true
-    })
-    this.on('collisionend', (evt) => {
+    this.body.collisionType = CollisionType.Passive;
+    this.on("collisionstart", (evt) => {
+      if (evt.other.owner === this.rover) this.roverInLava = true;
+    });
+    this.on("collisionend", (evt) => {
       if (evt.other.owner === this.rover) {
-        this.roverInLava = false
-        this.tickTimer = 0
+        this.roverInLava = false;
+        this.tickTimer = 0;
       }
-    })
+    });
   }
 
   onPreUpdate(_engine: Engine, delta: number): void {
     if (this.roverInLava) {
-      this.rover.applySlow(LAVA_SLOW_FACTOR)
-      this.tickTimer += delta
+      this.rover.applySlow(LAVA_SLOW_FACTOR);
+      this.tickTimer += delta;
       if (this.tickTimer >= 500) {
-        this.tickTimer = 0
-        this.hit(1, true)
+        this.tickTimer = 0;
+        this.hit(1, true);
       }
     }
   }
@@ -58,95 +67,104 @@ export class LavaPool extends HazardBase {
 
 export class RockObstacle extends HazardBase {
   onInitialize(): void {
-    this.body.collisionType = CollisionType.Fixed
+    this.body.collisionType = CollisionType.Fixed;
   }
 }
 
 export class WindZone extends HazardBase {
-  private direction = vec(1, 0)
-  private roverInWind = false
+  private direction = vec(1, 0);
+  private roverInWind = false;
 
-  constructor(x: number, y: number, width: number, height: number, rover: Rover, directionAngle: number) {
-    super(x, y, width, height, Color.fromHex('#0ea5e930'), rover, 'wind')
-    this.direction = vec(Math.cos(directionAngle), Math.sin(directionAngle))
+  constructor(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    rover: Rover,
+    directionAngle: number
+  ) {
+    super(x, y, width, height, Color.fromHex("#0ea5e930"), rover, "wind");
+    this.direction = vec(Math.cos(directionAngle), Math.sin(directionAngle));
   }
 
   onInitialize(): void {
-    this.body.collisionType = CollisionType.Passive
-    this.on('collisionstart', (evt) => {
-      if (evt.other.owner === this.rover) this.roverInWind = true
-    })
-    this.on('collisionend', (evt) => {
-      if (evt.other.owner === this.rover) this.roverInWind = false
-    })
+    this.body.collisionType = CollisionType.Passive;
+    this.on("collisionstart", (evt) => {
+      if (evt.other.owner === this.rover) this.roverInWind = true;
+    });
+    this.on("collisionend", (evt) => {
+      if (evt.other.owner === this.rover) this.roverInWind = false;
+    });
   }
 
   onPreUpdate(_engine: Engine, delta: number): void {
     if (this.roverInWind) {
-      const pushStrength = (Math.random() * 200 + 500) * (1 - this.rover.getWindResist())
-      this.rover.vel = this.rover.vel.add(this.direction.scale(pushStrength * (delta / 1000)))
+      const pushStrength =
+        (Math.random() * 200 + 500) * (1 - this.rover.getWindResist());
+      this.rover.vel = this.rover.vel.add(
+        this.direction.scale(pushStrength * (delta / 1000))
+      );
     }
-    this.transform.rotation += (Math.random() * 0.1) + 0.1
+    this.transform.rotation += Math.random() * 0.1 + 0.1;
   }
 }
 
 export class LightningZone extends HazardBase {
-  private warningTime = 800
-  private strikeTime = 200
-  private elapsed = 0
-  private hasStruck = false
-  private roverInZone = false
+  private warningTime = 800;
+  private strikeTime = 200;
+  private elapsed = 0;
+  private hasStruck = false;
+  private roverInZone = false;
 
   constructor(x: number, y: number, rover: Rover) {
-    super(x, y, 40, 40, Color.fromHex('#facc15'), rover, 'lightning')
+    super(x, y, 40, 40, Color.fromHex("#facc15"), rover, "lightning");
   }
 
   onInitialize(): void {
-    this.body.collisionType = CollisionType.Passive
-    this.on('collisionstart', (evt) => {
-      if (evt.other.owner === this.rover) this.roverInZone = true
-    })
-    this.on('collisionend', (evt) => {
-      if (evt.other.owner === this.rover) this.roverInZone = false
-    })
+    this.body.collisionType = CollisionType.Passive;
+    this.on("collisionstart", (evt) => {
+      if (evt.other.owner === this.rover) this.roverInZone = true;
+    });
+    this.on("collisionend", (evt) => {
+      if (evt.other.owner === this.rover) this.roverInZone = false;
+    });
   }
 
   onPreUpdate(engine: Engine, delta: number): void {
-    this.elapsed += delta
+    this.elapsed += delta;
 
     if (!this.hasStruck && this.elapsed >= this.warningTime) {
-      this.color = Color.fromHex('#e5e7eb')
+      this.color = Color.fromHex("#e5e7eb");
       if (this.roverInZone) {
-        this.hit(1)
+        this.hit(1);
       }
-      this.showStrikeFlash(engine)
-      this.hasStruck = true
+      this.showStrikeFlash(engine);
+      this.hasStruck = true;
     }
 
     if (this.elapsed >= this.warningTime + this.strikeTime) {
-      this.kill()
+      this.kill();
     }
   }
 
   private showStrikeFlash(engine: Engine) {
     const flash = new Label({
-      text: '⚡',
+      text: "⚡",
       pos: this.pos.clone(),
-      color: Color.fromHex('#eab308'),
+      color: Color.fromHex("#eab308"),
       font: new Font({
-        family: 'system-ui, sans-serif',
+        family: "system-ui, sans-serif",
         size: 32,
         unit: FontUnit.Px,
       }),
-    })
-    flash.anchor.setTo(0.5, 0.5)
-    engine.currentScene.add(flash)
+    });
+    flash.anchor.setTo(0.5, 0.5);
+    engine.currentScene.add(flash);
 
-    let life = 300
-    flash.on('preupdate', () => {
-      life -= engine.clock.elapsed()
-      if (life <= 0) flash.kill()
-    })
+    let life = 300;
+    flash.on("preupdate", () => {
+      life -= engine.clock.elapsed();
+      if (life <= 0) flash.kill();
+    });
   }
 }
-
