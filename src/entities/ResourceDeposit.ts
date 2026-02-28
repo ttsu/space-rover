@@ -1,8 +1,8 @@
-import { Actor, CollisionType, Engine, vec } from "excalibur";
+import { Actor, CollisionType, Engine } from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { ResourceNode } from "./ResourceNode";
 import type { IBlasterTarget } from "./BlasterProjectile";
-import { random } from "../utils/seedRandom";
+import { burst } from "../effects/Particles";
 
 const DEFAULT_HP = 4;
 
@@ -34,6 +34,18 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
 
   takeBlasterDamage(amount: number): void {
     if (this.breaking || this.isKilled()) return;
+    const scene = this.engineRef?.currentScene;
+    if (scene) {
+      burst(scene, this.pos.x, this.pos.y, {
+        color: this.resource.color,
+        count: 4,
+        speedMin: 20,
+        speedMax: 70,
+        lifetimeMs: 250,
+        sizeMin: 2,
+        sizeMax: 5,
+      });
+    }
     this.hp = Math.max(0, this.hp - amount);
     if (this.hp <= 0 && this.engineRef) {
       this.breaking = true;
@@ -52,43 +64,20 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
     const y = this.pos.y;
     const resource = this.resource;
 
-    this.playBreakParticles();
+    burst(scene, x, y, {
+      color: this.resource.color,
+      count: 12,
+      speedMin: 40,
+      speedMax: 120,
+      lifetimeMs: 400,
+      sizeMin: 4,
+      sizeMax: 10,
+    });
 
     this.actions.delay(250).callMethod(() => {
       const pickup = new ResourceNode(x, y, resource);
       scene.add(pickup);
       this.kill();
     });
-  }
-
-  private playBreakParticles(): void {
-    if (!this.engineRef?.currentScene) return;
-    const scene = this.engineRef.currentScene;
-    const count = 6;
-    const color = this.resource.color;
-    for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / count + random() * 0.5;
-      const vel = vec(Math.cos(angle), Math.sin(angle)).scale(
-        40 + random() * 40
-      );
-      const p = new Actor({
-        x: this.pos.x,
-        y: this.pos.y,
-        width: 6,
-        height: 6,
-        color,
-      });
-      p.anchor.setTo(0.5, 0.5);
-      scene.add(p);
-      let life = 350;
-      const eng = this.engineRef;
-      p.on("preupdate", () => {
-        if (!eng) return;
-        const dt = eng.clock.elapsed();
-        life -= dt;
-        p.pos = p.pos.add(vel.scale(dt / 1000));
-        if (life <= 0) p.kill();
-      });
-    }
   }
 }

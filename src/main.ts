@@ -19,7 +19,7 @@ const engine = new Engine({
   canvasElement: canvas,
   width: 800,
   height: 600,
-  displayMode: DisplayMode.FitScreen,
+  displayMode: DisplayMode.FillScreen,
   backgroundColor: Color.fromHex("#050816"),
 });
 

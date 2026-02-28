@@ -1,6 +1,7 @@
 import { Actor, Color, Engine, Label, vec, Font, FontUnit } from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { Rover } from "./Rover";
+import { risingBurst } from "../effects/Particles";
 
 export class ResourceNode extends Actor {
   resource: ResourceTypeDef;
@@ -24,6 +25,16 @@ export class ResourceNode extends Actor {
       if (other instanceof Rover) {
         if (other.canPick(this.sizeUnits)) {
           other.addResource(this.resource.id, this.sizeUnits);
+          const scene = engine.currentScene;
+          if (scene) {
+            risingBurst(scene, this.pos.x, this.pos.y, {
+              color: this.resource.color,
+              count: 12,
+              speedMin: 25,
+              speedMax: 55,
+              upwardBias: 0.8,
+            });
+          }
           this.showPopup(engine, `+${this.sizeUnits} ${this.resource.name}`);
           this.kill();
         } else {

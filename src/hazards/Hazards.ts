@@ -12,6 +12,7 @@ import type { Rover } from "../entities/Rover";
 import { recordHazardHit, type HazardKind } from "../state/GameState";
 import { LAVA_SLOW_FACTOR } from "../config/gameConfig";
 import { random } from "../utils/seedRandom";
+import { createAmbientEmitter } from "../effects/Particles";
 
 abstract class HazardBase extends Actor {
   protected rover: Rover;
@@ -52,6 +53,22 @@ export class LavaPool extends HazardBase {
         this.tickTimer = 0;
       }
     });
+    const lavaEmitter = createAmbientEmitter({
+      color: Color.fromHex("#ea580c"),
+      emitRate: 12,
+      lifetimeMs: 700,
+      minSpeed: 20,
+      maxSpeed: 55,
+      minSize: 2,
+      maxSize: 5,
+      minAngle: -Math.PI / 2 - 0.4,
+      maxAngle: -Math.PI / 2 + 0.4,
+      acc: { x: 0, y: -20 },
+      width: this.width,
+      height: this.height,
+    });
+    lavaEmitter.pos = vec(0, 0);
+    this.addChild(lavaEmitter);
   }
 
   onPreUpdate(_engine: Engine, delta: number): void {
@@ -96,6 +113,22 @@ export class WindZone extends HazardBase {
     this.on("collisionend", (evt) => {
       if (evt.other.owner === this.rover) this.roverInWind = false;
     });
+    const windAngle = Math.atan2(this.direction.y, this.direction.x);
+    const windEmitter = createAmbientEmitter({
+      color: Color.fromHex("#94a3b8"),
+      emitRate: 10,
+      lifetimeMs: 500,
+      minSpeed: 40,
+      maxSpeed: 90,
+      minSize: 1.5,
+      maxSize: 4,
+      minAngle: windAngle - 0.35,
+      maxAngle: windAngle + 0.35,
+      width: this.width,
+      height: this.height,
+    });
+    windEmitter.pos = vec(0, 0);
+    this.addChild(windEmitter);
   }
 
   onPreUpdate(_engine: Engine, delta: number): void {

@@ -20,6 +20,7 @@ import { TouchControls } from "../ui/TouchControls";
 import { getTouchControlsEnabled } from "../input/TouchInputState";
 import { getCurrentSave } from "../state/Saves";
 import { setSeed } from "../utils/seedRandom";
+import { burst } from "../effects/Particles";
 
 export class PlanetScene extends Scene {
   private engineRef: Engine;
@@ -70,8 +71,18 @@ export class PlanetScene extends Scene {
     );
     this.add(this.rover);
 
-    this.rover.onDamaged = () => {
+    this.rover.onDamaged = (amount: number) => {
       this.engineRef.currentScene.camera.shake(4, 4, 200);
+      const r = this.rover.pos;
+      burst(this, r.x, r.y, {
+        color: Color.fromHex("#ef4444"),
+        count: 5 + Math.min(amount, 3),
+        speedMin: 30,
+        speedMax: 90,
+        lifetimeMs: 350,
+        sizeMin: 3,
+        sizeMax: 7,
+      });
     };
 
     this.rover.onFireBlaster = (x, y, angle, damage, speed, range) => {
