@@ -15,6 +15,9 @@ export const BASE_SAFE_RADIUS_TILES = 3;
 export const ROVER_BASE_SPEED = 200;
 export const ROVER_MAX_CAPACITY = 20;
 export const ROVER_BASE_HEALTH = 5;
+export const ROVER_BASE_BATTERY = 120; // seconds of operation
+export const ROVER_BASE_BATTERY_DRAIN = 1; // per second
+export const ROVER_BASE_VISIBILITY_RADIUS_TILES = 5;
 
 export const BLASTER_BASE_DAMAGE = 1;
 export const BLASTER_BASE_FIRE_RATE = 2.5; // shots per second
@@ -22,6 +25,9 @@ export const BLASTER_BASE_RANGE = 150;
 
 export const ROVER_BASE_ACCELERATION = 400;
 export const ROVER_BASE_TURN_SPEED = Math.PI;
+
+/** Capacity per cargo slot per resource type (Gas Canisters, Crystal Crates, Iron Hoppers). */
+export const CARGO_CAPACITY_PER_SLOT = 4;
 
 export const RESOURCE_DENSITY = 0.04; // fraction of tiles with resources
 

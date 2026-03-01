@@ -1,3 +1,12 @@
+import type { SlotId } from "../types/roverConfig";
+import {
+  getDefaultEquipped,
+  getDefaultCargoLayout,
+  DEFAULT_CARGO_ROWS,
+  CARGO_MAX_ROWS,
+} from "../types/roverConfig";
+import { getUpgradeById } from "../upgrades/UpgradeDefs";
+
 export type Difficulty = "easy" | "normal" | "hard";
 
 export interface CargoCountsSave {
@@ -6,14 +15,25 @@ export interface CargoCountsSave {
   gas: number;
 }
 
+export type CargoSlotContentSave = "iron" | "crystal" | "gas" | "empty";
+
 export interface GameSave {
   id: string;
   seed: number;
   difficulty: Difficulty;
   bank: CargoCountsSave;
+  /** @deprecated Use equipped/ownedItems; kept for migration only. */
   appliedUpgrades: string[];
   totalResourcesCollected: CargoCountsSave;
   createdAt: number;
+  /** Slot -> equipped item id or "base". */
+  equipped?: Record<SlotId, string>;
+  /** Item id -> level (stack count). */
+  ownedItems?: Record<string, number>;
+  /** Cargo grid slots (row-major): "iron"|"crystal"|"gas"|"empty". */
+  cargoLayout?: CargoSlotContentSave[];
+  /** Number of cargo rows (2..6). */
+  cargoRows?: number;
 }
 
 export interface SaveIndexEntry {
@@ -64,6 +84,33 @@ function parseCargo(obj: unknown): CargoCountsSave {
   };
 }
 
+function parseCargoLayout(
+  obj: unknown,
+  totalSlots: number
+): CargoSlotContentSave[] {
+  if (!Array.isArray(obj))
+    return getDefaultCargoLayout(DEFAULT_CARGO_ROWS) as CargoSlotContentSave[];
+  const result: CargoSlotContentSave[] = [];
+  for (let i = 0; i < totalSlots; i++) {
+    const v = obj[i];
+    const safe: CargoSlotContentSave =
+      typeof v === "string" &&
+      (v === "iron" || v === "crystal" || v === "gas" || v === "empty")
+        ? v
+        : "empty";
+    result.push(safe);
+  }
+  return result;
+}
+
+function parseCargoRows(obj: unknown): number {
+  if (typeof obj !== "number") return DEFAULT_CARGO_ROWS;
+  const n = Math.floor(obj);
+  if (n < DEFAULT_CARGO_ROWS) return DEFAULT_CARGO_ROWS;
+  if (n > CARGO_MAX_ROWS) return CARGO_MAX_ROWS;
+  return n;
+}
+
 function parseSave(raw: string | null): GameSave | null {
   if (!raw) return null;
   try {
@@ -85,6 +132,27 @@ function parseSave(raw: string | null): GameSave | null {
     const totalResourcesCollected = parseCargo(obj.totalResourcesCollected);
     const createdAt =
       typeof obj.createdAt === "number" ? obj.createdAt : Date.now();
+    const cargoRows = parseCargoRows(obj.cargoRows);
+    const totalSlots = 4 * cargoRows;
+    let equipped = obj.equipped as Record<SlotId, string> | undefined;
+    let ownedItems = obj.ownedItems as Record<string, number> | undefined;
+    let cargoLayout = parseCargoLayout(obj.cargoLayout, totalSlots);
+
+    if (appliedUpgrades.length > 0 && (!equipped || !ownedItems)) {
+      const migrated = migrateAppliedUpgradesToEquipped(appliedUpgrades);
+      equipped = migrated.equipped;
+      ownedItems = migrated.ownedItems;
+    }
+    if (!equipped) {
+      equipped = getDefaultEquipped();
+    }
+    if (!ownedItems) {
+      ownedItems = {};
+    }
+    if (cargoLayout.length !== totalSlots) {
+      cargoLayout = getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[];
+    }
+
     return {
       id,
       seed,
@@ -93,10 +161,46 @@ function parseSave(raw: string | null): GameSave | null {
       appliedUpgrades: [...appliedUpgrades],
       totalResourcesCollected: { ...totalResourcesCollected },
       createdAt,
+      equipped: { ...equipped },
+      ownedItems: { ...ownedItems },
+      cargoLayout: [...cargoLayout],
+      cargoRows,
     };
   } catch {
     return null;
   }
+}
+
+function migrateAppliedUpgradesToEquipped(appliedUpgradeIds: string[]): {
+  equipped: Record<SlotId, string>;
+  ownedItems: Record<string, number>;
+} {
+  const slotByEffectKind: Record<string, SlotId> = {
+    maxHealth: "shielding",
+    maxCapacity: "shielding",
+    maxSpeed: "engine",
+    turnSpeed: "control",
+    acceleration: "engine",
+    blasterDamage: "blaster",
+    blasterFireRate: "blaster",
+    blasterRange: "blaster",
+    lavaDamageReduction: "shielding",
+    lavaSlowResist: "shielding",
+    windResist: "shielding",
+    flatDamageReduction: "shielding",
+    lightningWarningTime: "radar",
+  };
+  const equipped = getDefaultEquipped();
+  const ownedItems: Record<string, number> = {};
+  for (const id of appliedUpgradeIds) {
+    const def = getUpgradeById(id);
+    if (!def) continue;
+    const slot = slotByEffectKind[def.effect.kind];
+    if (!slot) continue;
+    equipped[slot] = id;
+    ownedItems[id] = (ownedItems[id] ?? 0) + 1;
+  }
+  return { equipped, ownedItems };
 }
 
 function getStorage(): Storage | null {
@@ -165,6 +269,8 @@ export function createSave(difficulty: Difficulty): GameSave {
   const id = generateId();
   const seed = generateSeed();
   const now = Date.now();
+  const cargoRows = DEFAULT_CARGO_ROWS;
+  const cargoLayout = getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[];
   const save: GameSave = {
     id,
     seed,
@@ -173,6 +279,10 @@ export function createSave(difficulty: Difficulty): GameSave {
     appliedUpgrades: [],
     totalResourcesCollected: { ...emptyCargo },
     createdAt: now,
+    equipped: getDefaultEquipped(),
+    ownedItems: {},
+    cargoLayout: [...cargoLayout],
+    cargoRows,
   };
   currentSave = save;
   const storage = getStorage();

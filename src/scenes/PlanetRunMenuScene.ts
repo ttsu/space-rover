@@ -8,8 +8,8 @@ import {
   Actor,
   vec,
 } from "excalibur";
-import { getBank, getAppliedUpgrades } from "../state/Progress";
-import { canAffordAnyUpgrade } from "../upgrades/UpgradeDefs";
+import { getBank, getOwnedItems } from "../state/Progress";
+import { canAffordAnyUpgradeByOwned } from "../upgrades/UpgradeDefs";
 import { requestFullscreen } from "../fullscreen";
 import {
   getTouchControlsEnabled,
@@ -26,7 +26,7 @@ import { playClick } from "../audio/sounds";
 export class PlanetRunMenuScene extends Scene {
   private engineRef: Engine;
   private bankLabel!: Label;
-  private upgradeButton!: Actor;
+  private configureButton!: Actor;
   private touchToggleLabel?: Label;
   private touchToggleButton?: Actor;
 
@@ -42,15 +42,16 @@ export class PlanetRunMenuScene extends Scene {
     this.updateBankAndUpgradeButton();
     this.touchToggleLabel && this.updateTouchToggleLabel();
     this.refreshGoalChoices();
+    setCurrentGoals(this.goalChoices);
   }
 
   private updateBankAndUpgradeButton(): void {
     const bank = getBank();
     this.bankLabel.text = `Bank: ${bank.iron} iron, ${bank.crystal} crystal, ${bank.gas} gas`;
-    const applied = getAppliedUpgrades();
-    const canAfford = canAffordAnyUpgrade(bank, applied);
+    const ownedItems = getOwnedItems();
+    const canAfford = canAffordAnyUpgradeByOwned(bank, ownedItems);
     const anyAffordable = canAfford.iron || canAfford.crystal || canAfford.gas;
-    this.upgradeButton.color = anyAffordable
+    this.configureButton.color = anyAffordable
       ? Color.fromHex("#8b5cf6")
       : Color.fromHex("#6b7280");
   }
@@ -164,16 +165,16 @@ export class PlanetRunMenuScene extends Scene {
       });
     });
 
-    this.upgradeButton = new Actor({
+    this.configureButton = new Actor({
       pos: vec(cx, midY + 114),
       width: 200,
       height: 48,
       color: Color.fromHex("#8b5cf6"),
     });
-    this.upgradeButton.anchor.setTo(0.5, 0.5);
-    const upgradeLabel = new Label({
-      text: "Upgrade Rover",
-      pos: this.upgradeButton.pos.clone(),
+    this.configureButton.anchor.setTo(0.5, 0.5);
+    const configureLabel = new Label({
+      text: "Configure Rover",
+      pos: this.configureButton.pos.clone(),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
@@ -181,10 +182,10 @@ export class PlanetRunMenuScene extends Scene {
         unit: FontUnit.Px,
       }),
     });
-    upgradeLabel.anchor.setTo(0.5, 0.5);
-    this.upgradeButton.on("pointerup", () => {
+    configureLabel.anchor.setTo(0.5, 0.5);
+    this.configureButton.on("pointerup", () => {
       playClick();
-      this.engineRef.goToScene("upgrade");
+      this.engineRef.goToScene("configureRover");
     });
 
     const exitButton = new Actor({
@@ -212,8 +213,8 @@ export class PlanetRunMenuScene extends Scene {
 
     this.add(startRunButton);
     this.add(startRunLabel);
-    this.add(this.upgradeButton);
-    this.add(upgradeLabel);
+    this.add(this.configureButton);
+    this.add(configureLabel);
     this.add(exitButton);
     this.add(exitLabel);
 

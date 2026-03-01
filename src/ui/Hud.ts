@@ -15,6 +15,7 @@ export class Hud extends ScreenElement {
   private rover: Rover;
 
   private healthLabel!: Label;
+  private batteryLabel!: Label;
   private capacityLabel!: Label;
   private cargoLabel!: Label;
   private totalLabel!: Label;
@@ -39,9 +40,20 @@ export class Hud extends ScreenElement {
       }),
     });
 
+    this.batteryLabel = new Label({
+      text: "",
+      pos: vec(16, 48),
+      color: Color.fromHex("#fcd34d"),
+      font: new Font({
+        family: "system-ui, sans-serif",
+        size: 16,
+        unit: FontUnit.Px,
+      }),
+    });
+
     this.capacityLabel = new Label({
       text: "",
-      pos: vec(16, 56),
+      pos: vec(16, 64),
       color: Color.fromHex("#bbf7d0"),
       font: new Font({
         family: "system-ui, sans-serif",
@@ -52,7 +64,7 @@ export class Hud extends ScreenElement {
 
     this.cargoLabel = new Label({
       text: "",
-      pos: vec(16, 80),
+      pos: vec(16, 88),
       color: Color.fromHex("#e5e7eb"),
       font: new Font({
         family: "system-ui, sans-serif",
@@ -63,7 +75,7 @@ export class Hud extends ScreenElement {
 
     this.totalLabel = new Label({
       text: "",
-      pos: vec(16, 104),
+      pos: vec(16, 112),
       color: Color.fromHex("#93c5fd"),
       font: new Font({
         family: "system-ui, sans-serif",
@@ -80,7 +92,7 @@ export class Hud extends ScreenElement {
     for (let i = 0; i < 3; i++) {
       const lbl = new Label({
         text: "",
-        pos: vec(16, 128 + i * 20),
+        pos: vec(16, 136 + i * 20),
         color: Color.fromHex("#9ca3af"),
         font: goalFont,
       });
@@ -101,6 +113,7 @@ export class Hud extends ScreenElement {
     this.baseHintLabel.anchor.setTo(0.5, 0.5);
 
     this.addChild(this.healthLabel);
+    this.addChild(this.batteryLabel);
     this.addChild(this.capacityLabel);
     this.addChild(this.cargoLabel);
     this.addChild(this.totalLabel);
@@ -109,6 +122,7 @@ export class Hud extends ScreenElement {
 
   updateFromState(isNearBase: boolean, lavaHits: number): void {
     this.healthLabel.text = `Health: ${this.rover.health}`;
+    this.batteryLabel.text = `Battery: ${Math.ceil(this.rover.battery)}s`;
     this.capacityLabel.text = `Cargo: ${this.rover.usedCapacity}/${this.rover.maxCapacity} (left ${this.rover.remainingCapacity()})`;
     this.cargoLabel.text = `Iron: ${this.rover.cargo.iron}  Crystal: ${this.rover.cargo.crystal}  Gas: ${this.rover.cargo.gas}`;
     const totalPieces =

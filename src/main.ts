@@ -8,6 +8,7 @@ import { PlanetRunMenuScene } from "./scenes/PlanetRunMenuScene";
 import { PlanetScene } from "./scenes/PlanetScene";
 import { SummaryScene } from "./scenes/SummaryScene";
 import { UpgradeScene } from "./scenes/UpgradeScene";
+import { ConfigureRoverScene } from "./scenes/ConfigureRoverScene";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
 
@@ -30,6 +31,7 @@ engine.add("planetRunMenu", new PlanetRunMenuScene(engine));
 engine.add("planet", new PlanetScene(engine));
 engine.add("summary", new SummaryScene(engine));
 engine.add("upgrade", new UpgradeScene(engine));
+engine.add("configureRover", new ConfigureRoverScene(engine));
 
 engine.goToScene("splash");
 engine.start(loader);

@@ -19,6 +19,7 @@ import { Hud } from "../ui/Hud";
 import { TouchControls } from "../ui/TouchControls";
 import { getTouchControlsEnabled } from "../input/TouchInputState";
 import { getCurrentSave } from "../state/Saves";
+import { getCargoLayout, getMaxCargoFromLayout } from "../state/Progress";
 import { setSeed } from "../utils/seedRandom";
 import { burst, risingBurst } from "../effects/Particles";
 import { playBlaster, playDamage, playDock, playDeath } from "../audio/sounds";
@@ -66,9 +67,12 @@ export class PlanetScene extends Scene {
   onInitialize() {
     this.engineRef.backgroundColor = Color.fromHex("#020617");
 
+    const cargoConfig = getMaxCargoFromLayout(getCargoLayout());
     this.rover = new Rover(
       this.engineRef.drawWidth / 2,
-      this.engineRef.drawHeight / 2
+      this.engineRef.drawHeight / 2,
+      undefined,
+      cargoConfig
     );
     this.add(this.rover);
 
@@ -91,6 +95,10 @@ export class PlanetScene extends Scene {
       playBlaster();
       const proj = new BlasterProjectile(x, y, angle, damage, speed, range);
       this.add(proj);
+    };
+
+    this.rover.onBatteryDepleted = () => {
+      this.triggerDeath();
     };
 
     this.infoLabel = new Label({

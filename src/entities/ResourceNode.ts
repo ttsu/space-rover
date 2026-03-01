@@ -24,7 +24,7 @@ export class ResourceNode extends Actor {
     this.on("collisionstart", (evt) => {
       const other = evt.other.owner;
       if (other instanceof Rover) {
-        if (other.canPick(this.sizeUnits)) {
+        if (other.canPick(this.resource.id, this.sizeUnits)) {
           other.addResource(this.resource.id, this.sizeUnits);
           const scene = engine.currentScene;
           if (scene) {

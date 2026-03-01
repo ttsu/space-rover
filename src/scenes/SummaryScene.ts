@@ -94,16 +94,16 @@ export class SummaryScene extends Scene {
       this.engineRef.goToScene("planetRunMenu");
     });
 
-    const upgradeButton = new Actor({
+    const configureButton = new Actor({
       pos: vec(cx, this.engineRef.drawHeight / 2 + 168),
       width: 220,
       height: 48,
       color: Color.fromHex("#8b5cf6"),
     });
-    upgradeButton.anchor.setTo(0.5, 0.5);
-    const upgradeLabel = new Label({
-      text: "Upgrade Rover",
-      pos: upgradeButton.pos.clone(),
+    configureButton.anchor.setTo(0.5, 0.5);
+    const configureLabel = new Label({
+      text: "Configure Rover",
+      pos: configureButton.pos.clone(),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
@@ -111,10 +111,10 @@ export class SummaryScene extends Scene {
         unit: FontUnit.Px,
       }),
     });
-    upgradeLabel.anchor.setTo(0.5, 0.5);
-    upgradeButton.on("pointerup", () => {
+    configureLabel.anchor.setTo(0.5, 0.5);
+    configureButton.on("pointerup", () => {
       playClick();
-      this.engineRef.goToScene("upgrade");
+      this.engineRef.goToScene("configureRover");
     });
 
     this.add(title);
@@ -122,8 +122,8 @@ export class SummaryScene extends Scene {
     this.add(this.statsLabel);
     this.add(menuButton);
     this.add(menuLabel);
-    this.add(upgradeButton);
-    this.add(upgradeLabel);
+    this.add(configureButton);
+    this.add(configureLabel);
   }
 
   onActivate(): void {

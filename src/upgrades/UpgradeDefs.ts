@@ -1,4 +1,5 @@
 import type { ResourceId } from "../resources/ResourceTypes";
+import type { SlotId } from "../types/roverConfig";
 
 export type UpgradeEffectKind =
   | "maxHealth"
@@ -13,7 +14,11 @@ export type UpgradeEffectKind =
   | "lavaSlowResist"
   | "windResist"
   | "flatDamageReduction"
-  | "lightningWarningTime";
+  | "lightningWarningTime"
+  | "visibilityRadius"
+  | "maxBattery"
+  | "batteryDrainPerSecond"
+  | "blasterBehavior";
 
 export interface UpgradeEffect {
   kind: UpgradeEffectKind;
@@ -28,6 +33,8 @@ export interface UpgradeDef {
   description: string;
   effect: UpgradeEffect;
   maxStack?: number;
+  /** Which equipment slot this upgrade belongs to (for Configure Rover). */
+  slotType: SlotId;
 }
 
 const IRON_UPGRADES: UpgradeDef[] = [
@@ -39,6 +46,7 @@ const IRON_UPGRADES: UpgradeDef[] = [
     description: "+1 max health",
     effect: { kind: "maxHealth", value: 1 },
     maxStack: 5,
+    slotType: "shielding",
   },
   {
     id: "iron-lava-dmg-1",
@@ -48,6 +56,7 @@ const IRON_UPGRADES: UpgradeDef[] = [
     description: "Take 1 less damage from lava",
     effect: { kind: "lavaDamageReduction", value: 1 },
     maxStack: 3,
+    slotType: "shielding",
   },
   {
     id: "iron-lava-slow-1",
@@ -57,6 +66,7 @@ const IRON_UPGRADES: UpgradeDef[] = [
     description: "10% less slow in lava",
     effect: { kind: "lavaSlowResist", value: 0.1 },
     maxStack: 3,
+    slotType: "shielding",
   },
   {
     id: "iron-wind-1",
@@ -66,6 +76,7 @@ const IRON_UPGRADES: UpgradeDef[] = [
     description: "15% less push from wind",
     effect: { kind: "windResist", value: 0.15 },
     maxStack: 2,
+    slotType: "shielding",
   },
   {
     id: "iron-flat-dmg-1",
@@ -75,6 +86,7 @@ const IRON_UPGRADES: UpgradeDef[] = [
     description: "Take 1 less damage from all hazards",
     effect: { kind: "flatDamageReduction", value: 1 },
     maxStack: 2,
+    slotType: "shielding",
   },
 ];
 
@@ -87,6 +99,7 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
     description: "+4 cargo capacity",
     effect: { kind: "maxCapacity", value: 4 },
     maxStack: 3,
+    slotType: "shielding",
   },
   {
     id: "crystal-speed-1",
@@ -96,6 +109,7 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
     description: "+20 max speed",
     effect: { kind: "maxSpeed", value: 20 },
     maxStack: 2,
+    slotType: "engine",
   },
   {
     id: "crystal-turn-1",
@@ -105,6 +119,7 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
     description: "+0.2 rad/s turn speed",
     effect: { kind: "turnSpeed", value: 0.2 },
     maxStack: 2,
+    slotType: "control",
   },
   {
     id: "crystal-accel-1",
@@ -114,6 +129,7 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
     description: "+50 acceleration",
     effect: { kind: "acceleration", value: 50 },
     maxStack: 2,
+    slotType: "engine",
   },
   {
     id: "crystal-lightning-1",
@@ -123,6 +139,7 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
     description: "+5 lightning warning time (ms)",
     effect: { kind: "lightningWarningTime", value: 5 },
     maxStack: 2,
+    slotType: "radar",
   },
   {
     id: "crystal-blaster-dmg-1",
@@ -132,6 +149,7 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
     description: "+1 damage per shot to deposits",
     effect: { kind: "blasterDamage", value: 1 },
     maxStack: 3,
+    slotType: "blaster",
   },
   {
     id: "crystal-blaster-rate-1",
@@ -141,6 +159,7 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
     description: "+0.5 shots per second",
     effect: { kind: "blasterFireRate", value: 0.5 },
     maxStack: 2,
+    slotType: "blaster",
   },
   {
     id: "crystal-blaster-range-1",
@@ -150,6 +169,7 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
     description: "Longer blaster range",
     effect: { kind: "blasterRange", value: 50 },
     maxStack: 2,
+    slotType: "blaster",
   },
   {
     id: "crystal-blaster-eff-1",
@@ -159,6 +179,17 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
     description: "+1 damage to deposits only",
     effect: { kind: "blasterDamage", value: 1 },
     maxStack: 2,
+    slotType: "blaster",
+  },
+  {
+    id: "crystal-blaster-aoe",
+    resourceId: "crystal",
+    cost: 6,
+    name: "AoE Blaster",
+    description: "Blaster shots explode on impact",
+    effect: { kind: "blasterBehavior", value: 1 },
+    maxStack: 1,
+    slotType: "blaster",
   },
 ];
 
@@ -171,6 +202,7 @@ const GAS_UPGRADES: UpgradeDef[] = [
     description: "+15 max speed",
     effect: { kind: "maxSpeed", value: 15 },
     maxStack: 2,
+    slotType: "engine",
   },
   {
     id: "gas-accel-1",
@@ -180,6 +212,7 @@ const GAS_UPGRADES: UpgradeDef[] = [
     description: "+30 acceleration",
     effect: { kind: "acceleration", value: 30 },
     maxStack: 2,
+    slotType: "engine",
   },
   {
     id: "gas-turn-1",
@@ -189,6 +222,7 @@ const GAS_UPGRADES: UpgradeDef[] = [
     description: "+0.15 rad/s turn speed",
     effect: { kind: "turnSpeed", value: 0.15 },
     maxStack: 2,
+    slotType: "control",
   },
   {
     id: "gas-lava-slow-1",
@@ -198,6 +232,7 @@ const GAS_UPGRADES: UpgradeDef[] = [
     description: "10% less slow in lava",
     effect: { kind: "lavaSlowResist", value: 0.1 },
     maxStack: 2,
+    slotType: "shielding",
   },
   {
     id: "gas-wind-1",
@@ -207,6 +242,7 @@ const GAS_UPGRADES: UpgradeDef[] = [
     description: "10% less push from wind",
     effect: { kind: "windResist", value: 0.1 },
     maxStack: 2,
+    slotType: "shielding",
   },
 ];
 
@@ -250,12 +286,41 @@ export function getAffordableUpgrades(
   return available;
 }
 
+/** Uses ownedItems (level) instead of appliedUpgradeIds; for Configure Rover flow. */
+export function getAffordableUpgradesByOwned(
+  bank: Record<ResourceId, number>,
+  resourceId: ResourceId,
+  ownedItems: Record<string, number>
+): UpgradeDef[] {
+  const pool = POOLS[resourceId];
+  const available: UpgradeDef[] = [];
+  for (const def of pool) {
+    if (bank[resourceId] < def.cost) continue;
+    const level = ownedItems[def.id] ?? 0;
+    const maxStack = def.maxStack ?? 1;
+    if (level >= maxStack) continue;
+    available.push(def);
+  }
+  return available;
+}
+
 export function get3RandomAffordable(
   bank: Record<ResourceId, number>,
   resourceId: ResourceId,
   appliedUpgradeIds: string[]
 ): UpgradeDef[] {
   const available = getAffordableUpgrades(bank, resourceId, appliedUpgradeIds);
+  if (available.length <= 3) return [...available];
+  const shuffled = [...available].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 3);
+}
+
+export function get3RandomAffordableByOwned(
+  bank: Record<ResourceId, number>,
+  resourceId: ResourceId,
+  ownedItems: Record<string, number>
+): UpgradeDef[] {
+  const available = getAffordableUpgradesByOwned(bank, resourceId, ownedItems);
   if (available.length <= 3) return [...available];
   const shuffled = [...available].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, 3);
@@ -270,6 +335,18 @@ export function canAffordAnyUpgrade(
     crystal:
       getAffordableUpgrades(bank, "crystal", appliedUpgradeIds).length > 0,
     gas: getAffordableUpgrades(bank, "gas", appliedUpgradeIds).length > 0,
+  };
+}
+
+export function canAffordAnyUpgradeByOwned(
+  bank: Record<ResourceId, number>,
+  ownedItems: Record<string, number>
+): Record<ResourceId, boolean> {
+  return {
+    iron: getAffordableUpgradesByOwned(bank, "iron", ownedItems).length > 0,
+    crystal:
+      getAffordableUpgradesByOwned(bank, "crystal", ownedItems).length > 0,
+    gas: getAffordableUpgradesByOwned(bank, "gas", ownedItems).length > 0,
   };
 }
 
