@@ -8,8 +8,8 @@ import {
   Actor,
   vec,
 } from "excalibur";
-import { getBank, getOwnedItems } from "../state/Progress";
-import { canAffordAnyUpgradeByOwned } from "../upgrades/UpgradeDefs";
+import { getBank, getOwnedItems, getEquipped } from "../state/Progress";
+import { canAffordAnyEquipment } from "../upgrades/UpgradeDefs";
 import { requestFullscreen } from "../fullscreen";
 import {
   getTouchControlsEnabled,
@@ -49,8 +49,8 @@ export class PlanetRunMenuScene extends Scene {
     const bank = getBank();
     this.bankLabel.text = `Bank: ${bank.iron} iron, ${bank.crystal} crystal, ${bank.gas} gas`;
     const ownedItems = getOwnedItems();
-    const canAfford = canAffordAnyUpgradeByOwned(bank, ownedItems);
-    const anyAffordable = canAfford.iron || canAfford.crystal || canAfford.gas;
+    const equipped = getEquipped();
+    const anyAffordable = canAffordAnyEquipment(bank, ownedItems, equipped);
     this.configureButton.color = anyAffordable
       ? Color.fromHex("#8b5cf6")
       : Color.fromHex("#6b7280");

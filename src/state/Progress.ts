@@ -4,7 +4,7 @@ import type { UpgradeDef } from "../upgrades/UpgradeDefs";
 import { getUpgradeCost } from "../upgrades/UpgradeDefs";
 import { getCurrentSave, saveCurrentSave, type CargoCountsSave, type CargoSlotContentSave } from "./Saves";
 import type { SlotId } from "../types/roverConfig";
-import { getDefaultEquipped, getDefaultCargoLayout, DEFAULT_CARGO_ROWS, CARGO_MAX_ROWS } from "../types/roverConfig";
+import { getDefaultEquipped, getDefaultCargoLayout, DEFAULT_CARGO_ROWS, CARGO_MAX_ROWS, DEFAULT_EQUIPPED_IDS } from "../types/roverConfig";
 import { CARGO_CAPACITY_PER_SLOT } from "../config/gameConfig";
 
 export interface PersistedProgress {
@@ -22,6 +22,15 @@ const defaultBank: CargoCounts = {
   gas: 0,
 };
 
+/** New save: each base equipment starts at level 1. */
+function getDefaultOwnedItems(): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const id of Object.values(DEFAULT_EQUIPPED_IDS)) {
+    out[id] = 1;
+  }
+  return out;
+}
+
 function cargoFromSave(c: CargoCountsSave): CargoCounts {
   return { iron: c.iron, crystal: c.crystal, gas: c.gas };
 }
@@ -33,7 +42,7 @@ export function getProgress(): PersistedProgress {
       bank: { ...defaultBank },
       appliedUpgrades: [],
       equipped: getDefaultEquipped(),
-      ownedItems: {},
+      ownedItems: getDefaultOwnedItems(),
       cargoLayout: getDefaultCargoLayout(DEFAULT_CARGO_ROWS) as CargoSlotContentSave[],
       cargoRows: DEFAULT_CARGO_ROWS,
     };
@@ -43,7 +52,7 @@ export function getProgress(): PersistedProgress {
     bank: cargoFromSave(save.bank),
     appliedUpgrades: [...save.appliedUpgrades],
     equipped: { ...(save.equipped ?? getDefaultEquipped()) },
-    ownedItems: { ...(save.ownedItems ?? {}) },
+    ownedItems: { ...(save.ownedItems ?? getDefaultOwnedItems()) },
     cargoLayout: layout.length === 4 * cargoRows ? [...layout] : (getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[]),
     cargoRows,
   };

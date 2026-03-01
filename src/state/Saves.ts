@@ -4,6 +4,7 @@ import {
   getDefaultCargoLayout,
   DEFAULT_CARGO_ROWS,
   CARGO_MAX_ROWS,
+  DEFAULT_EQUIPPED_IDS,
 } from "../types/roverConfig";
 import { getUpgradeById } from "../upgrades/UpgradeDefs";
 
@@ -111,6 +112,28 @@ function parseCargoRows(obj: unknown): number {
   return n;
 }
 
+function migrateBaseToBaseDefIds(
+  equipped: Record<SlotId, string>
+): Record<SlotId, string> {
+  const out = { ...equipped };
+  for (const slot of Object.keys(DEFAULT_EQUIPPED_IDS) as SlotId[]) {
+    if (out[slot] === "base") out[slot] = DEFAULT_EQUIPPED_IDS[slot];
+  }
+  return out;
+}
+
+function ensureBaseDefsOwned(
+  equipped: Record<SlotId, string>,
+  ownedItems: Record<string, number>
+): Record<string, number> {
+  const out = { ...ownedItems };
+  const baseIds = new Set(Object.values(DEFAULT_EQUIPPED_IDS));
+  for (const id of Object.values(equipped)) {
+    if (baseIds.has(id) && (out[id] ?? 0) < 1) out[id] = 1;
+  }
+  return out;
+}
+
 function parseSave(raw: string | null): GameSave | null {
   if (!raw) return null;
   try {
@@ -149,6 +172,9 @@ function parseSave(raw: string | null): GameSave | null {
     if (!ownedItems) {
       ownedItems = {};
     }
+    // Migrate legacy "base" to base def ids and ensure ownedItems has base defs
+    equipped = migrateBaseToBaseDefIds(equipped);
+    ownedItems = ensureBaseDefsOwned(equipped, ownedItems);
     if (cargoLayout.length !== totalSlots) {
       cargoLayout = getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[];
     }
@@ -280,7 +306,9 @@ export function createSave(difficulty: Difficulty): GameSave {
     totalResourcesCollected: { ...emptyCargo },
     createdAt: now,
     equipped: getDefaultEquipped(),
-    ownedItems: {},
+    ownedItems: Object.fromEntries(
+      Object.values(getDefaultEquipped()).map((id) => [id, 1])
+    ),
     cargoLayout: [...cargoLayout],
     cargoRows,
   };

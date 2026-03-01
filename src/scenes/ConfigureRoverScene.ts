@@ -27,13 +27,12 @@ import type { SlotId } from "../types/roverConfig";
 import { ALL_SLOT_IDS } from "../types/roverConfig";
 import {
   getUpgradeById,
-  canAffordAnyUpgradeByOwned,
-  get3RandomAffordableByOwned,
-  type UpgradeDef,
+  getCatalogDefs,
+  canAffordCost,
+  formatCost,
 } from "../upgrades/UpgradeDefs";
-import type { ResourceId } from "../resources/ResourceTypes";
 import { saveCurrentSave } from "../state/Saves";
-import { CARGO_MAX_ROWS } from "../types/roverConfig";
+import { CARGO_MAX_ROWS, DEFAULT_EQUIPPED_IDS } from "../types/roverConfig";
 import type { CargoSlotContentSave } from "../state/Saves";
 
 const SLOT_COLORS: Record<SlotId, string> = {
@@ -63,8 +62,6 @@ export class ConfigureRoverScene extends Scene {
   private tooltipLabel!: Label;
   private draggingItemId: string | null = null;
   private draggingSlotType: SlotId | null = null;
-  private shopChosenResource: ResourceId | null = null;
-  private shopOptions: UpgradeDef[] = [];
 
   private static readonly CARGO_CYCLE: CargoSlotContentSave[] = [
     "empty",
@@ -109,8 +106,7 @@ export class ConfigureRoverScene extends Scene {
     this.equipmentContainer = [];
     const equipped = getEquipped();
     const ownedItems = getOwnedItems();
-    const slotW = 100;
-    const slotH = 36;
+    const bank = getBank();
     const startX = 24;
     const startY = 188;
     const gap = 8;
@@ -120,31 +116,38 @@ export class ConfigureRoverScene extends Scene {
       unit: FontUnit.Px,
     });
 
+    const slotBoxW = 220;
+    const slotBoxH = 36;
     ALL_SLOT_IDS.forEach((slotId, i) => {
-      const col = i % 3;
-      const row = Math.floor(i / 3);
-      const x = startX + col * (slotW + gap);
-      const y = startY + row * (slotH + gap);
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = startX + col * (slotBoxW + gap);
+      const y = startY + row * (slotBoxH + gap);
       const color = Color.fromHex(SLOT_COLORS[slotId]);
+      const itemId = equipped[slotId];
+      const def = itemId ? getUpgradeById(itemId) : null;
+      const displayName = def?.isBase ? "Base" : def?.name ?? "Base";
+      const level = itemId ? (ownedItems[itemId] ?? 0) : 0;
+      const maxStack = def?.maxStack ?? 1;
+      const canLevelUp =
+        def && level < maxStack && canAffordCost(bank, def.cost);
+
       const box = new Actor({
-        x: x + slotW / 2,
-        y: y + slotH / 2,
-        width: slotW,
-        height: slotH,
+        x: x + slotBoxW / 2,
+        y: y + slotBoxH / 2,
+        width: slotBoxW,
+        height: slotBoxH,
         color: Color.fromHex("#1e293b"),
       });
       box.anchor.setTo(0.5, 0.5);
       box.z = 5;
-      const itemId = equipped[slotId];
-      const def = itemId && itemId !== "base" ? getUpgradeById(itemId) : null;
-      const name = def ? def.name : "Base";
       const lbl = new Label({
-        text: `${SLOT_LABELS[slotId]}: ${name}`,
-        pos: vec(box.pos.x, box.pos.y),
+        text: `${SLOT_LABELS[slotId]}: ${displayName} (${level})`,
+        pos: vec(x + 8, y + slotBoxH / 2),
         color,
         font: smallFont,
       });
-      lbl.anchor.setTo(0.5, 0.5);
+      lbl.anchor.setTo(0, 0.5);
       lbl.z = 6;
       box.on("pointerup", () => {
         if (this.draggingItemId && this.draggingSlotType === slotId) {
@@ -155,7 +158,7 @@ export class ConfigureRoverScene extends Scene {
           this.draggingSlotType = null;
           this.rebuildEquipmentUI();
         } else if (!this.draggingItemId) {
-          setEquipped(slotId, "base");
+          setEquipped(slotId, DEFAULT_EQUIPPED_IDS[slotId]);
           saveCurrentSave();
           playClick();
           this.rebuildEquipmentUI();
@@ -172,9 +175,44 @@ export class ConfigureRoverScene extends Scene {
       this.add(box);
       this.add(lbl);
       this.equipmentContainer.push(box, lbl);
+
+      if (canLevelUp && def) {
+        const levelUpBtn = new Actor({
+          x: x + slotBoxW - 52,
+          y: y + slotBoxH / 2,
+          width: 88,
+          height: 26,
+          color: canAffordCost(bank, def.cost)
+            ? Color.fromHex("#4ade80")
+            : Color.fromHex("#4b5563"),
+        });
+        levelUpBtn.anchor.setTo(0.5, 0.5);
+        levelUpBtn.z = 6;
+        const levelUpLbl = new Label({
+          text: `Level up (${formatCost(def.cost)})`,
+          pos: vec(levelUpBtn.pos.x, levelUpBtn.pos.y),
+          color: Color.White,
+          font: new Font({
+            family: "system-ui, sans-serif",
+            size: 9,
+            unit: FontUnit.Px,
+          }),
+        });
+        levelUpLbl.anchor.setTo(0.5, 0.5);
+        levelUpLbl.z = 7;
+        levelUpBtn.on("pointerup", () => {
+          if (!purchaseEquipment(def)) return;
+          playClick();
+          this.rebuildEquipmentUI();
+          this.rebuildShopUI();
+        });
+        this.add(levelUpBtn);
+        this.add(levelUpLbl);
+        this.equipmentContainer.push(levelUpBtn, levelUpLbl);
+      }
     });
 
-    const invStartY = startY + 2 * (slotH + gap) + 20;
+    const invStartY = startY + 3 * (slotBoxH + gap) + 20;
     const invLabel = new Label({
       text: "Inventory (drag to slot):",
       pos: vec(startX, invStartY - 16),
@@ -304,137 +342,126 @@ export class ConfigureRoverScene extends Scene {
     const ownedItems = getOwnedItems();
     const startX = 24;
     const startY = 448;
-    const btnW = 100;
-    const btnH = 36;
-    const gap = 8;
+    const rowH = 32;
+    const gap = 6;
     const smallFont = new Font({
       family: "system-ui, sans-serif",
-      size: 12,
+      size: 11,
       unit: FontUnit.Px,
     });
 
-    if (this.shopChosenResource === null) {
-      const canAfford = canAffordAnyUpgradeByOwned(bank, ownedItems);
-      const rows = getCargoRows();
-      const canBuyRow =
-        rows < CARGO_MAX_ROWS && bank.crystal >= 8;
-      if (canBuyRow) {
-        const rowBtn = new Actor({
-          x: startX + 1.5 * (btnW + gap) + btnW / 2,
-          y: startY + btnH / 2 + 44,
-          width: 140,
-          height: 32,
-          color: Color.fromHex("#86efac"),
-        });
-        rowBtn.anchor.setTo(0.5, 0.5);
-        rowBtn.on("pointerup", () => {
-          if (!spendFromBank({ crystal: 8 })) return;
-          setCargoRows(rows + 1);
-          saveCurrentSave();
-          playClick();
-          this.rebuildCargoUI();
-          this.rebuildShopUI();
-        });
-        const rowLbl = new Label({
-          text: "+1 Cargo Row (8 crystal)",
-          pos: rowBtn.pos.clone(),
-          color: Color.Black,
-          font: smallFont,
-        });
-        rowLbl.anchor.setTo(0.5, 0.5);
-        this.add(rowBtn);
-        this.add(rowLbl);
-        this.shopContainer.push(rowBtn, rowLbl);
-      }
-      const resources: ResourceId[] = ["iron", "crystal", "gas"];
-      resources.forEach((r, i) => {
-        const btn = new Actor({
-          x: startX + i * (btnW + gap) + btnW / 2,
-          y: startY + btnH / 2,
-          width: btnW,
-          height: btnH,
-          color: canAfford[r]
-            ? r === "iron"
-              ? Color.fromHex("#9ca3af")
-              : r === "crystal"
-                ? Color.fromHex("#a855f7")
-                : Color.fromHex("#22c55e")
-            : Color.fromHex("#4b5563"),
-        });
-        btn.anchor.setTo(0.5, 0.5);
-        btn.z = 5;
-        const lbl = new Label({
-          text: `${r}: ${bank[r]}`,
-          pos: btn.pos.clone(),
-          color: Color.White,
-          font: smallFont,
-        });
-        lbl.anchor.setTo(0.5, 0.5);
-        btn.on("pointerup", () => {
-          if (!canAfford[r]) return;
-          playClick();
-          this.shopChosenResource = r;
-          this.shopOptions = get3RandomAffordableByOwned(bank, r, ownedItems);
-          this.rebuildShopUI();
-        });
-        this.add(btn);
-        this.add(lbl);
-        this.shopContainer.push(btn, lbl);
+    const catalog = getCatalogDefs(ownedItems);
+    let y = startY;
+
+    const bankLabel = new Label({
+      text: `Bank: ${bank.iron} iron, ${bank.crystal} crystal, ${bank.gas} gas`,
+      pos: vec(startX, y),
+      color: Color.fromHex("#94a3b8"),
+      font: smallFont,
+    });
+    this.add(bankLabel);
+    this.shopContainer.push(bankLabel);
+    y += rowH + 4;
+
+    const rows = getCargoRows();
+    const canBuyRow = rows < CARGO_MAX_ROWS && bank.crystal >= 8;
+    if (canBuyRow) {
+      const rowBtn = new Actor({
+        x: startX + 70,
+        y: y + 16,
+        width: 140,
+        height: 28,
+        color: Color.fromHex("#86efac"),
       });
-    } else {
-      const cancelBtn = new Actor({
-        x: startX + btnW / 2,
-        y: startY + btnH / 2,
-        width: btnW,
-        height: btnH,
-        color: Color.fromHex("#6b7280"),
-      });
-      cancelBtn.anchor.setTo(0.5, 0.5);
-      cancelBtn.on("pointerup", () => {
+      rowBtn.anchor.setTo(0.5, 0.5);
+      rowBtn.on("pointerup", () => {
+        if (!spendFromBank({ crystal: 8 })) return;
+        setCargoRows(rows + 1);
+        saveCurrentSave();
         playClick();
-        this.shopChosenResource = null;
-        this.shopOptions = [];
+        this.rebuildCargoUI();
         this.rebuildShopUI();
       });
-      const cancelLbl = new Label({
-        text: "Cancel",
-        pos: cancelBtn.pos.clone(),
+      const rowLbl = new Label({
+        text: "+1 Cargo Row (8 crystal)",
+        pos: rowBtn.pos.clone(),
+        color: Color.Black,
+        font: smallFont,
+      });
+      rowLbl.anchor.setTo(0.5, 0.5);
+      this.add(rowBtn);
+      this.add(rowLbl);
+      this.shopContainer.push(rowBtn, rowLbl);
+      y += rowH + gap;
+    }
+
+    const catalogTitle = new Label({
+      text: "Buy new equipment (level 0 → 1):",
+      pos: vec(startX, y),
+      color: Color.fromHex("#fcd34d"),
+      font: smallFont,
+    });
+    this.add(catalogTitle);
+    this.shopContainer.push(catalogTitle);
+    y += rowH + 2;
+
+    for (const def of catalog) {
+      const affordable = canAffordCost(bank, def.cost);
+      const rowBg = new Actor({
+        x: startX + 200,
+        y: y + rowH / 2,
+        width: 380,
+        height: rowH,
+        color: Color.fromHex("#1e293b"),
+      });
+      rowBg.anchor.setTo(0.5, 0.5);
+      rowBg.z = 5;
+      const nameLbl = new Label({
+        text: `${def.name} — ${def.description}`,
+        pos: vec(startX + 8, y + 4),
+        color: Color.fromHex("#e2e8f0"),
+        font: smallFont,
+      });
+      const costLbl = new Label({
+        text: formatCost(def.cost),
+        pos: vec(startX + 8, y + 16),
+        color: Color.fromHex("#94a3b8"),
+        font: new Font({
+          family: "system-ui, sans-serif",
+          size: 10,
+          unit: FontUnit.Px,
+        }),
+      });
+      const purchaseBtn = new Actor({
+        x: startX + 340,
+        y: y + rowH / 2,
+        width: 72,
+        height: 24,
+        color: affordable ? Color.fromHex("#22c55e") : Color.fromHex("#4b5563"),
+      });
+      purchaseBtn.anchor.setTo(0.5, 0.5);
+      purchaseBtn.z = 6;
+      const purchaseLbl = new Label({
+        text: "Purchase",
+        pos: purchaseBtn.pos.clone(),
         color: Color.White,
         font: smallFont,
       });
-      cancelLbl.anchor.setTo(0.5, 0.5);
-      this.add(cancelBtn);
-      this.add(cancelLbl);
-      this.shopContainer.push(cancelBtn, cancelLbl);
-
-      this.shopOptions.forEach((def, i) => {
-        const optBtn = new Actor({
-          x: startX + (i + 1) * (btnW + gap) + btnW / 2,
-          y: startY + btnH / 2,
-          width: btnW + 40,
-          height: btnH,
-          color: Color.fromHex("#8b5cf6"),
-        });
-        optBtn.anchor.setTo(0.5, 0.5);
-        optBtn.on("pointerup", () => {
-          if (!purchaseEquipment(def)) return;
-          playClick();
-          this.shopChosenResource = null;
-          this.shopOptions = [];
-          this.rebuildEquipmentUI();
-          this.rebuildShopUI();
-        });
-        const optLbl = new Label({
-          text: `${def.name} (${def.cost})`,
-          pos: optBtn.pos.clone(),
-          color: Color.White,
-          font: smallFont,
-        });
-        optLbl.anchor.setTo(0.5, 0.5);
-        this.add(optBtn);
-        this.add(optLbl);
-        this.shopContainer.push(optBtn, optLbl);
+      purchaseLbl.anchor.setTo(0.5, 0.5);
+      purchaseLbl.z = 7;
+      purchaseBtn.on("pointerup", () => {
+        if (!purchaseEquipment(def)) return;
+        playClick();
+        this.rebuildEquipmentUI();
+        this.rebuildShopUI();
       });
+      this.add(rowBg);
+      this.add(nameLbl);
+      this.add(costLbl);
+      this.add(purchaseBtn);
+      this.add(purchaseLbl);
+      this.shopContainer.push(rowBg, nameLbl, costLbl, purchaseBtn, purchaseLbl);
+      y += rowH + gap;
     }
   }
 

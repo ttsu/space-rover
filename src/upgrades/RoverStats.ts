@@ -123,7 +123,7 @@ export function computeEffectiveRoverStatsFromEquipped(
   const stats: RoverStats = { ...BASE_STATS };
   for (const slot of ALL_SLOT_IDS) {
     const itemId = equipped[slot];
-    if (!itemId || itemId === "base") continue;
+    if (!itemId) continue;
     const level = ownedItems[itemId] ?? 0;
     const def = getUpgradeById(itemId);
     if (!def) continue;

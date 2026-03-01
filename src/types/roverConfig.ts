@@ -51,13 +51,16 @@ export function getDefaultCargoLayout(rows: number): CargoLayout {
   return result;
 }
 
+/** Base equipment def ids (one per slot). Must match UpgradeDefs base def ids. */
+export const DEFAULT_EQUIPPED_IDS: EquippedState = {
+  battery: "base-battery",
+  engine: "base-engine",
+  control: "base-control",
+  shielding: "base-shielding",
+  radar: "base-radar",
+  blaster: "base-blaster",
+};
+
 export function getDefaultEquipped(): EquippedState {
-  return {
-    battery: "base",
-    engine: "base",
-    control: "base",
-    shielding: "base",
-    radar: "base",
-    blaster: "base",
-  };
+  return { ...DEFAULT_EQUIPPED_IDS };
 }
