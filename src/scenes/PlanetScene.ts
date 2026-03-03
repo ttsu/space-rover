@@ -9,21 +9,32 @@ import {
   Keys,
   ScreenElement,
   Actor,
+  type ExcaliburGraphicsContext,
 } from "excalibur";
 import { Button } from "../ui/Button";
 import { Rover } from "../entities/Rover";
 import { BlasterProjectile } from "../entities/BlasterProjectile";
 import { generatePlanet } from "../world/PlanetGenerator";
-import { TILE_SIZE } from "../config/gameConfig";
+import {
+  FogVisibilitySystem,
+  FogOverlaySystem,
+  drawFogOverlay,
+} from "../world/FogOfWar";
+import { TILE_SIZE, PLANET_WIDTH_TILES, PLANET_HEIGHT_TILES } from "../config/gameConfig";
 import { resetRunTracking, finishRun, GameState } from "../state/GameState";
 import { Hud } from "../ui/Hud";
 import { TouchControls } from "../ui/TouchControls";
-import { getTouchControlsEnabled } from "../input/TouchInputState";
+import {
+  getTouchControlsEnabled,
+  setTouchControlsEnabled,
+} from "../input/TouchInputState";
 import { getCurrentSave } from "../state/Saves";
 import { getCargoLayout, getMaxCargoFromLayout } from "../state/Progress";
 import { setSeed } from "../utils/seedRandom";
 import { burst, risingBurst } from "../effects/Particles";
 import { playBlaster, playDamage, playDock, playDeath } from "../audio/sounds";
+
+const TOUCH_TOGGLE_KEY = Keys.T;
 
 export class PlanetScene extends Scene {
   private engineRef: Engine;
@@ -31,6 +42,8 @@ export class PlanetScene extends Scene {
   private infoLabel!: Label;
   private hud!: Hud;
   private returnToShipBtn?: Button;
+  private touchControlsOverlay?: TouchControls;
+  private touchReturnContainer?: ScreenElement;
   private basePos = vec(0, 0);
   private worldActors: Actor[] = [];
   private quakeTimer = 0;
@@ -102,7 +115,7 @@ export class PlanetScene extends Scene {
     };
 
     this.infoLabel = new Label({
-      text: "W/S A/D drive. Space to fire blaster. Return to base to finish.",
+      text: "W/S A/D drive. Space to fire. T = toggle touch controls. Return to base to finish.",
       pos: vec(16, 24),
       color: Color.White,
       font: new Font({
@@ -111,39 +124,98 @@ export class PlanetScene extends Scene {
         unit: FontUnit.Px,
       }),
     });
+    this.infoLabel.z = 1000;
     this.add(this.infoLabel);
 
     this.hud = new Hud(this.engineRef, this.rover);
+    this.hud.z = 1000;
     this.add(this.hud);
 
     if (getTouchControlsEnabled()) {
-      this.add(new TouchControls(this.engineRef));
-      const returnContainer = new ScreenElement({ x: 0, y: 0 });
-      const cx = this.engineRef.drawWidth / 2;
-      const by = this.engineRef.drawHeight - 40;
-      const returnBtn = new Button({
-        pos: vec(cx, by),
-        width: 220,
-        height: 52,
-        text: "Return to ship",
-        color: Color.fromHex("#1c1917"),
-        font: new Font({
-          family: "system-ui, sans-serif",
-          size: 22,
-          unit: FontUnit.Px,
-        }),
-        onClick: () => {
-          if (this.runEnded) return;
-          this.triggerReturnToBase();
-        },
-      });
-      returnBtn.graphics.visible = false;
-      this.returnToShipBtn = returnBtn;
-      returnContainer.addChild(returnBtn);
-      this.add(returnContainer);
+      this.addTouchControlsOverlay();
     }
 
     this.camera.strategy.lockToActor(this.rover);
+
+    this.world.add(new FogVisibilitySystem(this.world, this.rover));
+    this.world.add(new FogOverlaySystem(this.world, this.rover));
+
+    this.engineRef.input.pointers.primary.on("down", (e) => {
+      if (this.engineRef.currentScene !== this) return;
+      if (!getTouchControlsEnabled() || !this.returnToShipBtn) return;
+      if (!this.returnToShipBtn.graphics.isVisible || this.runEnded) return;
+      const p = e.screenPos;
+      const cx = this.engineRef.drawWidth / 2;
+      const by = this.engineRef.drawHeight - 40;
+      const w = PlanetScene.RETURN_BUTTON_WIDTH;
+      const h = PlanetScene.RETURN_BUTTON_HEIGHT;
+      if (
+        p.x >= cx - w / 2 &&
+        p.x <= cx + w / 2 &&
+        p.y >= by - h / 2 &&
+        p.y <= by + h / 2
+      ) {
+        this.triggerReturnToBase();
+      }
+    });
+  }
+
+  onPostDraw(ctx: ExcaliburGraphicsContext, _elapsed: number): void {
+    drawFogOverlay(
+      ctx,
+      this.rover,
+      this.camera,
+      this.engineRef.drawWidth,
+      this.engineRef.drawHeight,
+      PLANET_WIDTH_TILES,
+      PLANET_HEIGHT_TILES
+    );
+  }
+
+  private static readonly RETURN_BUTTON_WIDTH = 220;
+  private static readonly RETURN_BUTTON_HEIGHT = 52;
+
+  private addTouchControlsOverlay(): void {
+    const tc = new TouchControls(this.engineRef);
+    this.touchControlsOverlay = tc;
+    this.add(tc);
+    const returnContainer = new ScreenElement({ x: 0, y: 0 });
+    returnContainer.z = 1000;
+    this.touchReturnContainer = returnContainer;
+    const cx = this.engineRef.drawWidth / 2;
+    const by = this.engineRef.drawHeight - 40;
+    const returnBtn = new Button({
+      pos: vec(cx, by),
+      width: PlanetScene.RETURN_BUTTON_WIDTH,
+      height: PlanetScene.RETURN_BUTTON_HEIGHT,
+      text: "Return to ship",
+      color: Color.fromHex("#1c1917"),
+      font: new Font({
+        family: "system-ui, sans-serif",
+        size: 22,
+        unit: FontUnit.Px,
+      }),
+      onClick: () => {
+        if (this.runEnded) return;
+        this.triggerReturnToBase();
+      },
+    });
+    returnBtn.graphics.isVisible = false;
+    this.returnToShipBtn = returnBtn;
+    returnContainer.addChild(returnBtn);
+    this.add(returnContainer);
+  }
+
+  private removeTouchControlsOverlay(): void {
+    if (this.touchControlsOverlay) {
+      this.touchControlsOverlay.kill();
+      this.touchControlsOverlay = undefined;
+    }
+    if (this.touchReturnContainer) {
+      this.returnToShipBtn = undefined;
+      this.touchReturnContainer.kill();
+      this.touchReturnContainer = undefined;
+    }
   }
 
   private triggerReturnToBase(): void {
@@ -237,6 +309,16 @@ export class PlanetScene extends Scene {
   }
 
   onPreUpdate(engine: Engine, delta: number): void {
+    if (engine.input.keyboard.wasPressed(TOUCH_TOGGLE_KEY)) {
+      const next = !getTouchControlsEnabled();
+      setTouchControlsEnabled(next);
+      if (next) {
+        this.addTouchControlsOverlay();
+      } else {
+        this.removeTouchControlsOverlay();
+      }
+    }
+
     if (!this.runEnded && this.rover.health <= 0) {
       this.triggerDeath();
       return;
@@ -261,7 +343,7 @@ export class PlanetScene extends Scene {
     this.hud.updateFromState(closeToBase, GameState.currentHazardsHit.lava);
 
     if (this.returnToShipBtn) {
-      this.returnToShipBtn.graphics.visible = !this.runEnded && closeToBase;
+      this.returnToShipBtn.graphics.isVisible = !this.runEnded && closeToBase;
     }
   }
 }

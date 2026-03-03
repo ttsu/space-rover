@@ -144,9 +144,9 @@ export class Hud extends ScreenElement {
         this.goalLabels[i].color = satisfied
           ? Color.fromHex("#4ade80")
           : Color.fromHex("#9ca3af");
-        this.goalLabels[i].graphics.visible = true;
+        this.goalLabels[i].graphics.isVisible = true;
       } else {
-        this.goalLabels[i].graphics.visible = false;
+        this.goalLabels[i].graphics.isVisible = false;
       }
     }
 

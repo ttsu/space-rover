@@ -6,6 +6,7 @@ import {
   Font,
   FontUnit,
   vec,
+  Keys,
 } from "excalibur";
 import { Button } from "../ui/Button";
 import { getBank, getOwnedItems, getEquipped } from "../state/Progress";
@@ -44,6 +45,13 @@ export class PlanetRunMenuScene extends Scene {
     setCurrentGoals(this.goalChoices);
   }
 
+  onPreUpdate(engine: Engine): void {
+    if (engine.input.keyboard.wasPressed(Keys.T)) {
+      setTouchControlsEnabled(!getTouchControlsEnabled());
+      this.updateTouchToggleLabel();
+    }
+  }
+
   private updateBankAndUpgradeButton(): void {
     const bank = getBank();
     this.bankLabel.text = `Bank: ${bank.iron} iron, ${bank.crystal} crystal, ${bank.gas} gas`;
@@ -68,9 +76,9 @@ export class PlanetRunMenuScene extends Scene {
     for (let i = 0; i < 3; i++) {
       if (i < this.goalChoices.length) {
         this.goalLabels[i].text = this.goalChoices[i].label;
-        this.goalLabels[i].graphics.visible = true;
+        this.goalLabels[i].graphics.isVisible = true;
       } else {
-        this.goalLabels[i].graphics.visible = false;
+        this.goalLabels[i].graphics.isVisible = false;
       }
     }
   }

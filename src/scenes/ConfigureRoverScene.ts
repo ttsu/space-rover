@@ -95,9 +95,9 @@ export class ConfigureRoverScene extends Scene {
     for (let i = 0; i < 3; i++) {
       if (i < goals.length) {
         this.goalLabels[i].text = goals[i].label;
-        this.goalLabels[i].graphics.visible = true;
+        this.goalLabels[i].graphics.isVisible = true;
       } else {
-        this.goalLabels[i].graphics.visible = false;
+        this.goalLabels[i].graphics.isVisible = false;
       }
     }
   }
@@ -246,10 +246,10 @@ export class ConfigureRoverScene extends Scene {
       chip.on("pointerenter", () => {
         this.tooltipLabel.text = `${def.name}\n${def.description}`;
         this.tooltipLabel.pos = vec(chip.pos.x, chip.pos.y - 24);
-        this.tooltipLabel.graphics.visible = true;
+        this.tooltipLabel.graphics.isVisible = true;
       });
       chip.on("pointerleave", () => {
-        this.tooltipLabel.graphics.visible = false;
+        this.tooltipLabel.graphics.isVisible = false;
       });
       this.add(chip);
       this.add(chipLbl);
@@ -454,7 +454,7 @@ export class ConfigureRoverScene extends Scene {
       }),
     });
     this.tooltipLabel.anchor.setTo(0.5, 0.5);
-    this.tooltipLabel.graphics.visible = false;
+    this.tooltipLabel.graphics.isVisible = false;
     this.tooltipLabel.z = 100;
     this.add(this.tooltipLabel);
 

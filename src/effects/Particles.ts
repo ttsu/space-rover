@@ -7,6 +7,7 @@ import {
   ParticleTransform,
   CollisionType,
 } from "excalibur";
+import { FogAffectedComponent } from "../world/FogOfWar";
 
 export interface BurstOptions {
   color?: Color;
@@ -71,6 +72,7 @@ export function burst(
     },
   });
   emitter.body.collisionType = CollisionType.PreventCollision;
+  emitter.addComponent(new FogAffectedComponent());
   scene.add(emitter);
   emitter.emitParticles(opts.count);
   emitter.actions.delay(opts.lifetimeMs + 100).callMethod(() => {
@@ -134,6 +136,7 @@ export function risingBurst(
     },
   });
   emitter.body.collisionType = CollisionType.PreventCollision;
+  emitter.addComponent(new FogAffectedComponent());
   scene.add(emitter);
   emitter.emitParticles(count);
   emitter.actions.delay(lifetimeMs + 100).callMethod(() => {
@@ -192,5 +195,6 @@ export function createAmbientEmitter(config: {
   });
   // So the emitter does not steal collisions from the parent (e.g. LavaPool).
   emitter.body.collisionType = CollisionType.PreventCollision;
+  emitter.addComponent(new FogAffectedComponent());
   return emitter;
 }

@@ -88,28 +88,10 @@ export class SummaryScene extends Scene {
       },
     });
 
-    const configureButton = new Button({
-      pos: vec(cx, this.engineRef.drawHeight / 2 + 168),
-      width: 220,
-      height: 48,
-      text: "Configure Rover",
-      color: Color.White,
-      font: new Font({
-        family: "system-ui, sans-serif",
-        size: 22,
-        unit: FontUnit.Px,
-      }),
-      onClick: () => {
-        playClick();
-        this.engineRef.goToScene("configureRover");
-      },
-    });
-
     this.add(title);
     this.add(this.goalResultLabel);
     this.add(this.statsLabel);
     this.add(menuButton);
-    this.add(configureButton);
   }
 
   onActivate(): void {

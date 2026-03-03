@@ -17,7 +17,7 @@ export const ROVER_MAX_CAPACITY = 20;
 export const ROVER_BASE_HEALTH = 5;
 export const ROVER_BASE_BATTERY = 120; // seconds of operation
 export const ROVER_BASE_BATTERY_DRAIN = 1; // per second
-export const ROVER_BASE_VISIBILITY_RADIUS_TILES = 5;
+export const ROVER_BASE_VISIBILITY_RADIUS_TILES = 7;
 
 export const BLASTER_BASE_DAMAGE = 1;
 export const BLASTER_BASE_FIRE_RATE = 2.5; // shots per second

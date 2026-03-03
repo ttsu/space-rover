@@ -1,19 +1,26 @@
 const TOUCH_CONTROLS_STORAGE_KEY = "starship-touch-controls";
 
 export interface TouchInputState {
+  /** Target direction in radians (Excalibur: 0 = right, π/2 = down). null when joystick released. */
+  targetAngle: number | null;
+  /** Magnitude 0–1 from joystick displacement; controls rover speed when using touch. */
+  magnitude: number;
+  fire: boolean;
+  // Legacy fields (unused when targetAngle is used)
   turnLeft: boolean;
   turnRight: boolean;
   accelerate: boolean;
   brake: boolean;
-  fire: boolean;
 }
 
 const emptyState: TouchInputState = {
+  targetAngle: null,
+  magnitude: 0,
+  fire: false,
   turnLeft: false,
   turnRight: false,
   accelerate: false,
   brake: false,
-  fire: false,
 };
 
 let current: TouchInputState = { ...emptyState };

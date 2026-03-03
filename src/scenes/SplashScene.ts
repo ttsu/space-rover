@@ -1,4 +1,4 @@
-import { Engine, Scene, Label, Color, Font, FontUnit, vec, BaseAlign, TextAlign } from "excalibur";
+import { Engine, Scene, Label, Color, Font, FontUnit, vec } from "excalibur";
 import { requestFullscreen } from "../fullscreen";
 import { Button } from "../ui/Button";
 

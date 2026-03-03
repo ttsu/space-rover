@@ -10,6 +10,7 @@ import {
   TILE_SIZE,
 } from "../config/gameConfig";
 import { Tile } from "./Tile";
+import { FogAffectedComponent } from "./FogOfWar";
 import { BaseLander } from "../entities/BaseLander";
 import { RESOURCE_TYPES, type ResourceId } from "../resources/ResourceTypes";
 import { ResourceNode } from "../entities/ResourceNode";
@@ -51,6 +52,7 @@ export function generatePlanet(
     for (let x = 0; x < PLANET_WIDTH_TILES; x++) {
       const isCenter = x === centerTileX && y === centerTileY;
       const tile = new Tile(x, y, isCenter ? "base" : "ground");
+      tile.addComponent(new FogAffectedComponent({ gridX: x, gridY: y }));
       scene.add(tile);
       actors.push(tile);
     }
@@ -59,6 +61,13 @@ export function generatePlanet(
   const baseX = centerTileX * TILE_SIZE + TILE_SIZE / 2;
   const baseY = centerTileY * TILE_SIZE + TILE_SIZE / 2;
   const base = new BaseLander(baseX, baseY);
+  base.addComponent(
+    new FogAffectedComponent({
+      gridX: centerTileX,
+      gridY: centerTileY,
+      alwaysVisible: true,
+    })
+  );
   scene.add(base);
   actors.push(base);
 
@@ -127,10 +136,12 @@ export function generatePlanet(
     const nodeY = gridY * TILE_SIZE + TILE_SIZE / 2;
     if (resourceId === "gas") {
       const node = new ResourceNode(nodeX, nodeY, type);
+      node.addComponent(new FogAffectedComponent());
       scene.add(node);
       actors.push(node);
     } else {
       const deposit = new ResourceDeposit(nodeX, nodeY, type, 4);
+      deposit.addComponent(new FogAffectedComponent());
       scene.add(deposit);
       actors.push(deposit);
     }
@@ -148,6 +159,7 @@ export function generatePlanet(
       rover,
       "lava"
     );
+    lava.addComponent(new FogAffectedComponent());
     scene.add(lava);
     actors.push(lava);
   });
@@ -164,6 +176,7 @@ export function generatePlanet(
       rover,
       "rock"
     );
+    rock.addComponent(new FogAffectedComponent());
     scene.add(rock);
     actors.push(rock);
   });
@@ -173,10 +186,12 @@ export function generatePlanet(
     const y = gridY * TILE_SIZE + TILE_SIZE / 2;
     const angle = random() * Math.PI * 2;
     const wind = new WindZone(x, y, TILE_SIZE * 2, TILE_SIZE * 2, rover, angle);
+    wind.addComponent(new FogAffectedComponent());
     scene.add(wind);
     actors.push(wind);
 
     const lightning = new LightningZone(x, y, rover);
+    lightning.addComponent(new FogAffectedComponent());
     scene.add(lightning);
     actors.push(lightning);
   });

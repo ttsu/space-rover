@@ -20,14 +20,17 @@ const emptyHazards: Record<HazardKind, number> = {
   quake: 0,
 };
 
+/** Tile keys "gx,gy" for tiles that have been seen this run (fog explored). */
 export const GameState = {
   currentHazardsHit: { ...emptyHazards },
   lastRun: null as RunStats | null,
   bestTotalCargo: 0,
+  exploredTileKeys: new Set<string>(),
 };
 
 export function resetRunTracking() {
   GameState.currentHazardsHit = { ...emptyHazards };
+  GameState.exploredTileKeys.clear();
 }
 
 export function recordHazardHit(kind: HazardKind) {

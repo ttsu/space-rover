@@ -4,6 +4,8 @@ import { TILE_SIZE } from "../config/gameConfig";
 export type TileKind = "ground" | "lava" | "rockField" | "storm" | "base";
 
 export class Tile extends Actor {
+  readonly gridX: number;
+  readonly gridY: number;
   kind: TileKind;
 
   constructor(gridX: number, gridY: number, kind: TileKind) {
@@ -18,6 +20,8 @@ export class Tile extends Actor {
       color: colorForKind(kind),
     });
 
+    this.gridX = gridX;
+    this.gridY = gridY;
     this.kind = kind;
     this.z = -10;
   }

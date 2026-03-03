@@ -206,41 +206,58 @@ export class Rover extends Actor {
     let turningRight = input.isHeld(Keys.Right) || input.isHeld(Keys.D);
     let accelerating = input.isHeld(Keys.Up) || input.isHeld(Keys.W);
     let braking = input.isHeld(Keys.Down) || input.isHeld(Keys.S);
-    if (getTouchControlsEnabled()) {
-      const touch = getTouchInput();
-      turningLeft = turningLeft || touch.turnLeft;
-      turningRight = turningRight || touch.turnRight;
-      accelerating = accelerating || touch.accelerate;
-      braking = braking || touch.brake;
-    }
+    const touch = getTouchControlsEnabled() ? getTouchInput() : null;
+    const useTouchDrive =
+      touch && touch.targetAngle !== null && touch.targetAngle !== undefined;
 
-    if (turningLeft) {
-      this.rotation -= this.turnSpeed * dt;
-    } else if (turningRight) {
-      this.rotation += this.turnSpeed * dt;
-    }
-
-    if (accelerating) {
-      this.currentSpeed += this.acceleration * dt;
-      if (this.currentSpeed < 0) {
-        this.currentSpeed += this.brakeDeceleration * dt;
+    if (useTouchDrive) {
+      const targetAngle = touch!.targetAngle!;
+      let diff = targetAngle - this.rotation;
+      while (diff > Math.PI) diff -= 2 * Math.PI;
+      while (diff < -Math.PI) diff += 2 * Math.PI;
+      const maxTurn = this.turnSpeed * dt;
+      if (diff > maxTurn) {
+        this.rotation += maxTurn;
+      } else if (diff < -maxTurn) {
+        this.rotation -= maxTurn;
+      } else {
+        this.rotation = targetAngle;
       }
-    } else if (braking) {
-      this.currentSpeed -= this.acceleration * dt;
-      if (this.currentSpeed > 0) {
-        this.currentSpeed -= this.brakeDeceleration * dt;
-      }
+      this.currentSpeed = touch!.magnitude * this.maxForwardSpeed;
     } else {
-      if (this.currentSpeed > 0) {
-        this.currentSpeed = Math.max(
-          0,
-          this.currentSpeed - this.naturalFriction * dt
-        );
-      } else if (this.currentSpeed < 0) {
-        this.currentSpeed = Math.min(
-          0,
-          this.currentSpeed + this.naturalFriction * dt
-        );
+      turningLeft = turningLeft || (touch?.turnLeft ?? false);
+      turningRight = turningRight || (touch?.turnRight ?? false);
+      accelerating = accelerating || (touch?.accelerate ?? false);
+      braking = braking || (touch?.brake ?? false);
+
+      if (turningLeft) {
+        this.rotation -= this.turnSpeed * dt;
+      } else if (turningRight) {
+        this.rotation += this.turnSpeed * dt;
+      }
+
+      if (accelerating) {
+        this.currentSpeed += this.acceleration * dt;
+        if (this.currentSpeed < 0) {
+          this.currentSpeed += this.brakeDeceleration * dt;
+        }
+      } else if (braking) {
+        this.currentSpeed -= this.acceleration * dt;
+        if (this.currentSpeed > 0) {
+          this.currentSpeed -= this.brakeDeceleration * dt;
+        }
+      } else {
+        if (this.currentSpeed > 0) {
+          this.currentSpeed = Math.max(
+            0,
+            this.currentSpeed - this.naturalFriction * dt
+          );
+        } else if (this.currentSpeed < 0) {
+          this.currentSpeed = Math.min(
+            0,
+            this.currentSpeed + this.naturalFriction * dt
+          );
+        }
       }
     }
 
