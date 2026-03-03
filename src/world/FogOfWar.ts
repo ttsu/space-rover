@@ -8,6 +8,7 @@ import {
   Color,
   SystemPriority,
   vec,
+  ParticleEmitter,
 } from "excalibur";
 import {
   TILE_SIZE,
@@ -102,10 +103,15 @@ export class FogVisibilitySystem extends System {
       if (fog.alwaysVisible) {
         graphics.isVisible = true;
         graphics.opacity = 1;
+        applyFogToParticleEmitter(entity as ParticleEmitter, false);
         continue;
       }
 
-      const pos = transform.pos;
+      // Use world position for entities without grid coords (e.g. child emitters, hazards)
+      const pos =
+        fog.gridX !== undefined && fog.gridY !== undefined
+          ? transform.pos
+          : transform.globalPos;
       const { gx, gy } = entityTilePosition(fog, pos);
       const dx = gx - roverGx;
       const dy = gy - roverGy;
@@ -117,6 +123,7 @@ export class FogVisibilitySystem extends System {
         if (fog.gridX !== undefined && fog.gridY !== undefined) {
           explored.add(tileKey(fog.gridX, fog.gridY));
         }
+        applyFogToParticleEmitter(entity as ParticleEmitter, false);
         continue;
       }
 
@@ -124,9 +131,44 @@ export class FogVisibilitySystem extends System {
       if (fog.gridX !== undefined && fog.gridY !== undefined && explored.has(key)) {
         graphics.isVisible = true;
         graphics.opacity = EXPLORED_OPACITY;
+        applyFogToParticleEmitter(entity as ParticleEmitter, true);
       } else {
         graphics.isVisible = false;
+        applyFogToParticleEmitter(entity as ParticleEmitter, true);
       }
+    }
+  }
+}
+
+const FOG_RESTORE_EMITTING = "_fogRestoreEmitting" as const;
+
+function isParticleEmitter(e: unknown): e is ParticleEmitter {
+  return (
+    e != null &&
+    typeof (e as ParticleEmitter).clearParticles === "function" &&
+    typeof (e as ParticleEmitter).emitParticles === "function"
+  );
+}
+
+/**
+ * When an emitter is in fog: stop emitting and clear existing particles (no per-particle work).
+ * When it becomes visible again: restore isEmitting so ambient emitters resume.
+ */
+function applyFogToParticleEmitter(emitter: ParticleEmitter, inFog: boolean): void {
+  if (!isParticleEmitter(emitter)) return;
+  if (inFog) {
+    const bag = emitter as unknown as Record<string, boolean | undefined>;
+    if (bag[FOG_RESTORE_EMITTING] === undefined) {
+      bag[FOG_RESTORE_EMITTING] = emitter.isEmitting;
+    }
+    emitter.clearParticles();
+    emitter.isEmitting = false;
+  } else {
+    const bag = emitter as unknown as Record<string, boolean | undefined>;
+    const rest = bag[FOG_RESTORE_EMITTING];
+    if (rest !== undefined) {
+      emitter.isEmitting = rest;
+      delete bag[FOG_RESTORE_EMITTING];
     }
   }
 }
