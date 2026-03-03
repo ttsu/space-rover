@@ -5,9 +5,9 @@ import {
   Color,
   Font,
   FontUnit,
-  Actor,
   vec,
 } from "excalibur";
+import { Button } from "../ui/Button";
 import { getBank, getOwnedItems, getEquipped } from "../state/Progress";
 import { canAffordAnyEquipment } from "../upgrades/UpgradeDefs";
 import { requestFullscreen } from "../fullscreen";
@@ -26,9 +26,8 @@ import { playClick } from "../audio/sounds";
 export class PlanetRunMenuScene extends Scene {
   private engineRef: Engine;
   private bankLabel!: Label;
-  private configureButton!: Actor;
-  private touchToggleLabel?: Label;
-  private touchToggleButton?: Actor;
+  private configureButton!: Button;
+  private touchToggleButton?: Button;
 
   private goalChoices: RunGoal[] = [];
   private goalLabels: Label[] = [];
@@ -40,7 +39,7 @@ export class PlanetRunMenuScene extends Scene {
 
   onActivate(): void {
     this.updateBankAndUpgradeButton();
-    this.touchToggleLabel && this.updateTouchToggleLabel();
+    this.touchToggleButton && this.updateTouchToggleLabel();
     this.refreshGoalChoices();
     setCurrentGoals(this.goalChoices);
   }
@@ -51,16 +50,16 @@ export class PlanetRunMenuScene extends Scene {
     const ownedItems = getOwnedItems();
     const equipped = getEquipped();
     const anyAffordable = canAffordAnyEquipment(bank, ownedItems, equipped);
-    this.configureButton.color = anyAffordable
-      ? Color.fromHex("#8b5cf6")
-      : Color.fromHex("#6b7280");
+    this.configureButton.setHighlighted(anyAffordable);
   }
 
   private updateTouchToggleLabel(): void {
-    if (this.touchToggleLabel) {
-      this.touchToggleLabel.text = getTouchControlsEnabled()
-        ? "Touch controls: On"
-        : "Touch controls: Off";
+    if (this.touchToggleButton) {
+      this.touchToggleButton.setText(
+        getTouchControlsEnabled()
+          ? "Touch controls: On"
+          : "Touch controls: Off"
+      );
     }
   }
 
@@ -139,113 +138,85 @@ export class PlanetRunMenuScene extends Scene {
       this.add(lbl);
     }
 
-    const startRunButton = new Actor({
+    const startRunButton = new Button({
       pos: vec(cx, midY + 50),
       width: 200,
       height: 56,
-      color: Color.fromHex("#3b82f6"),
-    });
-    startRunButton.anchor.setTo(0.5, 0.5);
-    const startRunLabel = new Label({
       text: "Start Run",
-      pos: startRunButton.pos.clone(),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
         size: 24,
         unit: FontUnit.Px,
       }),
-    });
-    startRunLabel.anchor.setTo(0.5, 0.5);
-    startRunButton.on("pointerup", () => {
-      playClick();
-      setCurrentGoals(this.goalChoices);
-      requestFullscreen().finally(() => {
-        this.engineRef.goToScene("planet");
-      });
+      onClick: () => {
+        playClick();
+        setCurrentGoals(this.goalChoices);
+        requestFullscreen().finally(() => {
+          this.engineRef.goToScene("planet");
+        });
+      },
     });
 
-    this.configureButton = new Actor({
+    this.configureButton = new Button({
       pos: vec(cx, midY + 114),
       width: 200,
       height: 48,
-      color: Color.fromHex("#8b5cf6"),
-    });
-    this.configureButton.anchor.setTo(0.5, 0.5);
-    const configureLabel = new Label({
       text: "Configure Rover",
-      pos: this.configureButton.pos.clone(),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
         size: 22,
         unit: FontUnit.Px,
       }),
-    });
-    configureLabel.anchor.setTo(0.5, 0.5);
-    this.configureButton.on("pointerup", () => {
-      playClick();
-      this.engineRef.goToScene("configureRover");
+      onClick: () => {
+        playClick();
+        this.engineRef.goToScene("configureRover");
+      },
     });
 
-    const exitButton = new Actor({
+    const exitButton = new Button({
       pos: vec(cx, midY + 170),
       width: 200,
       height: 48,
-      color: Color.fromHex("#4b5563"),
-    });
-    exitButton.anchor.setTo(0.5, 0.5);
-    const exitLabel = new Label({
       text: "Exit to Main Menu",
-      pos: exitButton.pos.clone(),
       color: Color.fromHex("#d1d5db"),
       font: new Font({
         family: "system-ui, sans-serif",
         size: 20,
         unit: FontUnit.Px,
       }),
-    });
-    exitLabel.anchor.setTo(0.5, 0.5);
-    exitButton.on("pointerup", () => {
-      playClick();
-      this.engineRef.goToScene("mainMenu");
+      onClick: () => {
+        playClick();
+        this.engineRef.goToScene("mainMenu");
+      },
     });
 
     this.add(startRunButton);
-    this.add(startRunLabel);
     this.add(this.configureButton);
-    this.add(configureLabel);
     this.add(exitButton);
-    this.add(exitLabel);
 
     if (isTouchDeviceCapable()) {
-      this.touchToggleButton = new Actor({
+      this.touchToggleButton = new Button({
         pos: vec(cx, midY + 226),
         width: 200,
         height: 40,
-        color: Color.fromHex("#374151"),
-      });
-      this.touchToggleButton.anchor.setTo(0.5, 0.5);
-      this.touchToggleLabel = new Label({
         text: getTouchControlsEnabled()
           ? "Touch controls: On"
           : "Touch controls: Off",
-        pos: this.touchToggleButton.pos.clone(),
         color: Color.fromHex("#d1d5db"),
         font: new Font({
           family: "system-ui, sans-serif",
           size: 18,
           unit: FontUnit.Px,
         }),
-      });
-      this.touchToggleLabel.anchor.setTo(0.5, 0.5);
-      this.touchToggleButton.on("pointerup", () => {
-        playClick();
-        setTouchControlsEnabled(!getTouchControlsEnabled());
-        this.updateTouchToggleLabel();
+        onClick: () => {
+          playClick();
+          setTouchControlsEnabled(!getTouchControlsEnabled());
+          this.updateTouchToggleLabel();
+        },
       });
       this.add(this.touchToggleButton);
-      this.add(this.touchToggleLabel);
     }
   }
 }

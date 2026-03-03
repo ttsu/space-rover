@@ -6,8 +6,8 @@ import {
   Font,
   FontUnit,
   vec,
-  Actor,
 } from "excalibur";
+import { Button } from "../ui/Button";
 import { GameState } from "../state/GameState";
 import { getBank } from "../state/Progress";
 import { getGoalResults } from "../state/RunGoals";
@@ -71,59 +71,45 @@ export class SummaryScene extends Scene {
 
     const cx = this.engineRef.drawWidth / 2;
 
-    const menuButton = new Actor({
+    const menuButton = new Button({
       pos: vec(cx, this.engineRef.drawHeight / 2 + 100),
       width: 220,
       height: 56,
-      color: Color.fromHex("#3b82f6"),
-    });
-    menuButton.anchor.setTo(0.5, 0.5);
-    const menuLabel = new Label({
       text: "Back to Menu",
-      pos: menuButton.pos.clone(),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
         size: 24,
         unit: FontUnit.Px,
       }),
-    });
-    menuLabel.anchor.setTo(0.5, 0.5);
-    menuButton.on("pointerup", () => {
-      playClick();
-      this.engineRef.goToScene("planetRunMenu");
+      onClick: () => {
+        playClick();
+        this.engineRef.goToScene("planetRunMenu");
+      },
     });
 
-    const configureButton = new Actor({
+    const configureButton = new Button({
       pos: vec(cx, this.engineRef.drawHeight / 2 + 168),
       width: 220,
       height: 48,
-      color: Color.fromHex("#8b5cf6"),
-    });
-    configureButton.anchor.setTo(0.5, 0.5);
-    const configureLabel = new Label({
       text: "Configure Rover",
-      pos: configureButton.pos.clone(),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
         size: 22,
         unit: FontUnit.Px,
       }),
-    });
-    configureLabel.anchor.setTo(0.5, 0.5);
-    configureButton.on("pointerup", () => {
-      playClick();
-      this.engineRef.goToScene("configureRover");
+      onClick: () => {
+        playClick();
+        this.engineRef.goToScene("configureRover");
+      },
     });
 
     this.add(title);
     this.add(this.goalResultLabel);
     this.add(this.statsLabel);
     this.add(menuButton);
-    this.add(menuLabel);
     this.add(configureButton);
-    this.add(configureLabel);
   }
 
   onActivate(): void {

@@ -8,6 +8,7 @@ import {
   Actor,
   vec,
 } from "excalibur";
+import { Button } from "../ui/Button";
 import { getCurrentGoals } from "../state/RunGoals";
 import {
   getEquipped,
@@ -177,38 +178,27 @@ export class ConfigureRoverScene extends Scene {
       this.equipmentContainer.push(box, lbl);
 
       if (canLevelUp && def) {
-        const levelUpBtn = new Actor({
-          x: x + slotBoxW - 52,
-          y: y + slotBoxH / 2,
+        const levelUpBtn = new Button({
+          pos: vec(x + slotBoxW - 52, y + slotBoxH / 2),
           width: 88,
           height: 26,
-          color: canAffordCost(bank, def.cost)
-            ? Color.fromHex("#4ade80")
-            : Color.fromHex("#4b5563"),
-        });
-        levelUpBtn.anchor.setTo(0.5, 0.5);
-        levelUpBtn.z = 6;
-        const levelUpLbl = new Label({
           text: `Level up (${formatCost(def.cost)})`,
-          pos: vec(levelUpBtn.pos.x, levelUpBtn.pos.y),
           color: Color.White,
           font: new Font({
             family: "system-ui, sans-serif",
             size: 9,
             unit: FontUnit.Px,
           }),
+          onClick: () => {
+            if (!purchaseEquipment(def)) return;
+            playClick();
+            this.rebuildEquipmentUI();
+            this.rebuildShopUI();
+          },
         });
-        levelUpLbl.anchor.setTo(0.5, 0.5);
-        levelUpLbl.z = 7;
-        levelUpBtn.on("pointerup", () => {
-          if (!purchaseEquipment(def)) return;
-          playClick();
-          this.rebuildEquipmentUI();
-          this.rebuildShopUI();
-        });
+        levelUpBtn.z = 6;
         this.add(levelUpBtn);
-        this.add(levelUpLbl);
-        this.equipmentContainer.push(levelUpBtn, levelUpLbl);
+        this.equipmentContainer.push(levelUpBtn);
       }
     });
 
@@ -366,32 +356,24 @@ export class ConfigureRoverScene extends Scene {
     const rows = getCargoRows();
     const canBuyRow = rows < CARGO_MAX_ROWS && bank.crystal >= 8;
     if (canBuyRow) {
-      const rowBtn = new Actor({
-        x: startX + 70,
-        y: y + 16,
+      const rowBtn = new Button({
+        pos: vec(startX + 70, y + 16),
         width: 140,
         height: 28,
-        color: Color.fromHex("#86efac"),
-      });
-      rowBtn.anchor.setTo(0.5, 0.5);
-      rowBtn.on("pointerup", () => {
-        if (!spendFromBank({ crystal: 8 })) return;
-        setCargoRows(rows + 1);
-        saveCurrentSave();
-        playClick();
-        this.rebuildCargoUI();
-        this.rebuildShopUI();
-      });
-      const rowLbl = new Label({
         text: "+1 Cargo Row (8 crystal)",
-        pos: rowBtn.pos.clone(),
         color: Color.Black,
         font: smallFont,
+        onClick: () => {
+          if (!spendFromBank({ crystal: 8 })) return;
+          setCargoRows(rows + 1);
+          saveCurrentSave();
+          playClick();
+          this.rebuildCargoUI();
+          this.rebuildShopUI();
+        },
       });
-      rowLbl.anchor.setTo(0.5, 0.5);
       this.add(rowBtn);
-      this.add(rowLbl);
-      this.shopContainer.push(rowBtn, rowLbl);
+      this.shopContainer.push(rowBtn);
       y += rowH + gap;
     }
 
@@ -432,35 +414,27 @@ export class ConfigureRoverScene extends Scene {
           unit: FontUnit.Px,
         }),
       });
-      const purchaseBtn = new Actor({
-        x: startX + 340,
-        y: y + rowH / 2,
+      const purchaseBtn = new Button({
+        pos: vec(startX + 340, y + rowH / 2),
         width: 72,
         height: 24,
-        color: affordable ? Color.fromHex("#22c55e") : Color.fromHex("#4b5563"),
-      });
-      purchaseBtn.anchor.setTo(0.5, 0.5);
-      purchaseBtn.z = 6;
-      const purchaseLbl = new Label({
         text: "Purchase",
-        pos: purchaseBtn.pos.clone(),
         color: Color.White,
         font: smallFont,
+        onClick: () => {
+          if (!purchaseEquipment(def)) return;
+          playClick();
+          this.rebuildEquipmentUI();
+          this.rebuildShopUI();
+        },
       });
-      purchaseLbl.anchor.setTo(0.5, 0.5);
-      purchaseLbl.z = 7;
-      purchaseBtn.on("pointerup", () => {
-        if (!purchaseEquipment(def)) return;
-        playClick();
-        this.rebuildEquipmentUI();
-        this.rebuildShopUI();
-      });
+      purchaseBtn.z = 6;
+      if (!affordable) purchaseBtn.setHighlighted(false);
       this.add(rowBg);
       this.add(nameLbl);
       this.add(costLbl);
       this.add(purchaseBtn);
-      this.add(purchaseLbl);
-      this.shopContainer.push(rowBg, nameLbl, costLbl, purchaseBtn, purchaseLbl);
+      this.shopContainer.push(rowBg, nameLbl, costLbl, purchaseBtn);
       y += rowH + gap;
     }
   }
@@ -578,57 +552,43 @@ export class ConfigureRoverScene extends Scene {
     });
     this.add(shopTitle);
 
-    const startBtn = new Actor({
+    const startBtn = new Button({
       pos: vec(cx, h - 100),
       width: 220,
       height: 52,
-      color: Color.fromHex("#3b82f6"),
-    });
-    startBtn.anchor.setTo(0.5, 0.5);
-    const startLabel = new Label({
       text: "Start Mission",
-      pos: startBtn.pos.clone(),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
         size: 22,
         unit: FontUnit.Px,
       }),
-    });
-    startLabel.anchor.setTo(0.5, 0.5);
-    startBtn.on("pointerup", () => {
-      playClick();
-      requestFullscreen().finally(() => {
-        this.engineRef.goToScene("planet");
-      });
+      onClick: () => {
+        playClick();
+        requestFullscreen().finally(() => {
+          this.engineRef.goToScene("planet");
+        });
+      },
     });
 
-    const backBtn = new Actor({
+    const backBtn = new Button({
       pos: vec(cx, h - 44),
       width: 180,
       height: 40,
-      color: Color.fromHex("#4b5563"),
-    });
-    backBtn.anchor.setTo(0.5, 0.5);
-    const backLabel = new Label({
       text: "Back",
-      pos: backBtn.pos.clone(),
       color: Color.fromHex("#d1d5db"),
       font: new Font({
         family: "system-ui, sans-serif",
         size: 18,
         unit: FontUnit.Px,
       }),
-    });
-    backLabel.anchor.setTo(0.5, 0.5);
-    backBtn.on("pointerup", () => {
-      playClick();
-      this.engineRef.goToScene("planetRunMenu");
+      onClick: () => {
+        playClick();
+        this.engineRef.goToScene("planetRunMenu");
+      },
     });
 
     this.add(startBtn);
-    this.add(startLabel);
     this.add(backBtn);
-    this.add(backLabel);
   }
 }

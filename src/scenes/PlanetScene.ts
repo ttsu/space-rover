@@ -10,6 +10,7 @@ import {
   ScreenElement,
   Actor,
 } from "excalibur";
+import { Button } from "../ui/Button";
 import { Rover } from "../entities/Rover";
 import { BlasterProjectile } from "../entities/BlasterProjectile";
 import { generatePlanet } from "../world/PlanetGenerator";
@@ -29,8 +30,7 @@ export class PlanetScene extends Scene {
   private rover!: Rover;
   private infoLabel!: Label;
   private hud!: Hud;
-  private returnToShipBtn?: Actor;
-  private returnToShipLabel?: Label;
+  private returnToShipBtn?: Button;
   private basePos = vec(0, 0);
   private worldActors: Actor[] = [];
   private quakeTimer = 0;
@@ -121,34 +121,25 @@ export class PlanetScene extends Scene {
       const returnContainer = new ScreenElement({ x: 0, y: 0 });
       const cx = this.engineRef.drawWidth / 2;
       const by = this.engineRef.drawHeight - 40;
-      const returnBtn = new Actor({
+      const returnBtn = new Button({
         pos: vec(cx, by),
         width: 220,
         height: 52,
-        color: Color.fromHex("#eab308"),
-      });
-      returnBtn.anchor.setTo(0.5, 0.5);
-      const returnLabel = new Label({
         text: "Return to ship",
-        pos: vec(cx, by),
         color: Color.fromHex("#1c1917"),
         font: new Font({
           family: "system-ui, sans-serif",
           size: 22,
           unit: FontUnit.Px,
         }),
+        onClick: () => {
+          if (this.runEnded) return;
+          this.triggerReturnToBase();
+        },
       });
-      returnLabel.anchor.setTo(0.5, 0.5);
-      returnBtn.on("pointerup", () => {
-        if (this.runEnded) return;
-        this.triggerReturnToBase();
-      });
-      returnContainer.addChild(returnBtn);
-      returnContainer.addChild(returnLabel);
       returnBtn.graphics.visible = false;
-      returnLabel.graphics.visible = false;
       this.returnToShipBtn = returnBtn;
-      this.returnToShipLabel = returnLabel;
+      returnContainer.addChild(returnBtn);
       this.add(returnContainer);
     }
 
@@ -269,10 +260,8 @@ export class PlanetScene extends Scene {
 
     this.hud.updateFromState(closeToBase, GameState.currentHazardsHit.lava);
 
-    if (this.returnToShipBtn && this.returnToShipLabel) {
-      const show = !this.runEnded && closeToBase;
-      this.returnToShipBtn.graphics.visible = show;
-      this.returnToShipLabel.graphics.visible = show;
+    if (this.returnToShipBtn) {
+      this.returnToShipBtn.graphics.visible = !this.runEnded && closeToBase;
     }
   }
 }

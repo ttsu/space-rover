@@ -8,6 +8,7 @@ import {
   Actor,
   vec,
 } from "excalibur";
+import { Button } from "../ui/Button";
 import {
   listSaves,
   loadSave,
@@ -72,65 +73,51 @@ export class MainMenuScene extends Scene {
       });
       descLabel.anchor.setTo(0, 0.5);
 
-      const loadBtn = new Actor({
+      const loadBtn = new Button({
         pos: vec(loadX, y),
         width: 56,
         height: 32,
-        color: Color.fromHex("#3b82f6"),
-      });
-      loadBtn.anchor.setTo(0.5, 0.5);
-      const loadLabel = new Label({
         text: "Load",
-        pos: loadBtn.pos.clone(),
         color: Color.White,
         font: new Font({
           family: "system-ui, sans-serif",
           size: 14,
           unit: FontUnit.Px,
         }),
-      });
-      loadLabel.anchor.setTo(0.5, 0.5);
-      loadBtn.on("pointerup", () => {
-        playClick();
-        loadSave(entry.id);
-        this.engineRef.goToScene("planetRunMenu");
+        onClick: () => {
+          playClick();
+          loadSave(entry.id);
+          this.engineRef.goToScene("planetRunMenu");
+        },
       });
 
-      const deleteBtn = new Actor({
+      const deleteBtn = new Button({
         pos: vec(deleteX, y),
         width: 56,
         height: 32,
-        color: Color.fromHex("#b91c1c"),
-      });
-      deleteBtn.anchor.setTo(0.5, 0.5);
-      const deleteLabel = new Label({
         text: "Delete",
-        pos: deleteBtn.pos.clone(),
         color: Color.White,
         font: new Font({
           family: "system-ui, sans-serif",
           size: 12,
           unit: FontUnit.Px,
         }),
-      });
-      deleteLabel.anchor.setTo(0.5, 0.5);
-      deleteBtn.on("pointerup", () => {
-        const confirmed =
-          typeof window !== "undefined" &&
-          window.confirm("Are you sure you want to delete this save?");
-        if (confirmed) {
-          deleteSave(entry.id);
-          this.refreshSaveList();
-        }
+        onClick: () => {
+          const confirmed =
+            typeof window !== "undefined" &&
+            window.confirm("Are you sure you want to delete this save?");
+          if (confirmed) {
+            deleteSave(entry.id);
+            this.refreshSaveList();
+          }
+        },
       });
 
       this.add(descLabel);
       this.add(loadBtn);
-      this.add(loadLabel);
       this.add(deleteBtn);
-      this.add(deleteLabel);
       this.saveListLabels.push(descLabel);
-      this.saveListActors.push(loadBtn, loadLabel, deleteBtn, deleteLabel);
+      this.saveListActors.push(loadBtn, deleteBtn);
     });
   }
 
@@ -149,27 +136,21 @@ export class MainMenuScene extends Scene {
     });
     title.anchor.setTo(0.5, 0.5);
 
-    const newGameButton = new Actor({
+    const newGameButton = new Button({
       pos: vec(cx, this.engineRef.drawHeight / 2 - 80),
       width: 200,
       height: 48,
-      color: Color.fromHex("#3b82f6"),
-    });
-    newGameButton.anchor.setTo(0.5, 0.5);
-    const newGameLabel = new Label({
       text: "New Game",
-      pos: newGameButton.pos.clone(),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
         size: 22,
         unit: FontUnit.Px,
       }),
-    });
-    newGameLabel.anchor.setTo(0.5, 0.5);
-    newGameButton.on("pointerup", () => {
-      playClick();
-      this.engineRef.goToScene("difficultySelect");
+      onClick: () => {
+        playClick();
+        this.engineRef.goToScene("difficultySelect");
+      },
     });
 
     const savesTitle = new Label({
@@ -186,7 +167,6 @@ export class MainMenuScene extends Scene {
 
     this.add(title);
     this.add(newGameButton);
-    this.add(newGameLabel);
     this.add(savesTitle);
   }
 }
