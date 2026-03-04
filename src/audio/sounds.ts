@@ -85,3 +85,21 @@ export function playDeath(): void {
   playTone(300, 0.2, "sawtooth", 0.15, 80);
   playNoise(0.3, 0.12);
 }
+
+/**
+ * Thunder sound with optional delay (distance-based) and volume (distant = quieter).
+ * @param delayMs - Delay before playing (e.g. from lightning strike distance).
+ * @param volume - 0–1; reduce for distant strikes.
+ */
+export function playThunder(delayMs = 0, volume = 0.2): void {
+  const clampedVol = Math.max(0.05, Math.min(1, volume));
+  if (delayMs <= 0) {
+    playNoise(0.4, clampedVol * 0.25);
+    playTone(80, 0.3, "sawtooth", clampedVol * 0.12, 40);
+  } else {
+    setTimeout(() => {
+      playNoise(0.4, clampedVol * 0.25);
+      playTone(80, 0.3, "sawtooth", clampedVol * 0.12, 40);
+    }, delayMs);
+  }
+}

@@ -6,7 +6,10 @@ import {
   PLANET_WIDTH_TILES,
   RESOURCE_DENSITY,
   ROCK_DENSITY,
-  STORM_ZONE_DENSITY,
+  STORM_REGION_COUNT,
+  STORM_REGION_RADIUS_PX,
+  WIND_REGION_COUNT,
+  WIND_REGION_RADIUS_PX,
   TILE_SIZE,
 } from "../config/gameConfig";
 import { Tile } from "./Tile";
@@ -15,12 +18,9 @@ import { BaseLander } from "../entities/BaseLander";
 import { RESOURCE_TYPES, type ResourceId } from "../resources/ResourceTypes";
 import { ResourceNode } from "../entities/ResourceNode";
 import { ResourceDeposit } from "../entities/ResourceDeposit";
-import {
-  LavaPool,
-  RockObstacle,
-  WindZone,
-  LightningZone,
-} from "../hazards/Hazards";
+import { LavaPool, RockObstacle } from "../hazards/Hazards";
+import { WindRegion } from "../hazards/WindRegion";
+import { StormRegion } from "../hazards/StormRegion";
 import type { IHazardTarget } from "../entities/Rover";
 import { random } from "../utils/seedRandom";
 import type { Difficulty } from "../state/Saves";
@@ -29,6 +29,8 @@ import { DIFFICULTY_MULTIPLIERS } from "../config/difficulty";
 export interface PlanetGenerationResult {
   base: BaseLander;
   actors: Actor[];
+  stormRegions: StormRegion[];
+  windRegions: WindRegion[];
 }
 
 export interface GeneratePlanetOptions {
@@ -82,8 +84,13 @@ export function generatePlanet(
   );
   const lavaCount = Math.floor(totalTiles * LAVA_DENSITY * mult.lavaDensity);
   const rockCount = Math.floor(totalTiles * ROCK_DENSITY * mult.rockDensity);
-  const stormCount = Math.floor(
-    totalTiles * STORM_ZONE_DENSITY * mult.stormZoneDensity
+  const stormRegionCount = Math.max(
+    0,
+    Math.floor(STORM_REGION_COUNT * mult.stormRegionCount)
+  );
+  const windRegionCount = Math.max(
+    0,
+    Math.floor(WIND_REGION_COUNT * mult.windRegionCount)
   );
 
   const occupied = new Set<string>();
@@ -182,27 +189,50 @@ export function generatePlanet(
     actors.push(rock);
   });
 
-  placeHazard(stormCount, (gridX, gridY) => {
-    const x = gridX * TILE_SIZE + TILE_SIZE / 2;
-    const y = gridY * TILE_SIZE + TILE_SIZE / 2;
-    const angle = random() * Math.PI * 2;
-    const wind = new WindZone(
+  const stormRegions: StormRegion[] = [];
+  const windRegions: WindRegion[] = [];
+  const worldWidth = PLANET_WIDTH_TILES * TILE_SIZE;
+  const worldHeight = PLANET_HEIGHT_TILES * TILE_SIZE;
+
+  function randomCenterAvoidingBase(): { x: number; y: number } {
+    let x: number, y: number;
+    let tries = 0;
+    do {
+      x = random() * worldWidth;
+      y = random() * worldHeight;
+      tries++;
+      if (tries > 200) break;
+    } while (
+      isInBaseVicinity(Math.floor(x / TILE_SIZE), Math.floor(y / TILE_SIZE))
+    );
+    return { x, y };
+  }
+
+  for (let i = 0; i < stormRegionCount; i++) {
+    const { x, y } = randomCenterAvoidingBase();
+    const storm = new StormRegion({
       x,
       y,
-      TILE_SIZE * 2,
-      TILE_SIZE * 2,
-      hazardTarget,
-      angle
-    );
-    wind.addComponent(new FogAffectedComponent());
+      radius: STORM_REGION_RADIUS_PX,
+      windDirectionAngle: random() * Math.PI * 2,
+    });
+    scene.add(storm);
+    actors.push(storm);
+    stormRegions.push(storm);
+  }
+
+  for (let i = 0; i < windRegionCount; i++) {
+    const { x, y } = randomCenterAvoidingBase();
+    const wind = new WindRegion({
+      x,
+      y,
+      radius: WIND_REGION_RADIUS_PX,
+      directionAngle: random() * Math.PI * 2,
+    });
     scene.add(wind);
     actors.push(wind);
+    windRegions.push(wind);
+  }
 
-    const lightning = new LightningZone(x, y, hazardTarget);
-    lightning.addComponent(new FogAffectedComponent());
-    scene.add(lightning);
-    actors.push(lightning);
-  });
-
-  return { base, actors };
+  return { base, actors, stormRegions, windRegions };
 }

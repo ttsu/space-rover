@@ -1,4 +1,14 @@
-import { Engine, Scene, Label, Color, Font, FontUnit, vec } from "excalibur";
+import {
+  Engine,
+  Scene,
+  Label,
+  Color,
+  Font,
+  FontUnit,
+  vec,
+  TextAlign,
+  BaseAlign,
+} from "excalibur";
 import { requestFullscreen } from "../fullscreen";
 import { Button } from "../ui/Button";
 
@@ -18,6 +28,8 @@ export class SplashScene extends Scene {
         family: "system-ui, sans-serif",
         size: 48,
         unit: FontUnit.Px,
+        textAlign: TextAlign.Center,
+        baseAlign: BaseAlign.Middle,
       }),
     });
     title.anchor.setTo(0.5, 0.5);

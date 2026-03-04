@@ -198,3 +198,30 @@ export function createAmbientEmitter(config: {
   emitter.addComponent(new FogAffectedComponent());
   return emitter;
 }
+
+/**
+ * Dust particles that move in the wind direction, speed proportional to wind strength.
+ * Use as child of WindRegion or StormRegion so it moves with the region.
+ */
+export function createWindDustEmitter(config: {
+  directionAngle: number;
+  pushStrength: number;
+  radius: number;
+}): ParticleEmitter {
+  const angleSpread = 0.2;
+  const speedScale = 0.04;
+  const minSpeed = config.pushStrength * speedScale;
+  const maxSpeed = config.pushStrength * speedScale * 2.5;
+  return createAmbientEmitter({
+    color: Color.fromRGB(148, 163, 184, 0.7),
+    emitRate: 14,
+    lifetimeMs: 500,
+    minSpeed: Math.min(120, minSpeed),
+    maxSpeed: Math.min(280, maxSpeed),
+    minSize: 1.5,
+    maxSize: 4,
+    minAngle: config.directionAngle - angleSpread,
+    maxAngle: config.directionAngle + angleSpread,
+    radius: config.radius,
+  });
+}

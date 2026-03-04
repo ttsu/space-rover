@@ -7,6 +7,7 @@ import {
   SpriteSheet,
   vec,
   Shape,
+  type Vector,
 } from "excalibur";
 import type { ResourceId } from "../resources/ResourceTypes";
 import { Resources } from "../resources";
@@ -67,6 +68,9 @@ export class Rover extends Actor implements IHazardTarget {
   onDamaged?: (amount: number) => void;
   onFireBlaster?: BlasterSpawnFn;
   onBatteryDepleted?: () => void;
+
+  /** Set by PlanetScene each frame; rover adds this to vel after drive velocity. */
+  windEffectThisFrame?: Vector;
 
   private currentSpeed = 0;
   private blasterCooldown = 0;
@@ -277,6 +281,10 @@ export class Rover extends Actor implements IHazardTarget {
 
     const forward = vec(Math.cos(this.rotation), Math.sin(this.rotation));
     this.vel = forward.scale(this.currentSpeed * this.slowFactorThisFrame);
+    if (this.windEffectThisFrame) {
+      this.vel = this.vel.add(this.windEffectThisFrame);
+      this.windEffectThisFrame = undefined;
+    }
 
     if (this.blasterCooldown > 0) {
       this.blasterCooldown -= delta;

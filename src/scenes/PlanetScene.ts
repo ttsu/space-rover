@@ -44,6 +44,11 @@ import {
   triggerReturnToBase as runFlowReturnToBase,
   triggerDeath as runFlowDeath,
 } from "./runFlow";
+import { getWindVelocityDelta } from "../hazards/WindSystem";
+import type { WindRegion } from "../hazards/WindRegion";
+import type { StormRegion } from "../hazards/StormRegion";
+import { LightningSystem } from "../hazards/LightningSystem";
+import { DIFFICULTY_MULTIPLIERS } from "../config/difficulty";
 
 const TOUCH_TOGGLE_KEY = Keys.T;
 
@@ -56,6 +61,9 @@ export class PlanetScene extends Scene {
   private touchReturnContainer?: ScreenElement;
   private basePos = vec(0, 0);
   private worldActors: Actor[] = [];
+  private stormRegions: StormRegion[] = [];
+  private windRegions: WindRegion[] = [];
+  private lightningSystem: LightningSystem | null = null;
   private quakeTimer = 0;
   private runEnded = false;
 
@@ -72,12 +80,27 @@ export class PlanetScene extends Scene {
     }
     for (const a of this.worldActors) a.kill();
     this.worldActors = [];
+    this.stormRegions = [];
+    this.windRegions = [];
     setSeed(save.seed);
     const planet = generatePlanet(this, this.engine, this.rover, {
       difficulty: save.difficulty,
     });
     this.basePos = planet.base.pos.clone();
     this.worldActors = planet.actors;
+    this.stormRegions = planet.stormRegions;
+    this.windRegions = planet.windRegions;
+    const mult = DIFFICULTY_MULTIPLIERS[save.difficulty];
+    this.lightningSystem = new LightningSystem({
+      scene: this,
+      engine: this.engine,
+      rover: this.rover,
+      stormRegions: this.stormRegions,
+      strikeRateMultiplier: mult.lightningStrikeRate,
+      warningTimeMultiplier: mult.lightningWarningTimeMultiplier,
+      roverWarningTimeMs: this.rover.roverStats.lightningWarningTime,
+    });
+    this.lightningSystem.start();
     this.runEnded = false;
     if (this.rover) {
       this.rover.resetForNewMission();
@@ -281,6 +304,13 @@ export class PlanetScene extends Scene {
     }
 
     this.applyMagnetism(delta);
+    this.rover.windEffectThisFrame = getWindVelocityDelta(
+      this.rover,
+      this.windRegions,
+      this.stormRegions,
+      delta
+    );
+    this.lightningSystem?.update(delta);
   }
 
   private applyMagnetism(delta: number): void {

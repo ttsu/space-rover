@@ -36,3 +36,25 @@ export const ROCK_DENSITY = 0.07;
 export const STORM_ZONE_DENSITY = 0.04;
 
 export const LAVA_SLOW_FACTOR = 0.5;
+
+// --- Storm regions (large circular areas: lightning + wind) ---
+export const STORM_REGION_COUNT = 3;
+export const STORM_REGION_RADIUS_PX = 240;
+export const STORM_MOVE_SPEED = 8; // px per second
+
+// Lightning: rate = strikes per minute; higher = more frequent. Mean interval = 60000/rate (ms).
+export const LIGHTNING_STRIKES_PER_MINUTE = 10;
+export const LIGHTNING_BASE_WARNING_MS = 500;
+export const LIGHTNING_STRIKE_RADIUS_PX = 45;
+export const LIGHTNING_DAMAGE = 2;
+export const LIGHTNING_WARNING_VISUAL_RADIUS_MULTIPLIER = 1.1;
+/** Short "charge" phase (ms) before main warning circle. */
+export const LIGHTNING_CHARGE_PHASE_MS = 300;
+
+// --- Wind regions (wind-only circles) ---
+export const WIND_REGION_COUNT = 4;
+export const WIND_REGION_RADIUS_PX = 200;
+export const WIND_MOVE_SPEED = 10;
+export const WIND_PUSH_STRENGTH = 1000; // base force per second; windResist reduces
+/** Cap total wind acceleration per frame (px/s²) so overlapping regions don't stack uncontrollably. */
+export const WIND_MAX_ACCEL_PER_FRAME = 900;
