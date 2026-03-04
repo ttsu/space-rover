@@ -78,7 +78,7 @@ export class LavaPool extends HazardBase {
       this.tickTimer += delta;
       if (this.tickTimer >= 500) {
         this.tickTimer = 0;
-        this.hit(1, "lava");
+        this.hit(3, "lava");
       }
     }
   }
@@ -172,7 +172,7 @@ export class LightningZone extends HazardBase {
     if (!this.hasStruck && this.elapsed >= this.warningTime) {
       this.color = Color.fromHex("#e5e7eb");
       if (this.roverInZone) {
-        this.hit(1, "lightning");
+        this.hit(2, "lightning");
       }
       this.showStrikeFlash(engine);
       this.hasStruck = true;

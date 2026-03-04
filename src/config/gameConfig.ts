@@ -14,8 +14,8 @@ export const BASE_SAFE_RADIUS_TILES = 3;
 
 export const ROVER_BASE_SPEED = 200;
 export const ROVER_MAX_CAPACITY = 20;
-export const ROVER_BASE_HEALTH = 5;
-export const ROVER_BASE_BATTERY = 120; // seconds of operation
+export const ROVER_BASE_HEALTH = 10;
+export const ROVER_BASE_BATTERY = 30; // seconds of operation
 export const ROVER_BASE_BATTERY_DRAIN = 1; // per second
 export const ROVER_BASE_VISIBILITY_RADIUS_TILES = 7;
 

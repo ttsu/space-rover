@@ -4,7 +4,7 @@ import { ResourceNode } from "./ResourceNode";
 import type { IBlasterTarget } from "./BlasterProjectile";
 import { burst } from "../effects/Particles";
 
-const DEFAULT_HP = 4;
+const DEFAULT_HP = 8;
 
 export class ResourceDeposit extends Actor implements IBlasterTarget {
   resource: ResourceTypeDef;
