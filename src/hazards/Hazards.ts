@@ -9,6 +9,7 @@ import {
   CollisionType,
 } from "excalibur";
 import type { IHazardTarget } from "../entities/Rover";
+import type { DamageType } from "../types/DamageTypes";
 import { recordHazardHit, type HazardKind } from "../state/GameState";
 import { LAVA_SLOW_FACTOR } from "../config/gameConfig";
 import { random } from "../utils/seedRandom";
@@ -32,8 +33,8 @@ abstract class HazardBase extends Actor {
     this.kind = kind;
   }
 
-  protected hit(amount: number, fromLava?: boolean) {
-    this.target.takeDamage(amount, fromLava ?? false);
+  protected hit(amount: number, damageType: DamageType = "generic") {
+    this.target.takeDamage(amount, damageType);
     recordHazardHit(this.kind);
   }
 }
@@ -77,7 +78,7 @@ export class LavaPool extends HazardBase {
       this.tickTimer += delta;
       if (this.tickTimer >= 500) {
         this.tickTimer = 0;
-        this.hit(1, true);
+        this.hit(1, "lava");
       }
     }
   }
@@ -171,7 +172,7 @@ export class LightningZone extends HazardBase {
     if (!this.hasStruck && this.elapsed >= this.warningTime) {
       this.color = Color.fromHex("#e5e7eb");
       if (this.roverInZone) {
-        this.hit(1);
+        this.hit(1, "lightning");
       }
       this.showStrikeFlash(engine);
       this.hasStruck = true;

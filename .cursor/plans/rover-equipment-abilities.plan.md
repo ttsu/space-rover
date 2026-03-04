@@ -28,32 +28,26 @@ This plan extends the existing equipment system ([UpgradeDefs.ts](src/upgrades/U
 Use this table as the single source of truth when adding, removing, or changing a stat or effect. Each row is one **RoverStats** field and its corresponding **UpgradeEffectKind**. When you add a row here, add the same to the code (see §1.1 below); when you remove a row, remove from all three places (kind, interface+BASE_STATS, applyEffect).
 
 
-| Stat (RoverStats)        | Effect kind (UpgradeEffectKind) | Status   | Base / default | Apply    | Notes                                      |
-| ------------------------ | ------------------------------- | -------- | -------------- | -------- | ------------------------------------------ |
-| maxHealth                | maxHealth                       | Existing | 5 (gameConfig) | Additive | Hull; base from ROVER_BASE_HEALTH          |
-| maxCapacity              | maxCapacity                     | Existing | 20             | Additive | Cargo; base from ROVER_MAX_CAPACITY        |
-| maxSpeed                 | maxSpeed                        | Existing | 50             | Additive | Base from ROVER_BASE_SPEED                 |
-| turnSpeed                | turnSpeed                       | Existing | π              | Additive | Base from ROVER_BASE_TURN_SPEED            |
-| acceleration             | acceleration                    | Existing | 400            | Additive | Base from ROVER_BASE_ACCELERATION          |
-| blasterDamage            | blasterDamage                   | Existing | 1              | Additive | Base from BLASTER_BASE_DAMAGE              |
-| blasterFireRate          | blasterFireRate                 | Existing | 2.5            | Additive | Shots/s; base from BLASTER_BASE_FIRE_RATE  |
-| blasterRange             | blasterRange                    | Existing | 150            | Additive | Base from BLASTER_BASE_RANGE               |
-| lavaDamageReduction      | lavaDamageReduction             | Existing | 0              | Additive | Flat reduction vs lava                     |
-| lavaSlowResist           | lavaSlowResist                  | Existing | 0              | Additive | 0–1; % less slow in lava                   |
-| windResist               | windResist                      | Existing | 0              | Additive | 0–1; % less push from wind                 |
-| flatDamageReduction      | flatDamageReduction             | Existing | 0              | Additive | Flat reduction vs all hazards              |
-| lightningWarningTime     | lightningWarningTime            | Existing | 0              | Additive | ms earlier warning                         |
-| visibilityRadius         | visibilityRadius                | Existing | 7              | Additive | Tiles; base from gameConfig                |
-| maxBattery               | maxBattery                      | Existing | 120            | Additive | Seconds; base from ROVER_BASE_BATTERY      |
-| batteryDrainPerSecond    | batteryDrainPerSecond           | Existing | 1              | Additive | Base from ROVER_BASE_BATTERY_DRAIN         |
-| blasterBehavior          | blasterBehavior                 | Existing | 0              | Override | 0=default, 1=AoE, 2=seeking                |
-| reverseSpeedMultiplier   | reverseSpeedMultiplier          | Proposed | 0.5            | Override | Reverse = maxSpeed × this                  |
-| burstSpeedBonus          | burstSpeedBonus                 | Proposed | 0              | Additive | Temp speed added when burst key held       |
-| burstCooldownMs          | burstCooldownMs                 | Proposed | 0              | Override | Cooldown after burst; 0 = no burst         |
-| stunResist               | stunResist                      | Proposed | 0              | Additive | 0–1; reduces alien stun duration           |
-| alienAggroRadiusModifier | alienAggroRadiusModifier        | Proposed | 1              | Override | Multiplier on alien aggro range            |
-| threatPingIntervalMs     | threatPingIntervalMs            | Proposed | 0              | Override | 0=off; ms between radar pings              |
-| resourceHighlight        | resourceHighlight               | Proposed | 0              | Override | 0=off, 1=highlight resources in visibility |
+| Stat (RoverStats)        | Effect kind (UpgradeEffectKind) | Status   | Base / default | Apply    | Notes                                                      |
+| ------------------------ | ------------------------------- | -------- | -------------- | -------- | ---------------------------------------------------------- |
+| maxHealth                | maxHealth                       | Existing | 5 (gameConfig) | Additive | Hull; base from ROVER_BASE_HEALTH                          |
+| maxSpeed                 | maxSpeed                        | Existing | 50             | Additive | Base from ROVER_BASE_SPEED                                 |
+| turnSpeed                | turnSpeed                       | Existing | π/2            | Additive | Base from ROVER_BASE_TURN_SPEED                            |
+| acceleration             | acceleration                    | Existing | 100            | Additive | Base from ROVER_BASE_ACCELERATION                          |
+| blasterDamage            | blasterDamage                   | Existing | 1              | Additive | Base from BLASTER_BASE_DAMAGE                              |
+| blasterFireRate          | blasterFireRate                 | Existing | 2.5            | Additive | Shots/s; base from BLASTER_BASE_FIRE_RATE                  |
+| blasterRange             | blasterRange                    | Existing | 150            | Additive | Base from BLASTER_BASE_RANGE                               |
+| lavaDamageReduction      | lavaDamageReduction             | Existing | 0              | Additive | Flat reduction vs lava                                     |
+| lavaSlowResist           | lavaSlowResist                  | Existing | 0              | Additive | 0–1; % less slow in lava                                   |
+| windResist               | windResist                      | Existing | 0              | Additive | 0–1; % less push from wind                                 |
+| flatDamageReduction      | flatDamageReduction             | Existing | 0              | Additive | Flat reduction vs all hazards                              |
+| lightningWarningTime     | lightningWarningTime            | Existing | 0              | Additive | ms earlier warning                                         |
+| lightningDamageReduction | lightningDamageReduction        | Proposed | 0              | Additive | Flat reduction vs lightning                                |
+| visibilityRadius         | visibilityRadius                | Existing | 7              | Additive | Tiles; base from gameConfig                                |
+| maxBattery               | maxBattery                      | Existing | 30             | Additive | Seconds; base from ROVER_BASE_BATTERY                      |
+| batteryDrainPerSecond    | batteryDrainPerSecond           | Existing | 1              | Additive | Base from ROVER_BASE_BATTERY_DRAIN                         |
+| blasterBehavior          | blasterBehavior                 | Existing | 0              | Override | 0=default, 1=AoE, 2=seeking, 3=spread 4=stream             |
+| magnetism                | magnetism                       | Proposed | 0              | Additive | The distance at which resources are attracted to the rover |
 
 
 **How to maintain:** Add/remove one row per stat. Keep **Stat** and **Effect kind** in sync (same camelCase name unless you have a reason to differ). **Apply** determines `applyEffect`: additive → `stats.x += value`; override → `stats.x = value`.
@@ -74,10 +68,9 @@ Use a **single registry** so adding/removing a stat is a one-place change plus a
      { kind: "maxSpeed", default: ROVER_BASE_SPEED, apply: "additive" as const },
      // ...
      { kind: "blasterBehavior", default: 0, apply: "override" as const },
-     { kind: "reverseSpeedMultiplier", default: 0.5, apply: "override" as const }, // proposed
+     { kind: "lightningDamageReduction", default: 0, apply: "additive" as const },
+     { kind: "magnetism", default: 0, apply: "additive" as const },
    ] as const;
-   
-
 ```
 
 - Derive `UpgradeEffectKind` from this list (e.g. `EFFECT_KINDS[number]["kind"]`) so the union type stays in sync.
@@ -96,20 +89,14 @@ See the **table in §1** for the full list of existing and proposed stats; below
 **File: [src/upgrades/RoverStats.ts](src/upgrades/RoverStats.ts)**
 
 - Add to `RoverStats` interface (and `BASE_STATS`) — for each *proposed* row in the table:
-  - `reverseSpeedMultiplier?: number` — e.g. 1 = default (half of forward), 1.5 = 75% of forward.
-  - `burstSpeedBonus?: number` and `burstCooldownMs?: number` — temporary speed boost on key, then cooldown (optional; can be ability-only).
-  - `stunResist?: number` — 0–1; reduces duration of stun/disable from aliens (for future alien plan).
-  - `alienAggroRadiusModifier?: number` — multiplier on alien aggro range (e.g. 0.8 = 80%; jammer).
-  - `threatPingIntervalMs?: number` — 0 = off; if > 0, radar “pings” hostile positions every N ms (for fog/alien plan).
-  - `resourceHighlight?: number` — 0 = off, 1 = highlight uncollected resources in visibility (optional).
-- Add to `UpgradeEffectKind` in [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts): `"reverseSpeedMultiplier"`, `"burstSpeedBonus"`, `"burstCooldownMs"`, `"stunResist"`, `"alienAggroRadiusModifier"`, `"threatPingIntervalMs"`, `"resourceHighlight"` (only the ones you implement).
-- In `applyEffect`, add a `case` for each new kind that sets the corresponding stat (additive where it makes sense; `blasterBehavior`-style override for single-value things like `reverseSpeedMultiplier`).
+  - `lightningDamageReduction?: number` — flat reduction vs lightning damage (additive with `flatDamageReduction` when from lightning).
+  - `magnetism?: number` — distance (pixels or tiles) at which resources are attracted to the rover.
+- Add to `UpgradeEffectKind` in [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts): `"lightningDamageReduction"`, `"magnetism"`.
+- In `applyEffect` (or `EFFECT_REGISTRY`), add an entry for each new kind; both are additive with default 0.
 
 **File: [src/config/gameConfig.ts](src/config/gameConfig.ts)**
 
-- Add any base constants if needed (e.g. `ROVER_BASE_REVERSE_MULTIPLIER = 0.5`). Otherwise base values can live in `BASE_STATS` as 0 or a default.
-
-**Implementation order:** Add one effect at a time (e.g. first `reverseSpeedMultiplier` and one equipment def that uses it), then add more.
+- Base values live in `BASE_STATS` as 0; no new constants needed unless you want named defaults.
 
 ---
 
@@ -117,12 +104,8 @@ See the **table in §1** for the full list of existing and proposed stats; below
 
 **File: [src/entities/Rover.ts](src/entities/Rover.ts)**
 
-- **Reverse speed:** Currently `maxReverseSpeed = -s.maxSpeed * 0.5`. Change to use `roverStats.reverseSpeedMultiplier` if present (e.g. `maxReverseSpeed = -s.maxSpeed * (s.reverseSpeedMultiplier ?? 0.5)`).
-- **Burst speed (optional ability):** If you add `burstSpeedBonus` and `burstCooldownMs`:
-  - Add private state: `private burstActiveUntil = 0`, `private burstCooldownUntil = 0`.
-  - In `onPreUpdate`, if a “burst” key is held and `burstCooldownUntil <= now` and `burstActiveUntil <= now`, set `burstActiveUntil = now + BURST_DURATION_MS` and `burstCooldownUntil = now + roverStats.burstCooldownMs`.
-  - When computing effective max speed for movement, if `now < burstActiveUntil`, add `roverStats.burstSpeedBonus` to the cap. Optionally increase battery drain during burst.
-- **Stun (for aliens):** When aliens are added, they may set a “stunned until” time on the rover. In `onPreUpdate`, if stunned, skip movement and apply `stunResist` to reduce the stun duration (e.g. `stunRemaining *= (1 - roverStats.stunResist)`). Stun can be a simple `rover.stunnedUntil = engine.clock.now() + duration`.
+- **Lightning damage reduction:** In `takeDamage`, when damage is from lightning (add a damage type parameter - heat/lightning), apply `roverStats.lightningDamageReduction` before subtracting health (same pattern as `flatDamageReduction` and lava). LightningZone or the hazard that deals lightning damage must pass this flag.
+- **Magnetism:** When `roverStats.magnetism > 0`, resources (ResourceNode) within that distance are attracted toward the rover each frame. Implement in PlanetScene `onPreUpdate` or in a system that iterates resource nodes: if distance to rover < magnetism, add velocity toward rover. Alternatively, ResourceNode checks distance to rover and moves itself when in range.
 
 No changes to blaster firing here; that stays in Rover and uses existing `blasterDamage`, `blasterFireRate`, `blasterRange`, `blasterBehavior`.
 
@@ -137,7 +120,7 @@ No changes to blaster firing here; that stays in Rover and uses existing `blaste
 - **Option A (simple):** Add a second projectile class `SeekingBlasterProjectile` that in `onPreUpdate` adjusts `this.direction` toward the nearest actor implementing `IBlasterTarget` (or a dedicated “enemy” tag) within a small FOV. PlanetScene checks `rover.roverStats.blasterBehavior === 2` and spawns `SeekingBlasterProjectile` instead of `BlasterProjectile`.
 - **Option B:** Single `BlasterProjectile` class that accepts an optional `target: Actor | null`. When `target` is set and not killed, each frame nudge direction toward target; when target is null, behave as now. PlanetScene passes `null` for default blaster and the nearest valid target when behavior is seeking.
 
-**Files:** [BlasterProjectile.ts](src/entities/BlasterProjectile.ts) (or new seeking variant), [PlanetScene.ts](src/scenes/PlanetScene.ts) (spawn logic based on `blasterBehavior`). Seeking should only lock onto enemies (or IBlasterTarget that are not the rover); ResourceDeposit can remain valid target for mining. So: either tag “enemy” and seek only enemies, or pass explicit target from scene.
+**Files:** [BlasterProjectile.ts](src/entities/BlasterProjectile.ts) (or new seeking variant), [PlanetScene.ts](src/scenes/PlanetScene.ts) (spawn logic based on `blasterBehavior`). Seeking should lock onto enemies or resources (IBlasterTarget that are not the rover); ResourceDeposit can remain valid target for mining.
 
 ---
 
@@ -145,14 +128,12 @@ No changes to blaster firing here; that stays in Rover and uses existing `blaste
 
 **File: [src/upgrades/UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts)**
 
-Add defs for the chosen abilities (example set; tune costs and values to balance):
+Add defs for the proposed stats (tune costs and values to balance):
 
-- **Engine:** Reverse Thrust — `reverseSpeedMultiplier`, value 0.25 (e.g. 2 levels: 0.5 → 0.75). Cost e.g. iron + gas.
-- **Engine:** Afterburner — `burstSpeedBonus` 40, `burstCooldownMs` 5000; two defs or one def with two effects. If one effect per def, add a second effect kind (e.g. `burstDurationMs`) or handle “ability” in code and only add cooldown as stat.
-- **Shielding:** Ablative Plating — requires new mechanic “first hit per zone does 0 damage” (state on rover or per-hazard; could be a simple “ignore next 1 damage” once per 30s). Alternatively implement as `flatDamageReduction` that only applies once per encounter (more complex). Skip if out of scope; otherwise add effect kind like `ablativeCharges` and consume in `takeDamage`.
-- **Radar:** Threat Ping — `threatPingIntervalMs` 3000 (pings every 3s). Only works when fog/aliens exist.
-- **Radar:** Resource Scanner — `resourceHighlight` 1. Rendering: in PlanetScene or Hud, when `roverStats.resourceHighlight > 0`, draw a subtle outline or icon on resource actors within visibility (same list used for fog).
-- **Blaster:** Seeking Lens — `blasterBehavior` 2. One level; replaces current blaster behavior when equipped.
+- **Shielding:** Lightning Rod — `lightningDamageReduction`, value 1 (flat reduction vs lightning). Cost e.g. crystal + gas.
+- **Radar (or new slot):** Resource Magnet — `magnetism`, value e.g. 50 (pixels) or 2 (tiles). Attracts resources within that distance. Cost e.g. iron + crystal.
+
+**Existing effect kinds** (from table): Seeking Lens uses `blasterBehavior` 2; add when implementing seeking blaster (§4).
 
 Add each to the appropriate array (`IRON_UPGRADES`, `CRYSTAL_UPGRADES`, `GAS_UPGRADES`) and ensure `ALL_UPGRADES` includes them. No change to catalog or level-up flow; they appear like existing defs.
 
@@ -201,7 +182,7 @@ This does not require a new slot if you tie the ability to an existing battery d
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Effect kinds and stats     | [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts) (UpgradeEffectKind), [RoverStats.ts](src/upgrades/RoverStats.ts) (interface, BASE_STATS, applyEffect)                                                                          |
 | Config                     | [gameConfig.ts](src/config/gameConfig.ts) (optional base constants)                                                                                                                                                          |
-| Rover behavior             | [Rover.ts](src/entities/Rover.ts) (reverse speed, optional burst/stun state and logic)                                                                                                                                       |
+| Rover behavior             | [Rover.ts](src/entities/Rover.ts) (lightning damage reduction in takeDamage), PlanetScene or ResourceNode (magnetism)                                                                                                        |
 | Blaster seeking            | [BlasterProjectile.ts](src/entities/BlasterProjectile.ts) or new class, [PlanetScene.ts](src/scenes/PlanetScene.ts) (spawn by blasterBehavior)                                                                               |
 | New equipment              | [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts) (new defs in IRON/CRYSTAL/GAS arrays)                                                                                                                                          |
 | Optional utility slot      | [roverConfig.ts](src/types/roverConfig.ts), [Progress.ts](src/state/Progress.ts), [Saves.ts](src/state/Saves.ts), [ConfigureRoverScene.ts](src/scenes/ConfigureRoverScene.ts), [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts) |
@@ -212,8 +193,8 @@ This does not require a new slot if you tie the ability to an existing battery d
 
 ## 9. Suggested implementation order
 
-1. Add one new effect (e.g. `reverseSpeedMultiplier`) + RoverStats + one UpgradeDef; wire reverse speed in Rover.
-2. Add seeking blaster: effect kind already exists (`blasterBehavior` 2); implement seeking in projectile and spawn logic in PlanetScene.
-3. Add radar/utility defs (threat ping, resource highlight) and any config/rendering needed when fog or aliens exist.
+1. Add `lightningDamageReduction` and `magnetism` to RoverStats, UpgradeEffectKind, and applyEffect; wire lightning reduction in Rover `takeDamage` (with `damageType` flag from LightningZone) and magnetism in PlanetScene or ResourceNode.
+2. Add equipment defs (Lightning Rod, Resource Magnet) to UpgradeDefs.
+3. Add seeking blaster: effect kind already exists (`blasterBehavior` 2); implement seeking in projectile and spawn logic in PlanetScene.
 4. If desired, add 7th slot and utility defs; then add one-off abilities (emergency battery, flare) with run-state and key handling.
 

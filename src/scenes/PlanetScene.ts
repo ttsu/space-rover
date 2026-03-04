@@ -14,6 +14,7 @@ import {
 import { Button } from "../ui/Button";
 import { Rover } from "../entities/Rover";
 import { BlasterProjectile } from "../entities/BlasterProjectile";
+import { ResourceNode } from "../entities/ResourceNode";
 import { generatePlanet } from "../world/PlanetGenerator";
 import { FogVisibilitySystem, drawFogOverlay } from "../world/FogOfWar";
 import {
@@ -127,13 +128,18 @@ export class PlanetScene extends Scene {
         range: number;
       };
       playBlaster();
+      const seeking = this.rover.roverStats.blasterBehavior === 2;
+      const target = seeking
+        ? this.findNearestBlasterTarget(e.x, e.y)
+        : undefined;
       const proj = new BlasterProjectile(
         e.x,
         e.y,
         e.angle,
         e.damage,
         e.speed,
-        e.range
+        e.range,
+        target
       );
       this.add(proj);
     });
@@ -273,5 +279,45 @@ export class PlanetScene extends Scene {
     if (this.returnToShipBtn) {
       this.returnToShipBtn.graphics.isVisible = !this.runEnded && closeToBase;
     }
+
+    this.applyMagnetism(delta);
+  }
+
+  private applyMagnetism(delta: number): void {
+    const magnetism = this.rover.roverStats.magnetism;
+    if (magnetism <= 0) return;
+    const roverPos = this.rover.pos;
+    const attractionSpeed = 80;
+    for (const actor of this.actors) {
+      if (actor instanceof ResourceNode && !actor.isKilled()) {
+        const dist = actor.pos.distance(roverPos);
+        if (dist > 0 && dist < magnetism) {
+          const toRover = roverPos.sub(actor.pos).normalize();
+          actor.vel = toRover.scale(attractionSpeed * (delta / 1000));
+        } else {
+          actor.vel = vec(0, 0);
+        }
+      }
+    }
+  }
+
+  private findNearestBlasterTarget(
+    fromX: number,
+    fromY: number
+  ): Actor | undefined {
+    const from = vec(fromX, fromY);
+    let nearest: Actor | undefined;
+    let nearestDist = Infinity;
+    for (const actor of this.actors) {
+      if (actor === this.rover) continue;
+      const target = actor as { takeBlasterDamage?: (n: number) => void };
+      if (typeof target.takeBlasterDamage !== "function") continue;
+      const d = actor.pos.distance(from);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearest = actor;
+      }
+    }
+    return nearest;
   }
 }

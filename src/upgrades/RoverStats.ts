@@ -15,6 +15,7 @@ import { getUpgradeById } from "./UpgradeDefs";
 import type { UpgradeEffectKind } from "./UpgradeDefs";
 import type { SlotId } from "../types/roverConfig";
 import { ALL_SLOT_IDS } from "../types/roverConfig";
+import type { DamageType } from "../types/DamageTypes";
 
 export interface RoverStats {
   maxHealth: number;
@@ -30,11 +31,33 @@ export interface RoverStats {
   windResist: number;
   flatDamageReduction: number;
   lightningWarningTime: number;
+  lightningDamageReduction: number;
   maxBattery: number;
   batteryDrainPerSecond: number;
   visibilityRadius: number;
   /** 0 = default, 1 = AoE, 2 = seeking (for future use). */
   blasterBehavior: number;
+  /** Distance (pixels) at which resources are attracted to the rover. */
+  magnetism: number;
+}
+
+/** Returns total damage reduction (flat + type-specific) for given damage type. */
+export function getDamageReductionForType(
+  stats: RoverStats,
+  damageType: DamageType
+): number {
+  let reduction = stats.flatDamageReduction;
+  switch (damageType) {
+    case "lava":
+      reduction += stats.lavaDamageReduction;
+      break;
+    case "lightning":
+      reduction += stats.lightningDamageReduction;
+      break;
+    case "generic":
+      break;
+  }
+  return reduction;
 }
 
 type EffectApply = "additive" | "override";
@@ -57,6 +80,7 @@ const EFFECT_REGISTRY: Record<
   windResist: { default: 0, apply: "additive" },
   flatDamageReduction: { default: 0, apply: "additive" },
   lightningWarningTime: { default: 0, apply: "additive" },
+  lightningDamageReduction: { default: 0, apply: "additive" },
   visibilityRadius: {
     default: ROVER_BASE_VISIBILITY_RADIUS_TILES,
     apply: "additive",
@@ -67,6 +91,7 @@ const EFFECT_REGISTRY: Record<
     apply: "additive",
   },
   blasterBehavior: { default: 0, apply: "override" },
+  magnetism: { default: 0, apply: "additive" },
 };
 
 const BASE_STATS: RoverStats = Object.fromEntries(

@@ -19,10 +19,12 @@ export type UpgradeEffectKind =
   | "windResist"
   | "flatDamageReduction"
   | "lightningWarningTime"
+  | "lightningDamageReduction"
   | "visibilityRadius"
   | "maxBattery"
   | "batteryDrainPerSecond"
-  | "blasterBehavior";
+  | "blasterBehavior"
+  | "magnetism";
 
 export interface UpgradeEffect {
   kind: UpgradeEffectKind;
@@ -165,6 +167,26 @@ const IRON_UPGRADES: UpgradeDef[] = [
   },
 ];
 
+const LIGHTNING_ROD_DEF: UpgradeDef = {
+  id: "lightning-rod",
+  cost: cost(0, 2, 1),
+  name: "Lightning Rod",
+  description: "Take 1 less damage from lightning",
+  effect: { kind: "lightningDamageReduction", value: 1 },
+  maxStack: 2,
+  slotType: "shielding",
+};
+
+const RESOURCE_MAGNET_DEF: UpgradeDef = {
+  id: "resource-magnet",
+  cost: cost(2, 1, 0),
+  name: "Resource Magnet",
+  description: "Attracts nearby resources toward the rover",
+  effect: { kind: "magnetism", value: 80 },
+  maxStack: 2,
+  slotType: "radar",
+};
+
 const CRYSTAL_UPGRADES: UpgradeDef[] = [
   {
     id: "crystal-capacity-1",
@@ -256,6 +278,17 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
     maxStack: 1,
     slotType: "blaster",
   },
+  {
+    id: "crystal-blaster-seeking",
+    cost: cost(0, 5, 0),
+    name: "Seeking Lens",
+    description: "Blaster shots home in on targets",
+    effect: { kind: "blasterBehavior", value: 2 },
+    maxStack: 1,
+    slotType: "blaster",
+  },
+  LIGHTNING_ROD_DEF,
+  RESOURCE_MAGNET_DEF,
 ];
 
 const GAS_UPGRADES: UpgradeDef[] = [

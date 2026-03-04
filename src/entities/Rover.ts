@@ -22,6 +22,8 @@ import {
   ROVER_SPRITE_WIDTH,
 } from "../config/gameConfig";
 import type { RoverStats } from "../upgrades/RoverStats";
+import { getDamageReductionForType } from "../upgrades/RoverStats";
+import type { DamageType } from "../types/DamageTypes";
 
 export type CargoCounts = Record<ResourceId, number>;
 
@@ -39,7 +41,7 @@ export type CargoConfig = Record<ResourceId, number>;
 
 /** Target for hazards (damage, slow, wind). Used so hazards don't depend on Rover. */
 export interface IHazardTarget {
-  takeDamage(amount: number, fromLava?: boolean): void;
+  takeDamage(amount: number, damageType?: DamageType): void;
   applySlow(factor: number): void;
   getWindResist(): number;
   getActor(): Actor;
@@ -157,13 +159,10 @@ export class Rover extends Actor implements IHazardTarget {
     this.usedCapacity += size;
   }
 
-  takeDamage(amount: number, fromLava = false) {
+  takeDamage(amount: number, damageType: DamageType = "generic") {
     if (amount <= 0) return;
-    let effective = amount - this.roverStats.flatDamageReduction;
-    if (fromLava) {
-      effective -= this.roverStats.lavaDamageReduction;
-    }
-    effective = Math.max(0, Math.ceil(effective));
+    const reduction = getDamageReductionForType(this.roverStats, damageType);
+    let effective = Math.max(0, Math.ceil(amount - reduction));
     if (effective <= 0) return;
 
     this.health = Math.max(0, this.health - effective);
