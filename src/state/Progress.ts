@@ -2,9 +2,20 @@ import type { CargoCounts } from "../entities/Rover";
 import type { ResourceId } from "../resources/ResourceTypes";
 import type { UpgradeDef } from "../upgrades/UpgradeDefs";
 import { getUpgradeCost } from "../upgrades/UpgradeDefs";
-import { getCurrentSave, saveCurrentSave, type CargoCountsSave, type CargoSlotContentSave } from "./Saves";
+import {
+  getCurrentSave,
+  saveCurrentSave,
+  type CargoCountsSave,
+  type CargoSlotContentSave,
+} from "./Saves";
 import type { SlotId } from "../types/roverConfig";
-import { getDefaultEquipped, getDefaultCargoLayout, DEFAULT_CARGO_ROWS, CARGO_MAX_ROWS, DEFAULT_EQUIPPED_IDS } from "../types/roverConfig";
+import {
+  getDefaultEquipped,
+  getDefaultCargoLayout,
+  DEFAULT_CARGO_ROWS,
+  CARGO_MAX_ROWS,
+  DEFAULT_EQUIPPED_IDS,
+} from "../types/roverConfig";
 import { CARGO_CAPACITY_PER_SLOT } from "../config/gameConfig";
 
 export interface PersistedProgress {
@@ -43,17 +54,24 @@ export function getProgress(): PersistedProgress {
       appliedUpgrades: [],
       equipped: getDefaultEquipped(),
       ownedItems: getDefaultOwnedItems(),
-      cargoLayout: getDefaultCargoLayout(DEFAULT_CARGO_ROWS) as CargoSlotContentSave[],
+      cargoLayout: getDefaultCargoLayout(
+        DEFAULT_CARGO_ROWS
+      ) as CargoSlotContentSave[],
       cargoRows: DEFAULT_CARGO_ROWS,
     };
   const cargoRows = save.cargoRows ?? DEFAULT_CARGO_ROWS;
-  const layout = save.cargoLayout ?? (getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[]);
+  const layout =
+    save.cargoLayout ??
+    (getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[]);
   return {
     bank: cargoFromSave(save.bank),
     appliedUpgrades: [...save.appliedUpgrades],
     equipped: { ...(save.equipped ?? getDefaultEquipped()) },
     ownedItems: { ...(save.ownedItems ?? getDefaultOwnedItems()) },
-    cargoLayout: layout.length === 4 * cargoRows ? [...layout] : (getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[]),
+    cargoLayout:
+      layout.length === 4 * cargoRows
+        ? [...layout]
+        : (getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[]),
     cargoRows,
   };
 }
@@ -112,10 +130,14 @@ export function setCargoRows(rows: number): void {
     Math.max(DEFAULT_CARGO_ROWS, Math.floor(rows))
   );
   const oldRows = save.cargoRows ?? DEFAULT_CARGO_ROWS;
-  const oldLayout = save.cargoLayout ?? (getDefaultCargoLayout(oldRows) as CargoSlotContentSave[]);
+  const oldLayout =
+    save.cargoLayout ??
+    (getDefaultCargoLayout(oldRows) as CargoSlotContentSave[]);
   save.cargoRows = clamped;
   const newLen = 4 * clamped;
-  const defaultLayout = getDefaultCargoLayout(clamped) as CargoSlotContentSave[];
+  const defaultLayout = getDefaultCargoLayout(
+    clamped
+  ) as CargoSlotContentSave[];
   if (clamped > oldRows) {
     save.cargoLayout = [...oldLayout];
     for (let i = oldLayout.length; i < newLen; i++) {
@@ -124,7 +146,8 @@ export function setCargoRows(rows: number): void {
   } else if (clamped < oldRows) {
     save.cargoLayout = oldLayout.slice(0, newLen);
   } else {
-    save.cargoLayout = oldLayout.length === newLen ? [...oldLayout] : defaultLayout;
+    save.cargoLayout =
+      oldLayout.length === newLen ? [...oldLayout] : defaultLayout;
   }
   saveCurrentSave();
 }

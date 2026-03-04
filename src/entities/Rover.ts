@@ -22,8 +22,6 @@ import {
   ROVER_SPRITE_WIDTH,
 } from "../config/gameConfig";
 import type { RoverStats } from "../upgrades/RoverStats";
-import { computeEffectiveRoverStatsFromEquipped } from "../upgrades/RoverStats";
-import { getEquipped, getOwnedItems } from "../state/Progress";
 
 export type CargoCounts = Record<ResourceId, number>;
 
@@ -39,7 +37,15 @@ export type BlasterSpawnFn = (
 /** Per-resource max capacity from cargo layout. If set, addResource/canPick enforce per-resource caps. */
 export type CargoConfig = Record<ResourceId, number>;
 
-export class Rover extends Actor {
+/** Target for hazards (damage, slow, wind). Used so hazards don't depend on Rover. */
+export interface IHazardTarget {
+  takeDamage(amount: number, fromLava?: boolean): void;
+  applySlow(factor: number): void;
+  getWindResist(): number;
+  getActor(): Actor;
+}
+
+export class Rover extends Actor implements IHazardTarget {
   maxCapacity: number;
   usedCapacity = 0;
   cargo: CargoCounts = {
@@ -75,7 +81,7 @@ export class Rover extends Actor {
   constructor(
     x: number,
     y: number,
-    stats?: RoverStats,
+    stats: RoverStats,
     cargoConfig?: CargoConfig
   ) {
     super({
@@ -89,9 +95,7 @@ export class Rover extends Actor {
     this.collider.set(
       Shape.Box(ROVER_SPRITE_WIDTH - 4, ROVER_SPRITE_HEIGHT - 12)
     );
-    this.roverStats =
-      stats ??
-      computeEffectiveRoverStatsFromEquipped(getEquipped(), getOwnedItems());
+    this.roverStats = stats;
     const s = this.roverStats;
     if (cargoConfig) {
       this.maxCargo = { ...cargoConfig };
@@ -165,9 +169,8 @@ export class Rover extends Actor {
     this.health = Math.max(0, this.health - effective);
     this.damageFlashTimer = 150;
 
-    if (this.onDamaged) {
-      this.onDamaged(effective);
-    }
+    this.events.emit("damage", { amount: effective });
+    this.onDamaged?.(effective);
 
     if (this.health <= 0) {
       this.isDisabled = true;
@@ -185,6 +188,10 @@ export class Rover extends Actor {
     return this.roverStats.windResist;
   }
 
+  getActor(): Actor {
+    return this;
+  }
+
   onPreUpdate(engine: Engine, delta: number): void {
     if (this.isDisabled) {
       this.vel = vec(0, 0);
@@ -196,6 +203,7 @@ export class Rover extends Actor {
     if (this.battery <= 0) {
       this.battery = 0;
       this.isDisabled = true;
+      this.events.emit("batterydepleted", undefined);
       this.onBatteryDepleted?.();
       return;
     }
@@ -283,17 +291,17 @@ export class Rover extends Actor {
         setTouchInput({ fire: false });
       }
     }
-    if (fireKey && this.blasterCooldown <= 0 && this.onFireBlaster) {
+    if (fireKey && this.blasterCooldown <= 0) {
       const msPerShot = 1000 / this.roverStats.blasterFireRate;
       this.blasterCooldown = msPerShot;
-      this.onFireBlaster(
-        this.pos.x,
-        this.pos.y,
-        this.rotation,
-        this.roverStats.blasterDamage,
-        600,
-        this.roverStats.blasterRange
-      );
+      const x = this.pos.x;
+      const y = this.pos.y;
+      const angle = this.rotation;
+      const damage = this.roverStats.blasterDamage;
+      const speed = 600;
+      const range = this.roverStats.blasterRange;
+      this.events.emit("fireblaster", { x, y, angle, damage, speed, range });
+      this.onFireBlaster?.(x, y, angle, damage, speed, range);
     }
 
     if (this.damageFlashTimer > 0) {

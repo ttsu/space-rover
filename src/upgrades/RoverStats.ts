@@ -37,81 +37,54 @@ export interface RoverStats {
   blasterBehavior: number;
 }
 
-const BASE_STATS: RoverStats = {
-  maxHealth: ROVER_BASE_HEALTH,
-  maxCapacity: ROVER_MAX_CAPACITY,
-  maxSpeed: ROVER_BASE_SPEED,
-  acceleration: ROVER_BASE_ACCELERATION,
-  turnSpeed: ROVER_BASE_TURN_SPEED,
-  blasterDamage: BLASTER_BASE_DAMAGE,
-  blasterFireRate: BLASTER_BASE_FIRE_RATE,
-  blasterRange: BLASTER_BASE_RANGE,
-  lavaDamageReduction: 0,
-  lavaSlowResist: 0,
-  windResist: 0,
-  flatDamageReduction: 0,
-  lightningWarningTime: 0,
-  maxBattery: ROVER_BASE_BATTERY,
-  batteryDrainPerSecond: ROVER_BASE_BATTERY_DRAIN,
-  visibilityRadius: ROVER_BASE_VISIBILITY_RADIUS_TILES,
-  blasterBehavior: 0,
+type EffectApply = "additive" | "override";
+
+/** Single source of truth for effect kinds: default value and how to apply (additive vs override). */
+const EFFECT_REGISTRY: Record<
+  UpgradeEffectKind,
+  { default: number; apply: EffectApply }
+> = {
+  maxHealth: { default: ROVER_BASE_HEALTH, apply: "additive" },
+  maxCapacity: { default: ROVER_MAX_CAPACITY, apply: "additive" },
+  maxSpeed: { default: ROVER_BASE_SPEED, apply: "additive" },
+  turnSpeed: { default: ROVER_BASE_TURN_SPEED, apply: "additive" },
+  acceleration: { default: ROVER_BASE_ACCELERATION, apply: "additive" },
+  blasterDamage: { default: BLASTER_BASE_DAMAGE, apply: "additive" },
+  blasterFireRate: { default: BLASTER_BASE_FIRE_RATE, apply: "additive" },
+  blasterRange: { default: BLASTER_BASE_RANGE, apply: "additive" },
+  lavaDamageReduction: { default: 0, apply: "additive" },
+  lavaSlowResist: { default: 0, apply: "additive" },
+  windResist: { default: 0, apply: "additive" },
+  flatDamageReduction: { default: 0, apply: "additive" },
+  lightningWarningTime: { default: 0, apply: "additive" },
+  visibilityRadius: {
+    default: ROVER_BASE_VISIBILITY_RADIUS_TILES,
+    apply: "additive",
+  },
+  maxBattery: { default: ROVER_BASE_BATTERY, apply: "additive" },
+  batteryDrainPerSecond: {
+    default: ROVER_BASE_BATTERY_DRAIN,
+    apply: "additive",
+  },
+  blasterBehavior: { default: 0, apply: "override" },
 };
 
-function applyEffect(stats: RoverStats, kind: UpgradeEffectKind, value: number): void {
-  switch (kind) {
-    case "maxHealth":
-      stats.maxHealth += value;
-      break;
-    case "maxCapacity":
-      stats.maxCapacity += value;
-      break;
-    case "maxSpeed":
-      stats.maxSpeed += value;
-      break;
-    case "turnSpeed":
-      stats.turnSpeed += value;
-      break;
-    case "acceleration":
-      stats.acceleration += value;
-      break;
-    case "blasterDamage":
-      stats.blasterDamage += value;
-      break;
-    case "blasterFireRate":
-      stats.blasterFireRate += value;
-      break;
-    case "blasterRange":
-      stats.blasterRange += value;
-      break;
-    case "lavaDamageReduction":
-      stats.lavaDamageReduction += value;
-      break;
-    case "lavaSlowResist":
-      stats.lavaSlowResist += value;
-      break;
-    case "windResist":
-      stats.windResist += value;
-      break;
-    case "flatDamageReduction":
-      stats.flatDamageReduction += value;
-      break;
-    case "lightningWarningTime":
-      stats.lightningWarningTime += value;
-      break;
-    case "visibilityRadius":
-      stats.visibilityRadius += value;
-      break;
-    case "maxBattery":
-      stats.maxBattery += value;
-      break;
-    case "batteryDrainPerSecond":
-      stats.batteryDrainPerSecond += value;
-      break;
-    case "blasterBehavior":
-      stats.blasterBehavior = value;
-      break;
-    default:
-      break;
+const BASE_STATS: RoverStats = Object.fromEntries(
+  Object.entries(EFFECT_REGISTRY).map(([k, v]) => [k, v.default])
+) as unknown as RoverStats;
+
+function applyEffect(
+  stats: RoverStats,
+  kind: UpgradeEffectKind,
+  value: number
+): void {
+  const entry = EFFECT_REGISTRY[kind];
+  if (!entry) return;
+  const key = kind as keyof RoverStats;
+  if (entry.apply === "additive") {
+    (stats[key] as number) += value;
+  } else {
+    (stats[key] as number) = value;
   }
 }
 

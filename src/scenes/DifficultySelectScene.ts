@@ -20,19 +20,16 @@ const DIFFICULTIES: { id: Difficulty; label: string }[] = [
 ];
 
 export class DifficultySelectScene extends Scene {
-  private engineRef: Engine;
-
-  constructor(engine: Engine) {
+  constructor(_engine: Engine) {
     super();
-    this.engineRef = engine;
   }
 
   onInitialize() {
-    const cx = this.engineRef.drawWidth / 2;
+    const cx = this.engine.drawWidth / 2;
 
     const title = new Label({
       text: "Choose difficulty",
-      pos: vec(cx, this.engineRef.drawHeight / 2 - 120),
+      pos: vec(cx, this.engine.drawHeight / 2 - 120),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
@@ -44,7 +41,7 @@ export class DifficultySelectScene extends Scene {
 
     const btnWidth = 200;
     const btnHeight = 48;
-    const startY = this.engineRef.drawHeight / 2 - 40;
+    const startY = this.engine.drawHeight / 2 - 40;
     const spacing = 56;
 
     DIFFICULTIES.forEach((d, i) => {
@@ -64,7 +61,7 @@ export class DifficultySelectScene extends Scene {
         onClick: () => {
           playClick();
           createSave(d.id);
-          this.engineRef.goToScene("planetRunMenu");
+          this.engine.goToScene("planetRunMenu");
         },
       });
       this.add(btn);

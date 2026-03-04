@@ -15,7 +15,7 @@ todos:
     content: Pass biome (or default) into generatePlanet; spawn hazards and tiles according to biome config
     status: pending
   - id: tile-visual-biome
-    content: Optional: tile color/kind per biome in Tile.ts and PlanetGenerator
+    content: "Optional: tile color/kind per biome in Tile.ts and PlanetGenerator"
     status: pending
 isProject: true
 ---
@@ -112,7 +112,7 @@ Implement only the hazards you need for the biomes you ship (e.g. start with vol
 
 - Add e.g. `acidDamageReduction: number`, `iceSlowResist: number` (0–1). In `HazardBase.hit` you pass a flag; in Rover `takeDamage(amount, fromLava, fromAcid)` apply `acidDamageReduction` when `fromAcid`. For ice, in IcePatch use `applySlow(factor * (1 - rover.roverStats.iceSlowResist))`.
 
-**File: [src/entities/Rover.ts](src/entities/Rover.ts)**
+**File: [src/entities/Rover.ts*](src/entities/Rover.ts)*
 
 - Extend `takeDamage(amount: number, fromLava = false, fromAcid = false)` and apply `flatDamageReduction` and `acidDamageReduction` (and lava reduction when `fromLava`) before subtracting health.
 
@@ -164,15 +164,17 @@ Implement Option A first; add Option B or C when you add UI for it.
 
 ## 8. Files to touch (summary)
 
-| Area | Files |
-|------|--------|
-| Biome config | New [biomeConfig.ts](src/config/biomeConfig.ts) or [gameConfig.ts](src/config/gameConfig.ts); [difficulty.ts](src/config/difficulty.ts) for new density multipliers |
-| Hazard kinds and state | [GameState.ts](src/state/GameState.ts) (HazardKind, emptyHazards) |
-| New hazards | [Hazards.ts](src/hazards/Hazards.ts) (AcidPool, IcePatch, SandstormZone; optional QuakeZone) |
-| Rover damage/resist | [Rover.ts](src/entities/Rover.ts) (takeDamage signature), [RoverStats.ts](src/upgrades/RoverStats.ts), [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts) (optional) |
-| Generation | [PlanetGenerator.ts](src/world/PlanetGenerator.ts) (options.biome, config-driven hazard counts and spawns) |
-| Tiles | [Tile.ts](src/world/Tile.ts) (optional new TileKinds and colors) |
-| Call site | [PlanetScene.ts](src/scenes/PlanetScene.ts) (pass biome in generatePlanet options when ready) |
+
+| Area                   | Files                                                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Biome config           | New [biomeConfig.ts](src/config/biomeConfig.ts) or [gameConfig.ts](src/config/gameConfig.ts); [difficulty.ts](src/config/difficulty.ts) for new density multipliers |
+| Hazard kinds and state | [GameState.ts](src/state/GameState.ts) (HazardKind, emptyHazards)                                                                                                   |
+| New hazards            | [Hazards.ts](src/hazards/Hazards.ts) (AcidPool, IcePatch, SandstormZone; optional QuakeZone)                                                                        |
+| Rover damage/resist    | [Rover.ts](src/entities/Rover.ts) (takeDamage signature), [RoverStats.ts](src/upgrades/RoverStats.ts), [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts) (optional)     |
+| Generation             | [PlanetGenerator.ts](src/world/PlanetGenerator.ts) (options.biome, config-driven hazard counts and spawns)                                                          |
+| Tiles                  | [Tile.ts](src/world/Tile.ts) (optional new TileKinds and colors)                                                                                                    |
+| Call site              | [PlanetScene.ts](src/scenes/PlanetScene.ts) (pass biome in generatePlanet options when ready)                                                                       |
+
 
 ---
 
@@ -182,3 +184,4 @@ Implement Option A first; add Option B or C when you add UI for it.
 2. Add one new hazard (e.g. IcePatch) and `ice` to HazardKind; add ice biome config and spawn IcePatch in generator when biome is ice.
 3. Add AcidPool and toxic biome; add SandstormZone and desert if desired.
 4. Add rover resists and equipment defs for new hazards; then add biome selection to UI or random.
+

@@ -26,13 +26,11 @@ function formatTotalResources(
 }
 
 export class MainMenuScene extends Scene {
-  private engineRef: Engine;
   private saveListActors: Actor[] = [];
   private saveListLabels: Label[] = [];
 
-  constructor(engine: Engine) {
+  constructor(_engine: Engine) {
     super();
-    this.engineRef = engine;
   }
 
   onActivate(): void {
@@ -47,8 +45,8 @@ export class MainMenuScene extends Scene {
 
     const saves = listSaves();
     const lastPlayedId = getLastPlayedSaveId();
-    const cx = this.engineRef.drawWidth / 2;
-    const listStartY = this.engineRef.drawHeight / 2 - 20;
+    const cx = this.engine.drawWidth / 2;
+    const listStartY = this.engine.drawHeight / 2 - 20;
     const rowHeight = 44;
     const col1X = cx - 180;
     const loadX = cx + 20;
@@ -87,7 +85,7 @@ export class MainMenuScene extends Scene {
         onClick: () => {
           playClick();
           loadSave(entry.id);
-          this.engineRef.goToScene("planetRunMenu");
+          this.engine.goToScene("planetRunMenu");
         },
       });
 
@@ -122,11 +120,11 @@ export class MainMenuScene extends Scene {
   }
 
   onInitialize() {
-    const cx = this.engineRef.drawWidth / 2;
+    const cx = this.engine.drawWidth / 2;
 
     const title = new Label({
       text: "Starship Rover",
-      pos: vec(cx, this.engineRef.drawHeight / 2 - 140),
+      pos: vec(cx, this.engine.drawHeight / 2 - 140),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
@@ -137,7 +135,7 @@ export class MainMenuScene extends Scene {
     title.anchor.setTo(0.5, 0.5);
 
     const newGameButton = new Button({
-      pos: vec(cx, this.engineRef.drawHeight / 2 - 80),
+      pos: vec(cx, this.engine.drawHeight / 2 - 80),
       width: 200,
       height: 48,
       text: "New Game",
@@ -149,13 +147,13 @@ export class MainMenuScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engineRef.goToScene("difficultySelect");
+        this.engine.goToScene("difficultySelect");
       },
     });
 
     const savesTitle = new Label({
       text: "Saved games",
-      pos: vec(cx, this.engineRef.drawHeight / 2 - 48),
+      pos: vec(cx, this.engine.drawHeight / 2 - 48),
       color: Color.fromHex("#9ca3af"),
       font: new Font({
         family: "system-ui, sans-serif",

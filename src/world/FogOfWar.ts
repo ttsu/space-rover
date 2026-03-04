@@ -128,7 +128,11 @@ export class FogVisibilitySystem extends System {
       }
 
       const key = tileKey(gx, gy);
-      if (fog.gridX !== undefined && fog.gridY !== undefined && explored.has(key)) {
+      if (
+        fog.gridX !== undefined &&
+        fog.gridY !== undefined &&
+        explored.has(key)
+      ) {
         graphics.isVisible = true;
         graphics.opacity = EXPLORED_OPACITY;
         applyFogToParticleEmitter(entity as ParticleEmitter, true);
@@ -154,7 +158,10 @@ function isParticleEmitter(e: unknown): e is ParticleEmitter {
  * When an emitter is in fog: stop emitting and clear existing particles (no per-particle work).
  * When it becomes visible again: restore isEmitting so ambient emitters resume.
  */
-function applyFogToParticleEmitter(emitter: ParticleEmitter, inFog: boolean): void {
+function applyFogToParticleEmitter(
+  emitter: ParticleEmitter,
+  inFog: boolean
+): void {
   if (!isParticleEmitter(emitter)) return;
   if (inFog) {
     const bag = emitter as unknown as Record<string, boolean | undefined>;
@@ -208,7 +215,12 @@ export function drawFogOverlay(
       const screenY = gy * TILE_SIZE - camPos.y + halfH;
 
       if (dist >= radiusPx + FOG_SOFT_TILES * TILE_SIZE) {
-        ctx.drawRectangle(vec(screenX, screenY), TILE_SIZE, TILE_SIZE, FOG_COLOR);
+        ctx.drawRectangle(
+          vec(screenX, screenY),
+          TILE_SIZE,
+          TILE_SIZE,
+          FOG_COLOR
+        );
       } else if (dist > radiusPx) {
         const t = (dist - radiusPx) / (FOG_SOFT_TILES * TILE_SIZE);
         const opacity = Math.min(1, t);
@@ -222,23 +234,4 @@ export function drawFogOverlay(
   }
 
   ctx.restore();
-}
-
-export class FogOverlaySystem extends System {
-  static priority = SystemPriority.Lower;
-  get systemType(): SystemType {
-    return SystemType.Draw;
-  }
-  query;
-  world: World;
-
-  constructor(world: World, _rover: Rover) {
-    super();
-    this.world = world;
-    this.query = this.world.query([FogAffectedComponent]);
-  }
-
-  update(_elapsed: number): void {
-    // Overlay is drawn by Scene.onPostDraw calling drawFogOverlay(ctx, rover)
-  }
 }

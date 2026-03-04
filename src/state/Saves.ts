@@ -296,7 +296,9 @@ export function createSave(difficulty: Difficulty): GameSave {
   const seed = generateSeed();
   const now = Date.now();
   const cargoRows = DEFAULT_CARGO_ROWS;
-  const cargoLayout = getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[];
+  const cargoLayout = getDefaultCargoLayout(
+    cargoRows
+  ) as CargoSlotContentSave[];
   const save: GameSave = {
     id,
     seed,

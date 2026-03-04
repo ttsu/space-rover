@@ -45,9 +45,8 @@ No change to `RunStats` or `finishRun`; they already use `Record<HazardKind, num
 - **Base class (e.g. `AlienBase`):** Extends Excalibur `Actor`, implements `IBlasterTarget`.
   - **Props:** `x, y, width, height, hp, contactDamage, rover, hazardKind: HazardKind`. Store `rover` and `hazardKind` for damage and stats.
   - **Collision:** `CollisionType.Active` so it collides with rover and projectiles. In `on("collisionstart")`, if `evt.other.owner === rover`, call `rover.takeDamage(contactDamage)` and `recordHazardHit(hazardKind)`.
-  - **takeBlasterDamage(amount: number):** Subtract from HP; if HP &lt;= 0, call `this.kill()` and optionally spawn death particles or drop. No need to call `recordHazardHit` for “alien was hit”; only call it when the rover is hit by the alien.
+  - **takeBlasterDamage(amount: number):** Subtract from HP; if HP <= 0, call `this.kill()` and optionally spawn death particles or drop. No need to call `recordHazardHit` for “alien was hit”; only call it when the rover is hit by the alien.
   - **Body:** Use a simple shape (e.g. box) and ensure collision group allows contact with rover and with blaster projectiles (default Excalibur should allow both).
-
 - **Ranged alien (optional):** A subclass or separate class that, in addition to contact damage, periodically spawns a **projectile** aimed at the rover. The projectile is an Actor that moves each frame toward last-known rover position (or predicted); on collision with rover, call `rover.takeDamage(projectileDamage)` and `recordHazardHit(hazardKind)`, then kill projectile. Projectile should not be an `IBlasterTarget` (or it would be hit by blaster); use a different tag or name so blaster ignores it, or let blaster destroy enemy projectiles if you want.
 
 ---
@@ -55,6 +54,7 @@ No change to `RunStats` or `finishRun`; they already use `Record<HazardKind, num
 ## 3. Movement and aggro behavior
 
 **Aggro:** Store “aggro radius” (pixels or tiles). Each frame in `onPreUpdate`:
+
 - If rover is not in aggro radius: idle or patrol (e.g. move along a short path or stand still).
 - If rover is inside aggro radius: set “target” to rover position and move toward it (or aim and shoot for ranged).
 
@@ -69,9 +69,11 @@ No change to `RunStats` or `finishRun`; they already use `Record<HazardKind, num
 ## 4. At least one concrete alien type
 
 **Drone (contact-only):**
+
 - Low HP (e.g. 2), contact damage 1, slow move speed. Aggro radius e.g. 150 px. When in aggro, chase rover; on contact, rover takes damage and record hazard. Simple state: `idle | chasing`; in chasing, move toward `rover.pos` each frame.
 
 **Spitter (ranged):** 
+
 - Medium HP, no or low contact damage. Aggro radius 200. Every N ms (e.g. 1500), if rover in aggro, spawn a projectile from alien position toward rover; projectile moves in a straight line, deals 1 damage on rover hit. Projectile actor: small, Passive or Active collision, on collision with rover call `rover.takeDamage(1)` and `recordHazardHit("alienSpitter")`, then kill self.
 
 Implement Drone first; add Spitter once Drone works.
@@ -111,6 +113,7 @@ Implement Drone first; add Spitter once Drone works.
 ## 8. Optional: alien projectile and collision
 
 If you add a “spitter” that shoots at the rover:
+
 - **Class:** `AlienProjectile extends Actor` with position, velocity, damage, rover ref, hazardKind. In `onPreUpdate`, move by velocity; in `on("collisionstart")`, if other.owner === rover, call `rover.takeDamage(damage)`, `recordHazardHit(hazardKind)`, then `this.kill()`. Add to scene when spitter fires.
 - **Collision:** Use Passive or Active; ensure it collides with rover. Don’t implement `IBlasterTarget` on it unless you want blaster to destroy enemy projectiles (then do implement it and in `takeBlasterDamage` just `this.kill()`).
 
@@ -118,13 +121,15 @@ If you add a “spitter” that shoots at the rover:
 
 ## 9. Files to touch (summary)
 
-| Area | Files |
-|------|--------|
-| Hazard kinds | [GameState.ts](src/state/GameState.ts) (HazardKind, emptyHazards) |
-| Alien actors | New [Aliens.ts](src/entities/Aliens.ts) or [aliens/](src/aliens/) (AlienBase, Drone, optional Spitter and AlienProjectile) |
-| Blaster | [BlasterProjectile.ts](src/entities/BlasterProjectile.ts) (no change if alien is IBlasterTarget); AoE logic in PlanetScene or projectile if you extend AoE to damage aliens |
-| Generation | [PlanetGenerator.ts](src/world/PlanetGenerator.ts) (alien density, placeAliens, create Drone/Spitter), [gameConfig.ts](src/config/gameConfig.ts) or [biomeConfig.ts](src/config/biomeConfig.ts) (alien density / type) |
-| Difficulty | [difficulty.ts](src/config/difficulty.ts) (alienDensity multiplier) |
+
+| Area         | Files                                                                                                                                                                                                                  |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hazard kinds | [GameState.ts](src/state/GameState.ts) (HazardKind, emptyHazards)                                                                                                                                                      |
+| Alien actors | New [Aliens.ts](src/entities/Aliens.ts) or [aliens/](src/aliens/) (AlienBase, Drone, optional Spitter and AlienProjectile)                                                                                             |
+| Blaster      | [BlasterProjectile.ts](src/entities/BlasterProjectile.ts) (no change if alien is IBlasterTarget); AoE logic in PlanetScene or projectile if you extend AoE to damage aliens                                            |
+| Generation   | [PlanetGenerator.ts](src/world/PlanetGenerator.ts) (alien density, placeAliens, create Drone/Spitter), [gameConfig.ts](src/config/gameConfig.ts) or [biomeConfig.ts](src/config/biomeConfig.ts) (alien density / type) |
+| Difficulty   | [difficulty.ts](src/config/difficulty.ts) (alienDensity multiplier)                                                                                                                                                    |
+
 
 ---
 
@@ -135,3 +140,4 @@ If you add a “spitter” that shoots at the rover:
 3. Add Drone to PlanetGenerator with a fixed count (e.g. 5), place with placeHazard-style logic. Test: blaster kills drone, touching drone damages rover and records hazard.
 4. Add chase AI: aggro radius, move toward rover each frame when in range.
 5. Optional: add Spitter and AlienProjectile; add alien density to config and difficulty; optionally tie alien type to biome.
+

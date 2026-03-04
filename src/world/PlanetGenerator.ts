@@ -21,7 +21,7 @@ import {
   WindZone,
   LightningZone,
 } from "../hazards/Hazards";
-import type { Rover } from "../entities/Rover";
+import type { IHazardTarget } from "../entities/Rover";
 import { random } from "../utils/seedRandom";
 import type { Difficulty } from "../state/Saves";
 import { DIFFICULTY_MULTIPLIERS } from "../config/difficulty";
@@ -38,7 +38,7 @@ export interface GeneratePlanetOptions {
 export function generatePlanet(
   scene: Scene,
   _engine: Engine,
-  rover: Rover,
+  hazardTarget: IHazardTarget,
   options?: GeneratePlanetOptions
 ): PlanetGenerationResult {
   const difficulty = options?.difficulty ?? "normal";
@@ -71,8 +71,9 @@ export function generatePlanet(
   scene.add(base);
   actors.push(base);
 
-  rover.pos.x = baseX;
-  rover.pos.y = baseY - TILE_SIZE;
+  const roverActor = hazardTarget.getActor();
+  roverActor.pos.x = baseX;
+  roverActor.pos.y = baseY - TILE_SIZE;
 
   const totalTiles = PLANET_WIDTH_TILES * PLANET_HEIGHT_TILES;
 
@@ -156,7 +157,7 @@ export function generatePlanet(
       TILE_SIZE,
       TILE_SIZE,
       Color.fromHex("#b91c1c"),
-      rover,
+      hazardTarget,
       "lava"
     );
     lava.addComponent(new FogAffectedComponent());
@@ -173,7 +174,7 @@ export function generatePlanet(
       TILE_SIZE,
       TILE_SIZE,
       Color.fromHex("#4b5563"),
-      rover,
+      hazardTarget,
       "rock"
     );
     rock.addComponent(new FogAffectedComponent());
@@ -185,12 +186,19 @@ export function generatePlanet(
     const x = gridX * TILE_SIZE + TILE_SIZE / 2;
     const y = gridY * TILE_SIZE + TILE_SIZE / 2;
     const angle = random() * Math.PI * 2;
-    const wind = new WindZone(x, y, TILE_SIZE * 2, TILE_SIZE * 2, rover, angle);
+    const wind = new WindZone(
+      x,
+      y,
+      TILE_SIZE * 2,
+      TILE_SIZE * 2,
+      hazardTarget,
+      angle
+    );
     wind.addComponent(new FogAffectedComponent());
     scene.add(wind);
     actors.push(wind);
 
-    const lightning = new LightningZone(x, y, rover);
+    const lightning = new LightningZone(x, y, hazardTarget);
     lightning.addComponent(new FogAffectedComponent());
     scene.add(lightning);
     actors.push(lightning);

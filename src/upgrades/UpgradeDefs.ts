@@ -1,5 +1,9 @@
 import type { ResourceId } from "../resources/ResourceTypes";
-import { ALL_SLOT_IDS, DEFAULT_EQUIPPED_IDS, type SlotId } from "../types/roverConfig";
+import {
+  ALL_SLOT_IDS,
+  DEFAULT_EQUIPPED_IDS,
+  type SlotId,
+} from "../types/roverConfig";
 
 export type UpgradeEffectKind =
   | "maxHealth"
@@ -41,11 +45,7 @@ export interface UpgradeDef {
   isBase?: boolean;
 }
 
-function cost(
-  iron = 0,
-  crystal = 0,
-  gas = 0
-): Record<ResourceId, number> {
+function cost(iron = 0, crystal = 0, gas = 0): Record<ResourceId, number> {
   const c: Record<ResourceId, number> = { iron: 0, crystal: 0, gas: 0 };
   if (iron > 0) c.iron = iron;
   if (crystal > 0) c.crystal = crystal;

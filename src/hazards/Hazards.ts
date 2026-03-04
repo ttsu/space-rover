@@ -8,14 +8,14 @@ import {
   Label,
   CollisionType,
 } from "excalibur";
-import type { Rover } from "../entities/Rover";
+import type { IHazardTarget } from "../entities/Rover";
 import { recordHazardHit, type HazardKind } from "../state/GameState";
 import { LAVA_SLOW_FACTOR } from "../config/gameConfig";
 import { random } from "../utils/seedRandom";
 import { createAmbientEmitter } from "../effects/Particles";
 
 abstract class HazardBase extends Actor {
-  protected rover: Rover;
+  protected target: IHazardTarget;
   protected kind: HazardKind;
 
   constructor(
@@ -24,16 +24,16 @@ abstract class HazardBase extends Actor {
     width: number,
     height: number,
     color: Color,
-    rover: Rover,
+    target: IHazardTarget,
     kind: HazardKind
   ) {
     super({ x, y, width, height, color });
-    this.rover = rover;
+    this.target = target;
     this.kind = kind;
   }
 
   protected hit(amount: number, fromLava?: boolean) {
-    this.rover.takeDamage(amount, fromLava ?? false);
+    this.target.takeDamage(amount, fromLava ?? false);
     recordHazardHit(this.kind);
   }
 }
@@ -45,10 +45,10 @@ export class LavaPool extends HazardBase {
   onInitialize(): void {
     this.body.collisionType = CollisionType.Passive;
     this.on("collisionstart", (evt) => {
-      if (evt.other.owner === this.rover) this.roverInLava = true;
+      if (evt.other.owner === this.target.getActor()) this.roverInLava = true;
     });
     this.on("collisionend", (evt) => {
-      if (evt.other.owner === this.rover) {
+      if (evt.other.owner === this.target.getActor()) {
         this.roverInLava = false;
         this.tickTimer = 0;
       }
@@ -73,7 +73,7 @@ export class LavaPool extends HazardBase {
 
   onPreUpdate(_engine: Engine, delta: number): void {
     if (this.roverInLava) {
-      this.rover.applySlow(LAVA_SLOW_FACTOR);
+      this.target.applySlow(LAVA_SLOW_FACTOR);
       this.tickTimer += delta;
       if (this.tickTimer >= 500) {
         this.tickTimer = 0;
@@ -98,20 +98,20 @@ export class WindZone extends HazardBase {
     y: number,
     width: number,
     height: number,
-    rover: Rover,
+    target: IHazardTarget,
     directionAngle: number
   ) {
-    super(x, y, width, height, Color.fromHex("#0ea5e930"), rover, "wind");
+    super(x, y, width, height, Color.fromHex("#0ea5e930"), target, "wind");
     this.direction = vec(Math.cos(directionAngle), Math.sin(directionAngle));
   }
 
   onInitialize(): void {
     this.body.collisionType = CollisionType.Passive;
     this.on("collisionstart", (evt) => {
-      if (evt.other.owner === this.rover) this.roverInWind = true;
+      if (evt.other.owner === this.target.getActor()) this.roverInWind = true;
     });
     this.on("collisionend", (evt) => {
-      if (evt.other.owner === this.rover) this.roverInWind = false;
+      if (evt.other.owner === this.target.getActor()) this.roverInWind = false;
     });
     const windAngle = Math.atan2(this.direction.y, this.direction.x);
     const windEmitter = createAmbientEmitter({
@@ -133,9 +133,10 @@ export class WindZone extends HazardBase {
 
   onPreUpdate(_engine: Engine, delta: number): void {
     if (this.roverInWind) {
+      const actor = this.target.getActor();
       const pushStrength =
-        (random() * 200 + 500) * (1 - this.rover.getWindResist());
-      this.rover.vel = this.rover.vel.add(
+        (random() * 200 + 500) * (1 - this.target.getWindResist());
+      actor.vel = actor.vel.add(
         this.direction.scale(pushStrength * (delta / 1000))
       );
     }
@@ -150,17 +151,17 @@ export class LightningZone extends HazardBase {
   private hasStruck = false;
   private roverInZone = false;
 
-  constructor(x: number, y: number, rover: Rover) {
-    super(x, y, 40, 40, Color.fromHex("#facc15"), rover, "lightning");
+  constructor(x: number, y: number, target: IHazardTarget) {
+    super(x, y, 40, 40, Color.fromHex("#facc15"), target, "lightning");
   }
 
   onInitialize(): void {
     this.body.collisionType = CollisionType.Passive;
     this.on("collisionstart", (evt) => {
-      if (evt.other.owner === this.rover) this.roverInZone = true;
+      if (evt.other.owner === this.target.getActor()) this.roverInZone = true;
     });
     this.on("collisionend", (evt) => {
-      if (evt.other.owner === this.rover) this.roverInZone = false;
+      if (evt.other.owner === this.target.getActor()) this.roverInZone = false;
     });
   }
 

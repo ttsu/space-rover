@@ -1,0 +1,28 @@
+---
+description: Ensure build and lint pass whenever making changes
+alwaysApply: true
+---
+
+# Build and Lint Verification
+
+Before considering any code changes complete, verify that both build and lint pass.
+
+## Commands
+
+```bash
+npm run build   # tsc && vite build
+npm run lint    # prettier --check .
+```
+
+## Workflow
+
+1. **After making edits**: Run `npm run build` and `npm run lint`.
+2. **If build fails**: Fix TypeScript errors or build issues before finishing.
+3. **If lint fails**: Run `npm run format` to auto-fix, or fix formatting manually.
+4. **Do not leave**: Broken builds or lint failures in the codebase.
+
+## Quick Fix for Lint
+
+```bash
+npm run format   # prettier --write .
+```

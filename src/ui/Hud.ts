@@ -8,7 +8,11 @@ import {
   Engine,
 } from "excalibur";
 import type { Rover } from "../entities/Rover";
-import { getCurrentGoals, isGoalSatisfied, type GoalLiveState } from "../state/RunGoals";
+import {
+  getCurrentGoals,
+  isGoalSatisfied,
+  type GoalLiveState,
+} from "../state/RunGoals";
 
 export class Hud extends ScreenElement {
   private engineRef: Engine;
@@ -140,7 +144,9 @@ export class Hud extends ScreenElement {
       if (i < goals.length) {
         const goal = goals[i];
         const satisfied = isGoalSatisfied(goal, liveState);
-        this.goalLabels[i].text = satisfied ? `✓ ${goal.label}` : `○ ${goal.label}`;
+        this.goalLabels[i].text = satisfied
+          ? `✓ ${goal.label}`
+          : `○ ${goal.label}`;
         this.goalLabels[i].color = satisfied
           ? Color.fromHex("#4ade80")
           : Color.fromHex("#9ca3af");

@@ -1,4 +1,4 @@
-import { Actor, CollisionType, Engine } from "excalibur";
+import { Actor, CollisionType } from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { ResourceNode } from "./ResourceNode";
 import type { IBlasterTarget } from "./BlasterProjectile";
@@ -10,7 +10,6 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
   resource: ResourceTypeDef;
   sizeUnits: number;
   hp: number;
-  private engineRef: Engine | null = null;
   private breaking = false;
 
   constructor(
@@ -34,7 +33,7 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
 
   takeBlasterDamage(amount: number): void {
     if (this.breaking || this.isKilled()) return;
-    const scene = this.engineRef?.currentScene;
+    const scene = this.scene;
     if (scene) {
       burst(scene, this.pos.x, this.pos.y, {
         color: this.resource.color,
@@ -47,19 +46,15 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
       });
     }
     this.hp = Math.max(0, this.hp - amount);
-    if (this.hp <= 0 && this.engineRef) {
+    if (this.hp <= 0 && this.scene) {
       this.breaking = true;
       this.playBreakAndSpawn();
     }
   }
 
-  onInitialize(engine: Engine): void {
-    this.engineRef = engine;
-  }
-
   private playBreakAndSpawn(): void {
-    if (!this.engineRef?.currentScene) return;
-    const scene = this.engineRef.currentScene;
+    const scene = this.scene;
+    if (!scene) return;
     const x = this.pos.x;
     const y = this.pos.y;
     const resource = this.resource;

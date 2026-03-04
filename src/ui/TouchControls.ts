@@ -1,11 +1,4 @@
-import {
-  ScreenElement,
-  Engine,
-  Actor,
-  Color,
-  vec,
-  Circle,
-} from "excalibur";
+import { ScreenElement, Engine, Actor, Color, vec, Circle } from "excalibur";
 import { setTouchInput, clearTouchInput } from "../input/TouchInputState";
 
 const JOYSTICK_BASE_RADIUS = 70;

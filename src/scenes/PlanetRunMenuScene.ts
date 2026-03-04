@@ -25,7 +25,6 @@ import {
 import { playClick } from "../audio/sounds";
 
 export class PlanetRunMenuScene extends Scene {
-  private engineRef: Engine;
   private bankLabel!: Label;
   private configureButton!: Button;
   private touchToggleButton?: Button;
@@ -33,9 +32,8 @@ export class PlanetRunMenuScene extends Scene {
   private goalChoices: RunGoal[] = [];
   private goalLabels: Label[] = [];
 
-  constructor(engine: Engine) {
+  constructor(_engine: Engine) {
     super();
-    this.engineRef = engine;
   }
 
   onActivate(): void {
@@ -64,9 +62,7 @@ export class PlanetRunMenuScene extends Scene {
   private updateTouchToggleLabel(): void {
     if (this.touchToggleButton) {
       this.touchToggleButton.setText(
-        getTouchControlsEnabled()
-          ? "Touch controls: On"
-          : "Touch controls: Off"
+        getTouchControlsEnabled() ? "Touch controls: On" : "Touch controls: Off"
       );
     }
   }
@@ -84,8 +80,8 @@ export class PlanetRunMenuScene extends Scene {
   }
 
   onInitialize() {
-    const cx = this.engineRef.drawWidth / 2;
-    const midY = this.engineRef.drawHeight / 2;
+    const cx = this.engine.drawWidth / 2;
+    const midY = this.engine.drawHeight / 2;
 
     const title = new Label({
       text: "Planet base",
@@ -161,7 +157,7 @@ export class PlanetRunMenuScene extends Scene {
         playClick();
         setCurrentGoals(this.goalChoices);
         requestFullscreen().finally(() => {
-          this.engineRef.goToScene("planet");
+          this.engine.goToScene("planet");
         });
       },
     });
@@ -179,7 +175,7 @@ export class PlanetRunMenuScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engineRef.goToScene("configureRover");
+        this.engine.goToScene("configureRover");
       },
     });
 
@@ -196,7 +192,7 @@ export class PlanetRunMenuScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engineRef.goToScene("mainMenu");
+        this.engine.goToScene("mainMenu");
       },
     });
 

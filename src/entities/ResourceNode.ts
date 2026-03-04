@@ -1,4 +1,4 @@
-import { Actor, Color, Engine, Label, vec, Font, FontUnit } from "excalibur";
+import { Actor, Color, Label, vec, Font, FontUnit } from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { Rover } from "./Rover";
 import { risingBurst } from "../effects/Particles";
@@ -20,13 +20,13 @@ export class ResourceNode extends Actor {
     this.sizeUnits = resource.size;
   }
 
-  onInitialize(engine: Engine): void {
+  onInitialize(): void {
     this.on("collisionstart", (evt) => {
       const other = evt.other.owner;
       if (other instanceof Rover) {
         if (other.canPick(this.resource.id, this.sizeUnits)) {
           other.addResource(this.resource.id, this.sizeUnits);
-          const scene = engine.currentScene;
+          const scene = this.scene;
           if (scene) {
             risingBurst(scene, this.pos.x, this.pos.y, {
               color: this.resource.color,
@@ -37,13 +37,12 @@ export class ResourceNode extends Actor {
             });
           }
           playPickup();
-          this.showPopup(engine, `+${this.sizeUnits} ${this.resource.name}`);
+          this.showPopup(`+${this.sizeUnits} ${this.resource.name}`);
           this.kill();
         } else {
           const shortage = this.sizeUnits - other.remainingCapacity();
           const shortageText = shortage > 0 ? `${shortage}` : "0";
           this.showPopup(
-            engine,
             `Not enough space.\nNeed ${this.sizeUnits}, short by ${shortageText}.`,
             Color.fromHex("#f87171")
           );
@@ -52,7 +51,9 @@ export class ResourceNode extends Actor {
     });
   }
 
-  private showPopup(engine: Engine, text: string, color = Color.White) {
+  private showPopup(text: string, color = Color.White): void {
+    const scene = this.scene;
+    if (!scene) return;
     const label = new Label({
       text,
       pos: this.pos.add(vec(0, -20)),
@@ -64,13 +65,13 @@ export class ResourceNode extends Actor {
       }),
     });
     label.anchor.setTo(0.5, 0.5);
+    scene.add(label);
 
-    engine.currentScene.add(label);
-
+    const clock = scene.engine.clock;
     let life = 800;
-    label.on("preupdate", (_evt) => {
-      life -= engine.clock.elapsed();
-      label.pos = label.pos.add(vec(0, -0.03 * engine.clock.elapsed()));
+    label.on("preupdate", () => {
+      life -= clock.elapsed();
+      label.pos = label.pos.add(vec(0, -0.03 * clock.elapsed()));
       if (life <= 0) {
         label.kill();
       }

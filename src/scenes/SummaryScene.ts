@@ -1,12 +1,4 @@
-import {
-  Engine,
-  Scene,
-  Label,
-  Color,
-  Font,
-  FontUnit,
-  vec,
-} from "excalibur";
+import { Engine, Scene, Label, Color, Font, FontUnit, vec } from "excalibur";
 import { Button } from "../ui/Button";
 import { GameState } from "../state/GameState";
 import { getBank } from "../state/Progress";
@@ -14,22 +6,17 @@ import { getGoalResults } from "../state/RunGoals";
 import { playClick } from "../audio/sounds";
 
 export class SummaryScene extends Scene {
-  private engineRef: Engine;
   private statsLabel!: Label;
   private goalResultLabel!: Label;
 
-  constructor(engine: Engine) {
+  constructor(_engine: Engine) {
     super();
-    this.engineRef = engine;
   }
 
   onInitialize() {
     const title = new Label({
       text: "Mission Summary",
-      pos: vec(
-        this.engineRef.drawWidth / 2,
-        this.engineRef.drawHeight / 2 - 150
-      ),
+      pos: vec(this.engine.drawWidth / 2, this.engine.drawHeight / 2 - 150),
       color: Color.White,
       font: new Font({
         family: "system-ui, sans-serif",
@@ -41,10 +28,7 @@ export class SummaryScene extends Scene {
 
     this.goalResultLabel = new Label({
       text: "",
-      pos: vec(
-        this.engineRef.drawWidth / 2,
-        this.engineRef.drawHeight / 2 - 110
-      ),
+      pos: vec(this.engine.drawWidth / 2, this.engine.drawHeight / 2 - 110),
       color: Color.fromHex("#fbbf24"),
       font: new Font({
         family: "system-ui, sans-serif",
@@ -56,10 +40,7 @@ export class SummaryScene extends Scene {
 
     this.statsLabel = new Label({
       text: "",
-      pos: vec(
-        this.engineRef.drawWidth / 2,
-        this.engineRef.drawHeight / 2 - 20
-      ),
+      pos: vec(this.engine.drawWidth / 2, this.engine.drawHeight / 2 - 20),
       color: Color.fromHex("#e5e7eb"),
       font: new Font({
         family: "system-ui, sans-serif",
@@ -69,10 +50,10 @@ export class SummaryScene extends Scene {
     });
     this.statsLabel.anchor.setTo(0.5, 0.5);
 
-    const cx = this.engineRef.drawWidth / 2;
+    const cx = this.engine.drawWidth / 2;
 
     const menuButton = new Button({
-      pos: vec(cx, this.engineRef.drawHeight / 2 + 100),
+      pos: vec(cx, this.engine.drawHeight / 2 + 100),
       width: 220,
       height: 56,
       text: "Back to Menu",
@@ -84,7 +65,7 @@ export class SummaryScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engineRef.goToScene("planetRunMenu");
+        this.engine.goToScene("planetRunMenu");
       },
     });
 
@@ -110,9 +91,14 @@ export class SummaryScene extends Scene {
           r.goal.label +
           (r.met ? ` (+${r.bonusAmount} ${r.bonusResource})` : "")
       );
-      const bonusTotal: Record<string, number> = { iron: 0, crystal: 0, gas: 0 };
+      const bonusTotal: Record<string, number> = {
+        iron: 0,
+        crystal: 0,
+        gas: 0,
+      };
       for (const r of results) {
-        if (r.met && r.bonusAmount > 0) bonusTotal[r.bonusResource] += r.bonusAmount;
+        if (r.met && r.bonusAmount > 0)
+          bonusTotal[r.bonusResource] += r.bonusAmount;
       }
       const bonusParts = (["iron", "crystal", "gas"] as const)
         .filter((id) => bonusTotal[id] > 0)

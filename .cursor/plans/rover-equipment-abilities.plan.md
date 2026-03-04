@@ -12,7 +12,7 @@ todos:
     content: Wire key-triggered abilities (burst, emergency battery, flare) in Rover.ts and PlanetScene if adding active abilities
     status: pending
   - id: rover-utility-slot
-    content: Optional: add 7th slot "utility" in roverConfig and default equipped; update ConfigureRoverScene
+    content: "Optional: add 7th slot \"utility\" in roverConfig and default equipped; update ConfigureRoverScene"
     status: pending
 isProject: true
 ---
@@ -23,16 +23,84 @@ This plan extends the existing equipment system ([UpgradeDefs.ts](src/upgrades/U
 
 ---
 
-## 1. New effect kinds and RoverStats
+## 1. Rover stats and effect kinds — single reference table
+
+Use this table as the single source of truth when adding, removing, or changing a stat or effect. Each row is one **RoverStats** field and its corresponding **UpgradeEffectKind**. When you add a row here, add the same to the code (see §1.1 below); when you remove a row, remove from all three places (kind, interface+BASE_STATS, applyEffect).
+
+
+| Stat (RoverStats)        | Effect kind (UpgradeEffectKind) | Status   | Base / default | Apply    | Notes                                      |
+| ------------------------ | ------------------------------- | -------- | -------------- | -------- | ------------------------------------------ |
+| maxHealth                | maxHealth                       | Existing | 5 (gameConfig) | Additive | Hull; base from ROVER_BASE_HEALTH          |
+| maxCapacity              | maxCapacity                     | Existing | 20             | Additive | Cargo; base from ROVER_MAX_CAPACITY        |
+| maxSpeed                 | maxSpeed                        | Existing | 50             | Additive | Base from ROVER_BASE_SPEED                 |
+| turnSpeed                | turnSpeed                       | Existing | π              | Additive | Base from ROVER_BASE_TURN_SPEED            |
+| acceleration             | acceleration                    | Existing | 400            | Additive | Base from ROVER_BASE_ACCELERATION          |
+| blasterDamage            | blasterDamage                   | Existing | 1              | Additive | Base from BLASTER_BASE_DAMAGE              |
+| blasterFireRate          | blasterFireRate                 | Existing | 2.5            | Additive | Shots/s; base from BLASTER_BASE_FIRE_RATE  |
+| blasterRange             | blasterRange                    | Existing | 150            | Additive | Base from BLASTER_BASE_RANGE               |
+| lavaDamageReduction      | lavaDamageReduction             | Existing | 0              | Additive | Flat reduction vs lava                     |
+| lavaSlowResist           | lavaSlowResist                  | Existing | 0              | Additive | 0–1; % less slow in lava                   |
+| windResist               | windResist                      | Existing | 0              | Additive | 0–1; % less push from wind                 |
+| flatDamageReduction      | flatDamageReduction             | Existing | 0              | Additive | Flat reduction vs all hazards              |
+| lightningWarningTime     | lightningWarningTime            | Existing | 0              | Additive | ms earlier warning                         |
+| visibilityRadius         | visibilityRadius                | Existing | 7              | Additive | Tiles; base from gameConfig                |
+| maxBattery               | maxBattery                      | Existing | 120            | Additive | Seconds; base from ROVER_BASE_BATTERY      |
+| batteryDrainPerSecond    | batteryDrainPerSecond           | Existing | 1              | Additive | Base from ROVER_BASE_BATTERY_DRAIN         |
+| blasterBehavior          | blasterBehavior                 | Existing | 0              | Override | 0=default, 1=AoE, 2=seeking                |
+| reverseSpeedMultiplier   | reverseSpeedMultiplier          | Proposed | 0.5            | Override | Reverse = maxSpeed × this                  |
+| burstSpeedBonus          | burstSpeedBonus                 | Proposed | 0              | Additive | Temp speed added when burst key held       |
+| burstCooldownMs          | burstCooldownMs                 | Proposed | 0              | Override | Cooldown after burst; 0 = no burst         |
+| stunResist               | stunResist                      | Proposed | 0              | Additive | 0–1; reduces alien stun duration           |
+| alienAggroRadiusModifier | alienAggroRadiusModifier        | Proposed | 1              | Override | Multiplier on alien aggro range            |
+| threatPingIntervalMs     | threatPingIntervalMs            | Proposed | 0              | Override | 0=off; ms between radar pings              |
+| resourceHighlight        | resourceHighlight               | Proposed | 0              | Override | 0=off, 1=highlight resources in visibility |
+
+
+**How to maintain:** Add/remove one row per stat. Keep **Stat** and **Effect kind** in sync (same camelCase name unless you have a reason to differ). **Apply** determines `applyEffect`: additive → `stats.x += value`; override → `stats.x = value`.
+
+---
+
+### 1.1 Implementation so developers can tweak easily
+
+Use a **single registry** so adding/removing a stat is a one-place change plus a small, mechanical step:
+
+1. **Add a registry in [RoverStats.ts](src/upgrades/RoverStats.ts)** (or a tiny `UpgradeEffectRegistry.ts`):
+  - Define an array of effect descriptors, one object per stat, e.g.:
+
+```ts
+   // Pseudo-structure — one place to list all effects
+   const EFFECT_KINDS = [
+     { kind: "maxHealth", default: ROVER_BASE_HEALTH, apply: "additive" as const },
+     { kind: "maxSpeed", default: ROVER_BASE_SPEED, apply: "additive" as const },
+     // ...
+     { kind: "blasterBehavior", default: 0, apply: "override" as const },
+     { kind: "reverseSpeedMultiplier", default: 0.5, apply: "override" as const }, // proposed
+   ] as const;
+   
+
+```
+
+- Derive `UpgradeEffectKind` from this list (e.g. `EFFECT_KINDS[number]["kind"]`) so the union type stays in sync.
+- Keep `RoverStats` and `BASE_STATS` as explicit interfaces/objects (they’re the contract for the rest of the game), but when adding a stat: (1) add one entry to the registry, (2) add the field to `RoverStats` and `BASE_STATS`, (3) add one `case` in `applyEffect` (or implement applyEffect via a map keyed by kind using the registry’s `apply` field).
+
+1. **Alternative (minimal change):** No registry; keep current code. Then the **plan table above** is the checklist: when adding a stat, (1) add a row to the table, (2) add to `UpgradeEffectKind`, (3) add to `RoverStats` and `BASE_STATS`, (4) add a `case` in `applyEffect`. Same for remove/update.
+
+Recommendation: start with the **checklist approach** (table + four steps). If the number of effects grows, introduce the registry and optionally data-drive `applyEffect` from it so new stats require only a registry entry and a `RoverStats`/BASE_STATS field.
+
+---
+
+## 2. New effect kinds and RoverStats (detailed)
+
+See the **table in §1** for the full list of existing and proposed stats; below is the detailed checklist for implementing the *proposed* ones.
 
 **File: [src/upgrades/RoverStats.ts](src/upgrades/RoverStats.ts)**
 
-- Add to `RoverStats` interface (and `BASE_STATS`):
+- Add to `RoverStats` interface (and `BASE_STATS`) — for each *proposed* row in the table:
   - `reverseSpeedMultiplier?: number` — e.g. 1 = default (half of forward), 1.5 = 75% of forward.
   - `burstSpeedBonus?: number` and `burstCooldownMs?: number` — temporary speed boost on key, then cooldown (optional; can be ability-only).
   - `stunResist?: number` — 0–1; reduces duration of stun/disable from aliens (for future alien plan).
   - `alienAggroRadiusModifier?: number` — multiplier on alien aggro range (e.g. 0.8 = 80%; jammer).
-  - `threatPingIntervalMs?: number` — 0 = off; if &gt; 0, radar “pings” hostile positions every N ms (for fog/alien plan).
+  - `threatPingIntervalMs?: number` — 0 = off; if > 0, radar “pings” hostile positions every N ms (for fog/alien plan).
   - `resourceHighlight?: number` — 0 = off, 1 = highlight uncollected resources in visibility (optional).
 - Add to `UpgradeEffectKind` in [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts): `"reverseSpeedMultiplier"`, `"burstSpeedBonus"`, `"burstCooldownMs"`, `"stunResist"`, `"alienAggroRadiusModifier"`, `"threatPingIntervalMs"`, `"resourceHighlight"` (only the ones you implement).
 - In `applyEffect`, add a `case` for each new kind that sets the corresponding stat (additive where it makes sense; `blasterBehavior`-style override for single-value things like `reverseSpeedMultiplier`).
@@ -45,7 +113,7 @@ This plan extends the existing equipment system ([UpgradeDefs.ts](src/upgrades/U
 
 ---
 
-## 2. Rover behavior that uses new stats
+## 3. Rover behavior that uses new stats
 
 **File: [src/entities/Rover.ts](src/entities/Rover.ts)**
 
@@ -60,7 +128,7 @@ No changes to blaster firing here; that stays in Rover and uses existing `blaste
 
 ---
 
-## 3. Seeking blaster (blasterBehavior === 2)
+## 4. Seeking blaster (blasterBehavior === 2)
 
 **Current:** [BlasterProjectile](src/entities/BlasterProjectile.ts) moves in a fixed direction. [Rover](src/entities/Rover.ts) passes `roverStats.blasterDamage`, `blasterFireRate`, `blasterRange` to `onFireBlaster`; projectile is created with angle from rover facing.
 
@@ -73,7 +141,7 @@ No changes to blaster firing here; that stays in Rover and uses existing `blaste
 
 ---
 
-## 4. New equipment defs in UpgradeDefs.ts
+## 5. New equipment defs in UpgradeDefs.ts
 
 **File: [src/upgrades/UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts)**
 
@@ -90,19 +158,19 @@ Add each to the appropriate array (`IRON_UPGRADES`, `CRYSTAL_UPGRADES`, `GAS_UPG
 
 ---
 
-## 5. Emergency battery / one-off ability (optional)
+## 6. Emergency battery / one-off ability (optional)
 
 If you want “once per run” abilities (e.g. emergency battery, flare):
 
 - **Data:** Add to run state (e.g. in PlanetScene or a small RunAbilities module) a record of consumed one-offs: `emergencyBatteryUsed: boolean`, `flareUsed: boolean`. Reset in `onActivate` when starting a mission.
-- **Rover:** Expose a method e.g. `useEmergencyBattery()` that, if not used this run and battery &gt; 0, sets `battery = roverStats.maxBattery * 0.2` and marks used. Call from PlanetScene when a key is pressed and rover has the relevant equipment (e.g. check equipped battery slot for a def with id `emergency-battery` or an effect flag).
+- **Rover:** Expose a method e.g. `useEmergencyBattery()` that, if not used this run and battery > 0, sets `battery = roverStats.maxBattery * 0.2` and marks used. Call from PlanetScene when a key is pressed and rover has the relevant equipment (e.g. check equipped battery slot for a def with id `emergency-battery` or an effect flag).
 - **UI:** Hud or info label: “Press [Key] for emergency battery (once per run).”
 
 This does not require a new slot if you tie the ability to an existing battery def (e.g. “Emergency Reserve” as an alternative battery that has the same slot but a one-off effect).
 
 ---
 
-## 6. Optional 7th slot: Utility
+## 7. Optional 7th slot: Utility
 
 **File: [src/types/roverConfig.ts](src/types/roverConfig.ts)**
 
@@ -126,23 +194,26 @@ This does not require a new slot if you tie the ability to an existing battery d
 
 ---
 
-## 7. Files to touch (summary)
+## 8. Files to touch (summary)
 
-| Area | Files |
-|------|--------|
-| Effect kinds and stats | [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts) (UpgradeEffectKind), [RoverStats.ts](src/upgrades/RoverStats.ts) (interface, BASE_STATS, applyEffect) |
-| Config | [gameConfig.ts](src/config/gameConfig.ts) (optional base constants) |
-| Rover behavior | [Rover.ts](src/entities/Rover.ts) (reverse speed, optional burst/stun state and logic) |
-| Blaster seeking | [BlasterProjectile.ts](src/entities/BlasterProjectile.ts) or new class, [PlanetScene.ts](src/scenes/PlanetScene.ts) (spawn by blasterBehavior) |
-| New equipment | [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts) (new defs in IRON/CRYSTAL/GAS arrays) |
-| Optional utility slot | [roverConfig.ts](src/types/roverConfig.ts), [Progress.ts](src/state/Progress.ts), [Saves.ts](src/state/Saves.ts), [ConfigureRoverScene.ts](src/scenes/ConfigureRoverScene.ts), [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts) |
-| Optional one-off abilities | PlanetScene or new RunAbilities module, Hud or labels |
+
+| Area                       | Files                                                                                                                                                                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Effect kinds and stats     | [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts) (UpgradeEffectKind), [RoverStats.ts](src/upgrades/RoverStats.ts) (interface, BASE_STATS, applyEffect)                                                                          |
+| Config                     | [gameConfig.ts](src/config/gameConfig.ts) (optional base constants)                                                                                                                                                          |
+| Rover behavior             | [Rover.ts](src/entities/Rover.ts) (reverse speed, optional burst/stun state and logic)                                                                                                                                       |
+| Blaster seeking            | [BlasterProjectile.ts](src/entities/BlasterProjectile.ts) or new class, [PlanetScene.ts](src/scenes/PlanetScene.ts) (spawn by blasterBehavior)                                                                               |
+| New equipment              | [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts) (new defs in IRON/CRYSTAL/GAS arrays)                                                                                                                                          |
+| Optional utility slot      | [roverConfig.ts](src/types/roverConfig.ts), [Progress.ts](src/state/Progress.ts), [Saves.ts](src/state/Saves.ts), [ConfigureRoverScene.ts](src/scenes/ConfigureRoverScene.ts), [UpgradeDefs.ts](src/upgrades/UpgradeDefs.ts) |
+| Optional one-off abilities | PlanetScene or new RunAbilities module, Hud or labels                                                                                                                                                                        |
+
 
 ---
 
-## 8. Suggested implementation order
+## 9. Suggested implementation order
 
 1. Add one new effect (e.g. `reverseSpeedMultiplier`) + RoverStats + one UpgradeDef; wire reverse speed in Rover.
 2. Add seeking blaster: effect kind already exists (`blasterBehavior` 2); implement seeking in projectile and spawn logic in PlanetScene.
 3. Add radar/utility defs (threat ping, resource highlight) and any config/rendering needed when fog or aliens exist.
 4. If desired, add 7th slot and utility defs; then add one-off abilities (emergency battery, flare) with run-state and key handling.
+

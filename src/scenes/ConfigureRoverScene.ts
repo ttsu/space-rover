@@ -55,7 +55,6 @@ const SLOT_LABELS: Record<SlotId, string> = {
 };
 
 export class ConfigureRoverScene extends Scene {
-  private engineRef: Engine;
   private goalLabels: Label[] = [];
   private equipmentContainer: Actor[] = [];
   private cargoContainer: Actor[] = [];
@@ -70,17 +69,17 @@ export class ConfigureRoverScene extends Scene {
     "crystal",
     "iron",
   ];
-  private static CARGO_NEXT(current: CargoSlotContentSave): CargoSlotContentSave {
-    const i =
-      ConfigureRoverScene.CARGO_CYCLE.indexOf(current) + 1;
+  private static CARGO_NEXT(
+    current: CargoSlotContentSave
+  ): CargoSlotContentSave {
+    const i = ConfigureRoverScene.CARGO_CYCLE.indexOf(current) + 1;
     return ConfigureRoverScene.CARGO_CYCLE[
       i % ConfigureRoverScene.CARGO_CYCLE.length
     ]!;
   }
 
-  constructor(engine: Engine) {
+  constructor(_engine: Engine) {
     super();
-    this.engineRef = engine;
   }
 
   onActivate(): void {
@@ -127,7 +126,7 @@ export class ConfigureRoverScene extends Scene {
       const color = Color.fromHex(SLOT_COLORS[slotId]);
       const itemId = equipped[slotId];
       const def = itemId ? getUpgradeById(itemId) : null;
-      const displayName = def?.isBase ? "Base" : def?.name ?? "Base";
+      const displayName = def?.isBase ? "Base" : (def?.name ?? "Base");
       const level = itemId ? (ownedItems[itemId] ?? 0) : 0;
       const maxStack = def?.maxStack ?? 1;
       const canLevelUp =
@@ -440,8 +439,8 @@ export class ConfigureRoverScene extends Scene {
   }
 
   onInitialize(): void {
-    const cx = this.engineRef.drawWidth / 2;
-    const h = this.engineRef.drawHeight;
+    const cx = this.engine.drawWidth / 2;
+    const h = this.engine.drawHeight;
 
     this.tooltipLabel = new Label({
       text: "",
@@ -461,8 +460,8 @@ export class ConfigureRoverScene extends Scene {
     const cancelDragArea = new Actor({
       x: cx,
       y: h / 2,
-      width: this.engineRef.drawWidth,
-      height: this.engineRef.drawHeight,
+      width: this.engine.drawWidth,
+      height: this.engine.drawHeight,
       color: Color.Transparent,
     });
     cancelDragArea.anchor.setTo(0.5, 0.5);
@@ -566,7 +565,7 @@ export class ConfigureRoverScene extends Scene {
       onClick: () => {
         playClick();
         requestFullscreen().finally(() => {
-          this.engineRef.goToScene("planet");
+          this.engine.goToScene("planet");
         });
       },
     });
@@ -584,7 +583,7 @@ export class ConfigureRoverScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engineRef.goToScene("planetRunMenu");
+        this.engine.goToScene("planetRunMenu");
       },
     });
 
