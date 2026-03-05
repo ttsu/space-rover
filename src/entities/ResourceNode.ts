@@ -1,27 +1,47 @@
-import { Actor, Color, Label, vec, Font, FontUnit } from "excalibur";
+import {
+  Actor,
+  Color,
+  Label,
+  vec,
+  Font,
+  FontUnit,
+  SpriteSheet,
+} from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { Rover } from "./Rover";
 import { risingBurst } from "../effects/Particles";
 import { playPickup } from "../audio/sounds";
 import { onResourceCollectedAtWorldPos } from "../world/WorldState";
+import { Resources } from "../resources";
+import { random } from "../utils/seedRandom";
 
 export class ResourceNode extends Actor {
   resource: ResourceTypeDef;
   sizeUnits: number;
+  private spriteIndex?: number;
 
-  constructor(x: number, y: number, resource: ResourceTypeDef) {
+  constructor(
+    x: number,
+    y: number,
+    resource: ResourceTypeDef,
+    spriteIndex?: number
+  ) {
+    const hasSprite = resource.id === "iron" || resource.id === "crystal";
     super({
       x,
       y,
-      width: 20,
-      height: 20,
-      color: resource.color,
+      width: hasSprite ? 32 : 20,
+      height: hasSprite ? 32 : 20,
+      anchor: vec(0.5, 0.5),
+      ...(hasSprite ? {} : { color: resource.color }),
     });
     this.resource = resource;
     this.sizeUnits = resource.size;
+    this.spriteIndex = spriteIndex;
   }
 
   onInitialize(): void {
+    this.applySpriteGraphicIfNeeded();
     this.on("collisionstart", (evt) => {
       const other = evt.other.owner;
       if (other instanceof Rover) {
@@ -51,6 +71,33 @@ export class ResourceNode extends Actor {
         }
       }
     });
+  }
+
+  private applySpriteGraphicIfNeeded(): void {
+    let image = null;
+    if (this.resource.id === "iron") {
+      image = Resources.IronSprite;
+    } else if (this.resource.id === "crystal") {
+      image = Resources.CrystalSprite;
+    }
+    if (!image) return;
+
+    const index = this.spriteIndex ?? Math.floor(random() * 4);
+    const spriteSheet = SpriteSheet.fromImageSource({
+      image,
+      grid: {
+        rows: 1,
+        columns: 4,
+        spriteWidth: 64,
+        spriteHeight: 64,
+      },
+    });
+    const sprite = spriteSheet.getSprite(index, 0, {
+      scale: vec(0.5, 0.5),
+    });
+    if (sprite) {
+      this.graphics.use(sprite);
+    }
   }
 
   private showPopup(text: string, color = Color.White): void {

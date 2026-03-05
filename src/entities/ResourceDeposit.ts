@@ -1,4 +1,4 @@
-import { Actor, CollisionType } from "excalibur";
+import { Actor, CollisionType, SpriteSheet, vec } from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { ResourceNode } from "./ResourceNode";
 import type { IBlasterTarget } from "./BlasterProjectile";
@@ -7,6 +7,8 @@ import {
   onDepositDamagedAtWorldPos,
   onDepositDestroyedAtWorldPos,
 } from "../world/WorldState";
+import { Resources } from "../resources";
+import { random } from "../utils/seedRandom";
 
 const DEFAULT_HP = 8;
 
@@ -14,25 +16,34 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
   resource: ResourceTypeDef;
   sizeUnits: number;
   hp: number;
+  private spriteIndex?: number;
   private breaking = false;
 
   constructor(
     x: number,
     y: number,
     resource: ResourceTypeDef,
-    hp = DEFAULT_HP
+    hp = DEFAULT_HP,
+    spriteIndex?: number
   ) {
+    const hasSprite = resource.id === "iron" || resource.id === "crystal";
     super({
       x,
       y,
-      width: 24,
-      height: 24,
-      color: resource.color,
+      width: hasSprite ? 32 : 24,
+      height: hasSprite ? 32 : 24,
+      anchor: vec(0.5, 0.5),
+      ...(hasSprite ? {} : { color: resource.color }),
     });
     this.body.collisionType = CollisionType.Fixed;
     this.resource = resource;
     this.sizeUnits = resource.size;
     this.hp = hp;
+    this.spriteIndex = spriteIndex;
+  }
+
+  onInitialize(): void {
+    this.applySpriteGraphicIfNeeded();
   }
 
   takeBlasterDamage(amount: number): void {
@@ -86,5 +97,32 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
       scene.add(pickup);
       this.kill();
     });
+  }
+
+  private applySpriteGraphicIfNeeded(): void {
+    let image = null;
+    if (this.resource.id === "iron") {
+      image = Resources.IronDepositSprite;
+    } else if (this.resource.id === "crystal") {
+      image = Resources.CrystalDepositSprite;
+    }
+    if (!image) return;
+
+    const index = this.spriteIndex ?? Math.floor(random() * 4);
+    const spriteSheet = SpriteSheet.fromImageSource({
+      image,
+      grid: {
+        rows: 1,
+        columns: 4,
+        spriteWidth: 64,
+        spriteHeight: 64,
+      },
+    });
+    const sprite = spriteSheet.getSprite(index, 0, {
+      scale: vec(0.5, 0.5),
+    });
+    if (sprite) {
+      this.graphics.use(sprite);
+    }
   }
 }

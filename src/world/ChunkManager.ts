@@ -226,11 +226,15 @@ export class ChunkManager {
             (r) => r.id === savedDeposit.resourceId
           );
           if (!type) continue;
+          const spriteIndex = Math.floor(
+            hashToUnit(this.seed, "deposit-sprite", gx, gy) * 4
+          );
           const deposit = new ResourceDeposit(
             gx * TILE_SIZE + TILE_SIZE / 2,
             gy * TILE_SIZE + TILE_SIZE / 2,
             type,
-            savedDeposit.hp
+            savedDeposit.hp,
+            spriteIndex
           );
           deposit.addComponent(new FogAffectedComponent());
           this.scene.add(deposit);
@@ -353,7 +357,10 @@ export class ChunkManager {
       this.worldActors.push(node);
       return;
     }
-    const deposit = new ResourceDeposit(x, y, type, 4);
+    const spriteIndex = Math.floor(
+      hashToUnit(this.seed, "deposit-sprite", gx, gy) * 4
+    );
+    const deposit = new ResourceDeposit(x, y, type, 4, spriteIndex);
     deposit.addComponent(new FogAffectedComponent());
     this.scene.add(deposit);
     actors.push(deposit);

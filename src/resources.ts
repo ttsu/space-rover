@@ -4,6 +4,16 @@ export const Resources = {
   RoverSprite: new ImageSource(
     `${import.meta.env.BASE_URL}assets/rover_sprite.png`
   ),
+  IronSprite: new ImageSource(`${import.meta.env.BASE_URL}assets/iron.png`),
+  CrystalSprite: new ImageSource(
+    `${import.meta.env.BASE_URL}assets/crystal.png`
+  ),
+  IronDepositSprite: new ImageSource(
+    `${import.meta.env.BASE_URL}assets/iron_deposit.png`
+  ),
+  CrystalDepositSprite: new ImageSource(
+    `${import.meta.env.BASE_URL}assets/crystal_deposit.png`
+  ),
   ButtonSquareDepth: new ImageSource(
     `${import.meta.env.BASE_URL}assets/button_square_depth.png`
   ),
