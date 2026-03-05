@@ -6,6 +6,8 @@ import {
   FontUnit,
   vec,
   Engine,
+  Actor,
+  Polygon,
 } from "excalibur";
 import type { Rover } from "../entities/Rover";
 import type { HazardKind } from "../state/GameState";
@@ -14,6 +16,12 @@ import {
   isGoalSatisfied,
   type GoalLiveState,
 } from "../state/RunGoals";
+
+export interface BaseIndicator {
+  screenX: number;
+  screenY: number;
+  angleRad: number;
+}
 
 export class Hud extends ScreenElement {
   private engineRef: Engine;
@@ -26,6 +34,7 @@ export class Hud extends ScreenElement {
   private totalLabel!: Label;
   private goalLabels: Label[] = [];
   private baseHintLabel!: Label;
+  private baseArrowActor!: Actor;
 
   constructor(engine: Engine, rover: Rover) {
     super({ x: 0, y: 0 });
@@ -117,18 +126,39 @@ export class Hud extends ScreenElement {
     });
     this.baseHintLabel.anchor.setTo(0.5, 0.5);
 
+    const arrowSize = 14;
+    const arrowGraphic = new Polygon({
+      points: [
+        vec(arrowSize, 0),
+        vec(-arrowSize, -arrowSize * 0.7),
+        vec(-arrowSize, arrowSize * 0.7),
+      ],
+      color: Color.fromHex("#facc15"),
+    });
+    arrowGraphic.origin = vec(0, 0);
+    this.baseArrowActor = new Actor({
+      pos: vec(0, 0),
+      width: arrowSize * 2,
+      height: arrowSize * 2,
+      anchor: vec(0.5, 0.5),
+    });
+    this.baseArrowActor.graphics.use(arrowGraphic);
+    this.baseArrowActor.graphics.isVisible = false;
+
     this.addChild(this.healthLabel);
     this.addChild(this.batteryLabel);
     this.addChild(this.capacityLabel);
     this.addChild(this.cargoLabel);
     this.addChild(this.totalLabel);
     this.addChild(this.baseHintLabel);
+    this.addChild(this.baseArrowActor);
   }
 
   updateFromState(
     isNearBase: boolean,
     hazardHits: Record<HazardKind, number>,
-    biomeName: string
+    biomeName: string,
+    baseIndicator: BaseIndicator | null = null
   ): void {
     this.healthLabel.text = `Health: ${this.rover.health}`;
     this.batteryLabel.text = `Battery: ${Math.ceil(this.rover.battery)}s`;
@@ -162,5 +192,16 @@ export class Hud extends ScreenElement {
     }
 
     this.baseHintLabel.text = isNearBase ? "Press Enter to return to ship" : "";
+
+    if (baseIndicator) {
+      this.baseArrowActor.pos = vec(
+        baseIndicator.screenX,
+        baseIndicator.screenY
+      );
+      this.baseArrowActor.rotation = baseIndicator.angleRad;
+      this.baseArrowActor.graphics.isVisible = true;
+    } else {
+      this.baseArrowActor.graphics.isVisible = false;
+    }
   }
 }

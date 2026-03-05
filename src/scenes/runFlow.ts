@@ -85,7 +85,9 @@ export function triggerDeath(scene: Scene, engine: Engine, rover: Rover): void {
 
   setTimeout(() => {
     failLabel.kill();
-    finishRun(rover.cargo, rover.usedCapacity, rover.maxCapacity, rover.health);
+    // On death (battery or health), cargo is lost; only bank when returning to base.
+    const emptyCargo = { iron: 0, crystal: 0, gas: 0 };
+    finishRun(emptyCargo, 0, rover.maxCapacity, rover.health);
     engine.goToScene("summary");
   }, 1500);
 }

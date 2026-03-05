@@ -26,7 +26,7 @@ import {
   GameState,
   recordHazardHit,
 } from "../state/GameState";
-import { Hud } from "../ui/Hud";
+import { Hud, type BaseIndicator } from "../ui/Hud";
 import { TouchControls } from "../ui/TouchControls";
 import {
   getTouchControlsEnabled,
@@ -361,10 +361,12 @@ export class PlanetScene extends Scene {
     }
     this.rover.setVisibilityRadiusMultiplier(sandstormVisibilityMultiplier);
 
+    const baseIndicator = this.getBaseIndicator();
     this.hud.updateFromState(
       closeToBase,
       GameState.currentHazardsHit,
-      biomeLabel(biomeId)
+      biomeLabel(biomeId),
+      baseIndicator
     );
 
     if (this.returnToShipBtn) {
@@ -399,6 +401,54 @@ export class PlanetScene extends Scene {
       this.sandstormHitTimer = 0;
     }
     this.lightningSystem?.update(delta);
+  }
+
+  /**
+   * When base is off-screen, returns position and angle for the edge arrow; otherwise null.
+   */
+  private getBaseIndicator(): BaseIndicator | null {
+    const w = this.engine.drawWidth;
+    const h = this.engine.drawHeight;
+    const margin = 48;
+    const halfW = w / 2;
+    const halfH = h / 2;
+    const cam = this.camera.pos;
+    const baseScreenX = this.basePos.x - cam.x + halfW;
+    const baseScreenY = this.basePos.y - cam.y + halfH;
+
+    if (
+      baseScreenX >= margin &&
+      baseScreenX <= w - margin &&
+      baseScreenY >= margin &&
+      baseScreenY <= h - margin
+    ) {
+      return null;
+    }
+
+    const dx = baseScreenX - halfW;
+    const dy = baseScreenY - halfH;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 1) return null;
+    const ux = dx / len;
+    const uy = dy / len;
+
+    const edgeMargin = 36;
+    const left = edgeMargin;
+    const right = w - edgeMargin;
+    const top = edgeMargin;
+    const bottom = h - edgeMargin;
+
+    let t = Infinity;
+    if (ux > 0) t = Math.min(t, (right - halfW) / ux);
+    else if (ux < 0) t = Math.min(t, (left - halfW) / ux);
+    if (uy > 0) t = Math.min(t, (bottom - halfH) / uy);
+    else if (uy < 0) t = Math.min(t, (top - halfH) / uy);
+
+    if (t === Infinity || t <= 0) return null;
+    const screenX = halfW + ux * t;
+    const screenY = halfH + uy * t;
+    const angleRad = Math.atan2(dy, dx);
+    return { screenX, screenY, angleRad };
   }
 
   private persistWorldState(): void {
