@@ -36,7 +36,6 @@ export const RESOURCE_DENSITY = 0.04; // fraction of tiles with resources
 
 export const LAVA_DENSITY = 0.08;
 export const ROCK_DENSITY = 0.07;
-export const STORM_ZONE_DENSITY = 0.04;
 
 export const LAVA_SLOW_FACTOR = 0.5;
 

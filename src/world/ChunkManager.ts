@@ -1,5 +1,10 @@
 import { Actor, Color, type Scene } from "excalibur";
 import {
+  BIOME_CONFIGS,
+  type BiomeId,
+  type BiomePreset,
+} from "../config/biomeConfig";
+import {
   BASE_SAFE_RADIUS_TILES,
   CHUNK_LOAD_RADIUS,
   CHUNK_TILES,
@@ -44,6 +49,7 @@ export interface ChunkManagerParams {
   hazardTarget: IHazardTarget;
   difficulty: Difficulty;
   seed: number;
+  biomePreset: BiomePreset;
   worldActors: Actor[];
   stormRegions: StormRegion[];
   windRegions: WindRegion[];
@@ -55,23 +61,27 @@ export class ChunkManager {
   private hazardTarget: IHazardTarget;
   private difficulty: Difficulty;
   private seed: number;
+  private biomePreset: BiomePreset;
   private worldActors: Actor[];
   private stormRegions: StormRegion[];
   private windRegions: WindRegion[];
   private worldState: WorldState;
   private loaded = new Map<string, ChunkRecord>();
   private readonly noise2D: (x: number, y: number) => number;
+  private readonly biomeNoise2D: (x: number, y: number) => number;
 
   constructor(params: ChunkManagerParams) {
     this.scene = params.scene;
     this.hazardTarget = params.hazardTarget;
     this.difficulty = params.difficulty;
     this.seed = params.seed;
+    this.biomePreset = params.biomePreset;
     this.worldActors = params.worldActors;
     this.stormRegions = params.stormRegions;
     this.windRegions = params.windRegions;
     this.worldState = params.worldState;
     this.noise2D = getNoise2D(this.seed);
+    this.biomeNoise2D = getNoise2D((this.seed ^ 0x9e3779b1) >>> 0);
   }
 
   update(roverX: number, roverY: number): void {
@@ -113,6 +123,12 @@ export class ChunkManager {
     }
   }
 
+  getBiomeAtWorldPos(x: number, y: number): BiomeId {
+    const gx = Math.floor(x / TILE_SIZE);
+    const gy = Math.floor(y / TILE_SIZE);
+    return this.biomeAtTile(gx, gy);
+  }
+
   private loadChunk(cx: number, cy: number): void {
     const key = chunkKey(cx, cy);
     if (this.loaded.has(key)) return;
@@ -147,9 +163,19 @@ export class ChunkManager {
     const storms: StormRegion[] = [];
     const winds: WindRegion[] = [];
     const mult = DIFFICULTY_MULTIPLIERS[this.difficulty];
-    const resourceProb = clamp01(RESOURCE_DENSITY * mult.resourceDensity);
-    const lavaProb = clamp01(LAVA_DENSITY * mult.lavaDensity);
-    const rockProb = clamp01(ROCK_DENSITY * mult.rockDensity);
+    const biome = this.biomeAtChunk(cx, cy);
+    const biomeCfg = BIOME_CONFIGS[biome];
+    const resourceProb = clamp01(
+      RESOURCE_DENSITY *
+        mult.resourceDensity *
+        biomeCfg.hazard.resourceDensityMultiplier
+    );
+    const lavaProb = clamp01(
+      LAVA_DENSITY * mult.lavaDensity * biomeCfg.hazard.lavaDensityMultiplier
+    );
+    const rockProb = clamp01(
+      ROCK_DENSITY * mult.rockDensity * biomeCfg.hazard.rockDensityMultiplier
+    );
     const [minGx, minGy, maxGx, maxGy] = chunkBounds(cx, cy);
 
     for (let gy = minGy; gy < maxGy; gy++) {
@@ -228,11 +254,17 @@ export class ChunkManager {
       Math.ceil(PLANET_HEIGHT_TILES / CHUNK_TILES);
     const stormChance = Math.min(
       1,
-      (STORM_REGION_COUNT * mult.stormRegionCount) / initialChunkArea
+      (STORM_REGION_COUNT *
+        mult.stormRegionCount *
+        biomeCfg.hazard.stormRegionMultiplier) /
+        initialChunkArea
     );
     const windChance = Math.min(
       1,
-      (WIND_REGION_COUNT * mult.windRegionCount) / initialChunkArea
+      (WIND_REGION_COUNT *
+        mult.windRegionCount *
+        biomeCfg.hazard.windRegionMultiplier) /
+        initialChunkArea
     );
 
     if (hashToUnit(this.seed, "storm-chance", cx, cy) < stormChance) {
@@ -323,6 +355,25 @@ export class ChunkManager {
       moveDirectionAngle: moveAngle,
       pushStrength: 1000 * strengthMult,
     });
+  }
+
+  private biomeAtChunk(cx: number, cy: number): BiomeId {
+    const centerGx = cx * CHUNK_TILES + Math.floor(CHUNK_TILES / 2);
+    const centerGy = cy * CHUNK_TILES + Math.floor(CHUNK_TILES / 2);
+    return this.biomeAtTile(centerGx, centerGy);
+  }
+
+  private biomeAtTile(gx: number, gy: number): BiomeId {
+    if (this.biomePreset !== "mixed") return this.biomePreset;
+    const primary = normalize(this.biomeNoise2D(gx / 80, gy / 80));
+    const secondary = normalize(this.biomeNoise2D((gx + 4096) / 120, gy / 120));
+    const blend = primary * 0.7 + secondary * 0.3;
+    if (blend < 0.16) return "volcanic";
+    if (blend < 0.34) return "barren";
+    if (blend < 0.5) return "desert";
+    if (blend < 0.66) return "toxic";
+    if (blend < 0.83) return "ice";
+    return "storm";
   }
 }
 

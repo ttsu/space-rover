@@ -139,6 +139,7 @@ export class LightningSystem {
   }
 
   private syncStormTimers(now: number): void {
+    const activeStorms = new Set(this.stormRegions);
     for (const storm of this.stormRegions) {
       if (storm.isKilled()) continue;
       if (!this.nextStrikeAtByStorm.has(storm)) {
@@ -146,7 +147,7 @@ export class LightningSystem {
       }
     }
     for (const storm of this.nextStrikeAtByStorm.keys()) {
-      if (storm.isKilled() || !this.stormRegions.includes(storm)) {
+      if (storm.isKilled() || !activeStorms.has(storm)) {
         this.nextStrikeAtByStorm.delete(storm);
       }
     }

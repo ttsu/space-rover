@@ -59,7 +59,7 @@ export function finishRun(
 
   const survived = healthRemaining > 0;
 
-  evaluateGoals(GameState.lastRun, survived, hazardsCopy.lava);
+  evaluateGoals(GameState.lastRun, survived);
 
   if (survived) {
     addToBank(cargo);

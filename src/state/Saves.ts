@@ -1,4 +1,5 @@
 import type { SlotId } from "../types/roverConfig";
+import type { BiomePreset } from "../config/biomeConfig";
 import {
   getDefaultEquipped,
   getDefaultCargoLayout,
@@ -32,6 +33,7 @@ export interface GameSave {
   id: string;
   seed: number;
   difficulty: Difficulty;
+  biomePreset?: BiomePreset;
   bank: CargoCountsSave;
   /** @deprecated Use equipped/ownedItems; kept for migration only. */
   appliedUpgrades: string[];
@@ -195,6 +197,16 @@ function parseSave(raw: string | null): GameSave | null {
       obj.difficulty === "hard"
         ? obj.difficulty
         : "normal";
+    const biomePreset =
+      obj.biomePreset === "mixed" ||
+      obj.biomePreset === "volcanic" ||
+      obj.biomePreset === "ice" ||
+      obj.biomePreset === "desert" ||
+      obj.biomePreset === "toxic" ||
+      obj.biomePreset === "storm" ||
+      obj.biomePreset === "barren"
+        ? obj.biomePreset
+        : "mixed";
     const bank = parseCargo(obj.bank);
     const appliedUpgrades = Array.isArray(obj.appliedUpgrades)
       ? (obj.appliedUpgrades as string[])
@@ -231,6 +243,7 @@ function parseSave(raw: string | null): GameSave | null {
       id,
       seed,
       difficulty,
+      biomePreset,
       bank: { ...bank },
       appliedUpgrades: [...appliedUpgrades],
       totalResourcesCollected: { ...totalResourcesCollected },
@@ -352,6 +365,7 @@ export function createSave(difficulty: Difficulty): GameSave {
     id,
     seed,
     difficulty,
+    biomePreset: "mixed",
     bank: { ...emptyCargo },
     appliedUpgrades: [],
     totalResourcesCollected: { ...emptyCargo },

@@ -18,7 +18,11 @@ import { ResourceNode } from "../entities/ResourceNode";
 import { BaseLander } from "../entities/BaseLander";
 import { FogVisibilitySystem, drawFogOverlay } from "../world/FogOfWar";
 import { TILE_SIZE } from "../config/gameConfig";
-import { resetRunTracking, GameState } from "../state/GameState";
+import {
+  resetRunTracking,
+  GameState,
+  recordHazardHit,
+} from "../state/GameState";
 import { Hud } from "../ui/Hud";
 import { TouchControls } from "../ui/TouchControls";
 import {
@@ -52,6 +56,7 @@ import {
   worldStateToSave,
   type WorldState,
 } from "../world/WorldState";
+import { biomeLabel } from "../config/biomeConfig";
 
 const TOUCH_TOGGLE_KEY = Keys.T;
 
@@ -70,6 +75,7 @@ export class PlanetScene extends Scene {
   private chunkManager: ChunkManager | null = null;
   private worldState: WorldState | null = null;
   private quakeTimer = 0;
+  private windHitTimer = 0;
   private runEnded = false;
 
   constructor(_engine: Engine) {
@@ -102,6 +108,7 @@ export class PlanetScene extends Scene {
       hazardTarget: this.rover,
       difficulty: save.difficulty,
       seed: save.seed,
+      biomePreset: save.biomePreset ?? "mixed",
       worldActors: this.worldActors,
       stormRegions: this.stormRegions,
       windRegions: this.windRegions,
@@ -119,6 +126,7 @@ export class PlanetScene extends Scene {
     });
     this.lightningSystem.start();
     this.runEnded = false;
+    this.windHitTimer = 0;
     if (this.rover) {
       this.rover.resetForNewMission();
       this.rover.pos.x = this.basePos.x;
@@ -324,9 +332,17 @@ export class PlanetScene extends Scene {
     if (this.quakeTimer > 15000) {
       this.quakeTimer = 0;
       this.engine.currentScene.camera.shake(5, 5, 500);
+      recordHazardHit("quake");
     }
 
-    this.hud.updateFromState(closeToBase, GameState.currentHazardsHit.lava);
+    const biomeId = this.chunkManager
+      ? this.chunkManager.getBiomeAtWorldPos(this.rover.pos.x, this.rover.pos.y)
+      : "barren";
+    this.hud.updateFromState(
+      closeToBase,
+      GameState.currentHazardsHit,
+      biomeLabel(biomeId)
+    );
 
     if (this.returnToShipBtn) {
       this.returnToShipBtn.graphics.isVisible = !this.runEnded && closeToBase;
@@ -339,6 +355,16 @@ export class PlanetScene extends Scene {
       this.stormRegions,
       delta
     );
+    const wind = this.rover.windEffectThisFrame;
+    if (wind.x !== 0 || wind.y !== 0) {
+      this.windHitTimer += delta;
+      if (this.windHitTimer >= 800) {
+        this.windHitTimer = 0;
+        recordHazardHit("wind");
+      }
+    } else {
+      this.windHitTimer = 0;
+    }
     this.lightningSystem?.update(delta);
   }
 

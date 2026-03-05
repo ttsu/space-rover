@@ -12,6 +12,9 @@ export interface WorldState {
   depositState: Map<string, DepositState>;
 }
 
+const MAX_CLEARED_TILE_KEYS = 25000;
+const MAX_DEPOSIT_STATE_KEYS = 10000;
+
 let activeWorldState: WorldState | null = null;
 
 export function createEmptyWorldState(): WorldState {
@@ -43,11 +46,18 @@ export function worldStateFromSave(save?: WorldStateSave): WorldState {
 
 export function worldStateToSave(state: WorldState): WorldStateSave {
   const depositState: WorldStateSave["depositState"] = {};
-  for (const [key, value] of state.depositState.entries()) {
+  const limitedDepositEntries = tailEntries(
+    [...state.depositState.entries()],
+    MAX_DEPOSIT_STATE_KEYS
+  );
+  for (const [key, value] of limitedDepositEntries) {
     depositState[key] = { resourceId: value.resourceId, hp: value.hp };
   }
   return {
-    clearedTileKeys: [...state.clearedTileKeys],
+    clearedTileKeys: tailEntries(
+      [...state.clearedTileKeys.values()],
+      MAX_CLEARED_TILE_KEYS
+    ),
     depositState,
   };
 }
@@ -123,4 +133,9 @@ export function onDepositDestroyedAtWorldPos(x: number, y: number): void {
   if (!activeWorldState) return;
   const { gx, gy } = worldToTile(x, y);
   markTileCleared(activeWorldState, gx, gy);
+}
+
+function tailEntries<T>(items: T[], maxCount: number): T[] {
+  if (items.length <= maxCount) return items;
+  return items.slice(items.length - maxCount);
 }

@@ -4,7 +4,6 @@ export interface DifficultyMultipliers {
   resourceDensity: number;
   lavaDensity: number;
   rockDensity: number;
-  stormZoneDensity: number;
   /** Multiplier on storm region count. */
   stormRegionCount: number;
   /** Multiplier on wind-only region count. */
@@ -21,7 +20,6 @@ export const DIFFICULTY_MULTIPLIERS: Record<Difficulty, DifficultyMultipliers> =
       resourceDensity: 1.4,
       lavaDensity: 0.6,
       rockDensity: 0.6,
-      stormZoneDensity: 0.6,
       stormRegionCount: 0.6,
       windRegionCount: 0.7,
       lightningStrikeRate: 0.6,
@@ -31,7 +29,6 @@ export const DIFFICULTY_MULTIPLIERS: Record<Difficulty, DifficultyMultipliers> =
       resourceDensity: 1,
       lavaDensity: 1,
       rockDensity: 1,
-      stormZoneDensity: 1,
       stormRegionCount: 1,
       windRegionCount: 1,
       lightningStrikeRate: 1,
@@ -41,7 +38,6 @@ export const DIFFICULTY_MULTIPLIERS: Record<Difficulty, DifficultyMultipliers> =
       resourceDensity: 0.7,
       lavaDensity: 1.3,
       rockDensity: 1.3,
-      stormZoneDensity: 1.3,
       stormRegionCount: 1.3,
       windRegionCount: 1.2,
       lightningStrikeRate: 1.4,

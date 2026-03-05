@@ -23,6 +23,7 @@ import {
   type RunGoal,
 } from "../state/RunGoals";
 import { playClick } from "../audio/sounds";
+import { getCurrentSave } from "../state/Saves";
 
 export class PlanetRunMenuScene extends Scene {
   private bankLabel!: Label;
@@ -68,7 +69,10 @@ export class PlanetRunMenuScene extends Scene {
   }
 
   private refreshGoalChoices(): void {
-    this.goalChoices = generateGoalChoices(3);
+    const save = getCurrentSave();
+    this.goalChoices = generateGoalChoices(3, {
+      biomePreset: save?.biomePreset ?? "mixed",
+    });
     for (let i = 0; i < 3; i++) {
       if (i < this.goalChoices.length) {
         this.goalLabels[i].text = this.goalChoices[i].label;

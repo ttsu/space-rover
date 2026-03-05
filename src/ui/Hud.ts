@@ -8,6 +8,7 @@ import {
   Engine,
 } from "excalibur";
 import type { Rover } from "../entities/Rover";
+import type { HazardKind } from "../state/GameState";
 import {
   getCurrentGoals,
   isGoalSatisfied,
@@ -124,20 +125,24 @@ export class Hud extends ScreenElement {
     this.addChild(this.baseHintLabel);
   }
 
-  updateFromState(isNearBase: boolean, lavaHits: number): void {
+  updateFromState(
+    isNearBase: boolean,
+    hazardHits: Record<HazardKind, number>,
+    biomeName: string
+  ): void {
     this.healthLabel.text = `Health: ${this.rover.health}`;
     this.batteryLabel.text = `Battery: ${Math.ceil(this.rover.battery)}s`;
     this.capacityLabel.text = `Cargo: ${this.rover.usedCapacity}/${this.rover.maxCapacity} (left ${this.rover.remainingCapacity()})`;
     this.cargoLabel.text = `Iron: ${this.rover.cargo.iron}  Crystal: ${this.rover.cargo.crystal}  Gas: ${this.rover.cargo.gas}`;
     const totalPieces =
       this.rover.cargo.iron + this.rover.cargo.crystal + this.rover.cargo.gas;
-    this.totalLabel.text = `${totalPieces} in cargo  |  ${this.rover.usedCapacity}/${this.rover.maxCapacity} slots`;
+    this.totalLabel.text = `${totalPieces} in cargo  |  ${this.rover.usedCapacity}/${this.rover.maxCapacity} slots  |  Biome: ${biomeName}`;
 
     const liveState: GoalLiveState = {
       cargo: this.rover.cargo,
       usedCapacity: this.rover.usedCapacity,
       maxCapacity: this.rover.maxCapacity,
-      lavaHits,
+      hazardHits,
     };
     const goals = getCurrentGoals();
     for (let i = 0; i < this.goalLabels.length; i++) {

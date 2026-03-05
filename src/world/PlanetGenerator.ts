@@ -26,6 +26,11 @@ import { random } from "../utils/seedRandom";
 import type { Difficulty } from "../state/Saves";
 import { DIFFICULTY_MULTIPLIERS } from "../config/difficulty";
 
+/**
+ * @deprecated Runtime generation uses ChunkManager for infinite streaming worlds.
+ * Keep this file for legacy reference only until removed in a follow-up cleanup.
+ */
+
 export interface PlanetGenerationResult {
   base: BaseLander;
   actors: Actor[];
