@@ -9,11 +9,17 @@ import {
   CHUNK_LOAD_RADIUS,
   CHUNK_TILES,
   CHUNK_UNLOAD_RADIUS,
+  ICE_PATCH_CLUSTER_SCALE,
+  ICE_PATCH_DENSITY,
+  ICE_PATCH_DETAIL_SCALE,
   LAVA_DENSITY,
   PLANET_HEIGHT_TILES,
   PLANET_WIDTH_TILES,
   RESOURCE_DENSITY,
   ROCK_DENSITY,
+  SANDSTORM_REGION_COUNT,
+  SANDSTORM_REGION_RADIUS_PX,
+  SANDSTORM_VISIBILITY_MULTIPLIER,
   STORM_REGION_COUNT,
   STORM_REGION_RADIUS_PX,
   TILE_SIZE,
@@ -27,6 +33,7 @@ import { ResourceNode } from "../entities/ResourceNode";
 import { LavaPool, RockObstacle } from "../hazards/Hazards";
 import { StormRegion } from "../hazards/StormRegion";
 import { WindRegion } from "../hazards/WindRegion";
+import { SandstormRegion } from "../hazards/SandstormRegion";
 import { RESOURCE_TYPES, type ResourceId } from "../resources/ResourceTypes";
 import type { Difficulty } from "../state/Saves";
 import { getNoise2D } from "../utils/worldNoise";
@@ -42,6 +49,7 @@ interface ChunkRecord {
   actors: Actor[];
   storms: StormRegion[];
   winds: WindRegion[];
+  sandstorms: SandstormRegion[];
 }
 
 export interface ChunkManagerParams {
@@ -53,6 +61,7 @@ export interface ChunkManagerParams {
   worldActors: Actor[];
   stormRegions: StormRegion[];
   windRegions: WindRegion[];
+  sandstormRegions: SandstormRegion[];
   worldState: WorldState;
 }
 
@@ -65,6 +74,7 @@ export class ChunkManager {
   private worldActors: Actor[];
   private stormRegions: StormRegion[];
   private windRegions: WindRegion[];
+  private sandstormRegions: SandstormRegion[];
   private worldState: WorldState;
   private loaded = new Map<string, ChunkRecord>();
   private readonly noise2D: (x: number, y: number) => number;
@@ -79,6 +89,7 @@ export class ChunkManager {
     this.worldActors = params.worldActors;
     this.stormRegions = params.stormRegions;
     this.windRegions = params.windRegions;
+    this.sandstormRegions = params.sandstormRegions;
     this.worldState = params.worldState;
     this.noise2D = getNoise2D(this.seed);
     this.biomeNoise2D = getNoise2D((this.seed ^ 0x9e3779b1) >>> 0);
@@ -129,6 +140,12 @@ export class ChunkManager {
     return this.biomeAtTile(gx, gy);
   }
 
+  isIceHazardAtWorldPos(x: number, y: number): boolean {
+    const gx = Math.floor(x / TILE_SIZE);
+    const gy = Math.floor(y / TILE_SIZE);
+    return this.isIcePatchTile(gx, gy);
+  }
+
   private loadChunk(cx: number, cy: number): void {
     const key = chunkKey(cx, cy);
     if (this.loaded.has(key)) return;
@@ -140,6 +157,7 @@ export class ChunkManager {
       actors: generated.actors,
       storms: generated.storms,
       winds: generated.winds,
+      sandstorms: generated.sandstorms,
     });
   }
 
@@ -153,15 +171,22 @@ export class ChunkManager {
     removeFromArray(this.worldActors, chunk.actors);
     removeFromArray(this.stormRegions, chunk.storms);
     removeFromArray(this.windRegions, chunk.winds);
+    removeFromArray(this.sandstormRegions, chunk.sandstorms);
   }
 
   private generateChunk(
     cx: number,
     cy: number
-  ): { actors: Actor[]; storms: StormRegion[]; winds: WindRegion[] } {
+  ): {
+    actors: Actor[];
+    storms: StormRegion[];
+    winds: WindRegion[];
+    sandstorms: SandstormRegion[];
+  } {
     const actors: Actor[] = [];
     const storms: StormRegion[] = [];
     const winds: WindRegion[] = [];
+    const sandstorms: SandstormRegion[] = [];
     const mult = DIFFICULTY_MULTIPLIERS[this.difficulty];
     const biome = this.biomeAtChunk(cx, cy);
     const biomeCfg = BIOME_CONFIGS[biome];
@@ -181,7 +206,12 @@ export class ChunkManager {
     for (let gy = minGy; gy < maxGy; gy++) {
       for (let gx = minGx; gx < maxGx; gx++) {
         const isBaseTile = gx === 0 && gy === 0;
-        const tile = new Tile(gx, gy, isBaseTile ? "base" : "ground");
+        const isIceTile = !isBaseTile && this.isIcePatchTile(gx, gy);
+        const tile = new Tile(
+          gx,
+          gy,
+          isBaseTile ? "base" : isIceTile ? "ice" : "ground"
+        );
         this.scene.add(tile);
         actors.push(tile);
         this.worldActors.push(tile);
@@ -266,6 +296,16 @@ export class ChunkManager {
         biomeCfg.hazard.windRegionMultiplier) /
         initialChunkArea
     );
+    const sandstormChance =
+      biome === "desert"
+        ? Math.min(
+            1,
+            (SANDSTORM_REGION_COUNT *
+              mult.sandstormRegionCount *
+              biomeCfg.hazard.sandstormRegionMultiplier) /
+              initialChunkArea
+          )
+        : 0;
 
     if (hashToUnit(this.seed, "storm-chance", cx, cy) < stormChance) {
       const storm = this.createStorm(cx, cy);
@@ -285,7 +325,16 @@ export class ChunkManager {
       this.windRegions.push(wind);
     }
 
-    return { actors, storms, winds };
+    if (hashToUnit(this.seed, "sandstorm-chance", cx, cy) < sandstormChance) {
+      const sandstorm = this.createSandstorm(cx, cy);
+      this.scene.add(sandstorm);
+      actors.push(sandstorm);
+      sandstorms.push(sandstorm);
+      this.worldActors.push(sandstorm);
+      this.sandstormRegions.push(sandstorm);
+    }
+
+    return { actors, storms, winds, sandstorms };
   }
 
   private spawnResource(actors: Actor[], gx: number, gy: number): void {
@@ -357,6 +406,31 @@ export class ChunkManager {
     });
   }
 
+  private createSandstorm(cx: number, cy: number): SandstormRegion {
+    const [minGx, minGy, maxGx, maxGy] = chunkBounds(cx, cy);
+    const gx = Math.floor(
+      minGx + hashToUnit(this.seed, "sandstorm-gx", cx, cy) * (maxGx - minGx)
+    );
+    const gy = Math.floor(
+      minGy + hashToUnit(this.seed, "sandstorm-gy", cx, cy) * (maxGy - minGy)
+    );
+    const angle =
+      hashToUnit(this.seed, "sandstorm-angle", cx, cy) * Math.PI * 2;
+    const moveAngle =
+      hashToUnit(this.seed, "sandstorm-move-angle", cx, cy) * Math.PI * 2;
+    const strengthMult =
+      0.8 + hashToUnit(this.seed, "sandstorm-strength", cx, cy) * 0.4;
+    return new SandstormRegion({
+      x: gx * TILE_SIZE + TILE_SIZE / 2,
+      y: gy * TILE_SIZE + TILE_SIZE / 2,
+      radius: SANDSTORM_REGION_RADIUS_PX,
+      directionAngle: angle,
+      moveDirectionAngle: moveAngle,
+      pushStrength: 1000 * strengthMult,
+      visibilityMultiplier: SANDSTORM_VISIBILITY_MULTIPLIER,
+    });
+  }
+
   private biomeAtChunk(cx: number, cy: number): BiomeId {
     const centerGx = cx * CHUNK_TILES + Math.floor(CHUNK_TILES / 2);
     const centerGy = cy * CHUNK_TILES + Math.floor(CHUNK_TILES / 2);
@@ -374,6 +448,20 @@ export class ChunkManager {
     if (blend < 0.66) return "toxic";
     if (blend < 0.83) return "ice";
     return "storm";
+  }
+
+  private isIcePatchTile(gx: number, gy: number): boolean {
+    if (this.biomeAtTile(gx, gy) !== "ice") return false;
+    const cluster = normalize(
+      this.noise2D(gx / ICE_PATCH_CLUSTER_SCALE, gy / ICE_PATCH_CLUSTER_SCALE)
+    );
+    const detail = normalize(
+      this.noise2D(
+        (gx + 2048) / ICE_PATCH_DETAIL_SCALE,
+        gy / ICE_PATCH_DETAIL_SCALE
+      )
+    );
+    return cluster > 1 - ICE_PATCH_DENSITY && detail > 0.35;
   }
 }
 

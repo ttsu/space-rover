@@ -1,7 +1,13 @@
 import { Actor, Color } from "excalibur";
 import { TILE_SIZE } from "../config/gameConfig";
 
-export type TileKind = "ground" | "lava" | "rockField" | "storm" | "base";
+export type TileKind =
+  | "ground"
+  | "lava"
+  | "rockField"
+  | "storm"
+  | "base"
+  | "ice";
 
 export class Tile extends Actor {
   readonly gridX: number;
@@ -39,6 +45,8 @@ function colorForKind(kind: TileKind): Color {
       return Color.fromHex("#1e293b");
     case "base":
       return Color.fromHex("#0369a1");
+    case "ice":
+      return Color.fromHex("#1d4ed8");
     default:
       return Color.Gray;
   }

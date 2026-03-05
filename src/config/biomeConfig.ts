@@ -16,6 +16,7 @@ export interface BiomeHazardProfile {
   resourceDensityMultiplier: number;
   stormRegionMultiplier: number;
   windRegionMultiplier: number;
+  sandstormRegionMultiplier: number;
 }
 
 export interface BiomeGoalProfile {
@@ -39,6 +40,7 @@ export const BIOME_CONFIGS: Record<BiomeId, BiomeConfig> = {
       resourceDensityMultiplier: 0.95,
       stormRegionMultiplier: 0.85,
       windRegionMultiplier: 0.9,
+      sandstormRegionMultiplier: 0,
     },
     goals: {
       hazardFocus: ["lava", "lightning"],
@@ -53,6 +55,7 @@ export const BIOME_CONFIGS: Record<BiomeId, BiomeConfig> = {
       resourceDensityMultiplier: 1.1,
       stormRegionMultiplier: 1,
       windRegionMultiplier: 1.25,
+      sandstormRegionMultiplier: 0,
     },
     goals: {
       hazardFocus: ["wind", "lightning"],
@@ -67,9 +70,10 @@ export const BIOME_CONFIGS: Record<BiomeId, BiomeConfig> = {
       resourceDensityMultiplier: 0.9,
       stormRegionMultiplier: 0.95,
       windRegionMultiplier: 1.4,
+      sandstormRegionMultiplier: 1.4,
     },
     goals: {
-      hazardFocus: ["wind", "lava"],
+      hazardFocus: ["sandstorm", "wind"],
     },
   },
   toxic: {
@@ -81,6 +85,7 @@ export const BIOME_CONFIGS: Record<BiomeId, BiomeConfig> = {
       resourceDensityMultiplier: 1,
       stormRegionMultiplier: 1.2,
       windRegionMultiplier: 1.15,
+      sandstormRegionMultiplier: 0,
     },
     goals: {
       hazardFocus: ["lightning", "lava"],
@@ -95,6 +100,7 @@ export const BIOME_CONFIGS: Record<BiomeId, BiomeConfig> = {
       resourceDensityMultiplier: 1,
       stormRegionMultiplier: 1.6,
       windRegionMultiplier: 1.5,
+      sandstormRegionMultiplier: 0,
     },
     goals: {
       hazardFocus: ["lightning", "wind"],
@@ -109,6 +115,7 @@ export const BIOME_CONFIGS: Record<BiomeId, BiomeConfig> = {
       resourceDensityMultiplier: 0.85,
       stormRegionMultiplier: 0.7,
       windRegionMultiplier: 0.65,
+      sandstormRegionMultiplier: 0,
     },
     goals: {
       hazardFocus: ["wind"],

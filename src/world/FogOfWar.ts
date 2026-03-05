@@ -87,7 +87,7 @@ export class FogVisibilitySystem extends System {
     const roverPos = this.rover.pos;
     const roverGx = Math.floor(roverPos.x / TILE_SIZE);
     const roverGy = Math.floor(roverPos.y / TILE_SIZE);
-    const radius = this.rover.roverStats.visibilityRadius;
+    const radius = this.rover.getVisibilityRadiusTiles();
     const explored = GameState.exploredTileKeys;
 
     for (const entity of this.query.entities) {
@@ -193,7 +193,7 @@ export function drawFogOverlay(
 ): void {
   const roverPos = rover.pos;
   const camPos = camera.pos;
-  const radiusTiles = rover.roverStats.visibilityRadius;
+  const radiusTiles = rover.getVisibilityRadiusTiles();
   const radiusPx = radiusTiles * TILE_SIZE;
   const halfW = drawWidth / 2;
   const halfH = drawHeight / 2;

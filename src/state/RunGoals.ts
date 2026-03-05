@@ -152,6 +152,7 @@ function getHazardGoalTemplates(biomePreset: BiomePreset): RunGoalKind[] {
     { type: "noHazardDamage", hazard: "lava" },
     { type: "noHazardDamage", hazard: "lightning" },
     { type: "noHazardDamage", hazard: "wind" },
+    { type: "noHazardDamage", hazard: "sandstorm" },
   ];
 }
 
@@ -167,5 +168,7 @@ function hazardLabel(hazard: HazardKind): string {
       return "wind";
     case "quake":
       return "quake";
+    case "sandstorm":
+      return "sandstorm";
   }
 }

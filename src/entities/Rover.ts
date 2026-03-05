@@ -76,6 +76,9 @@ export class Rover extends Actor implements IHazardTarget {
   private blasterCooldown = 0;
   private isDisabled = false;
   private slowFactorThisFrame = 1;
+  private accelerationScaleThisFrame = 1;
+  private tractionScaleThisFrame = 1;
+  private visibilityRadiusMultiplier = 1;
   private damageFlashTimer = 0;
   private readonly maxForwardSpeed: number;
   private readonly maxReverseSpeed: number;
@@ -144,6 +147,9 @@ export class Rover extends Actor implements IHazardTarget {
     this.blasterCooldown = 0;
     this.damageFlashTimer = 0;
     this.slowFactorThisFrame = 1;
+    this.accelerationScaleThisFrame = 1;
+    this.tractionScaleThisFrame = 1;
+    this.visibilityRadiusMultiplier = 1;
   }
 
   remainingCapacity(): number {
@@ -195,6 +201,19 @@ export class Rover extends Actor implements IHazardTarget {
     return this;
   }
 
+  setDriveModifiersThisFrame(accelerationScale: number, tractionScale: number) {
+    this.accelerationScaleThisFrame = Math.max(0, accelerationScale);
+    this.tractionScaleThisFrame = Math.max(0, tractionScale);
+  }
+
+  setVisibilityRadiusMultiplier(multiplier: number): void {
+    this.visibilityRadiusMultiplier = Math.max(0.1, multiplier);
+  }
+
+  getVisibilityRadiusTiles(): number {
+    return this.roverStats.visibilityRadius * this.visibilityRadiusMultiplier;
+  }
+
   onPreUpdate(engine: Engine, delta: number): void {
     if (this.isDisabled) {
       this.vel = vec(0, 0);
@@ -234,7 +253,15 @@ export class Rover extends Actor implements IHazardTarget {
       } else {
         this.rotation = targetAngle;
       }
-      this.currentSpeed = touch!.magnitude * this.maxForwardSpeed;
+      const targetSpeed = touch!.magnitude * this.maxForwardSpeed;
+      const accelChange =
+        this.acceleration * this.accelerationScaleThisFrame * dt;
+      const speedDiff = targetSpeed - this.currentSpeed;
+      if (Math.abs(speedDiff) <= accelChange) {
+        this.currentSpeed = targetSpeed;
+      } else {
+        this.currentSpeed += Math.sign(speedDiff) * accelChange;
+      }
     } else {
       turningLeft = turningLeft || (touch?.turnLeft ?? false);
       turningRight = turningRight || (touch?.turnRight ?? false);
@@ -248,25 +275,31 @@ export class Rover extends Actor implements IHazardTarget {
       }
 
       if (accelerating) {
-        this.currentSpeed += this.acceleration * dt;
+        this.currentSpeed +=
+          this.acceleration * this.accelerationScaleThisFrame * dt;
         if (this.currentSpeed < 0) {
-          this.currentSpeed += this.brakeDeceleration * dt;
+          this.currentSpeed +=
+            this.brakeDeceleration * this.tractionScaleThisFrame * dt;
         }
       } else if (braking) {
-        this.currentSpeed -= this.acceleration * dt;
+        this.currentSpeed -=
+          this.acceleration * this.accelerationScaleThisFrame * dt;
         if (this.currentSpeed > 0) {
-          this.currentSpeed -= this.brakeDeceleration * dt;
+          this.currentSpeed -=
+            this.brakeDeceleration * this.tractionScaleThisFrame * dt;
         }
       } else {
         if (this.currentSpeed > 0) {
           this.currentSpeed = Math.max(
             0,
-            this.currentSpeed - this.naturalFriction * dt
+            this.currentSpeed -
+              this.naturalFriction * this.tractionScaleThisFrame * dt
           );
         } else if (this.currentSpeed < 0) {
           this.currentSpeed = Math.min(
             0,
-            this.currentSpeed + this.naturalFriction * dt
+            this.currentSpeed +
+              this.naturalFriction * this.tractionScaleThisFrame * dt
           );
         }
       }
@@ -320,5 +353,7 @@ export class Rover extends Actor implements IHazardTarget {
     }
 
     this.slowFactorThisFrame = 1;
+    this.accelerationScaleThisFrame = 1;
+    this.tractionScaleThisFrame = 1;
   }
 }

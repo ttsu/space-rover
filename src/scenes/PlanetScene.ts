@@ -1,7 +1,6 @@
 import {
   Color,
   Engine,
-  Label,
   Scene,
   vec,
   Font,
@@ -17,7 +16,11 @@ import { BlasterProjectile } from "../entities/BlasterProjectile";
 import { ResourceNode } from "../entities/ResourceNode";
 import { BaseLander } from "../entities/BaseLander";
 import { FogVisibilitySystem, drawFogOverlay } from "../world/FogOfWar";
-import { TILE_SIZE } from "../config/gameConfig";
+import {
+  ICE_ACCELERATION_SCALE,
+  ICE_TRACTION_SCALE,
+  TILE_SIZE,
+} from "../config/gameConfig";
 import {
   resetRunTracking,
   GameState,
@@ -47,6 +50,7 @@ import {
 import { getWindVelocityDelta } from "../hazards/WindSystem";
 import type { WindRegion } from "../hazards/WindRegion";
 import type { StormRegion } from "../hazards/StormRegion";
+import type { SandstormRegion } from "../hazards/SandstormRegion";
 import { LightningSystem } from "../hazards/LightningSystem";
 import { DIFFICULTY_MULTIPLIERS } from "../config/difficulty";
 import { ChunkManager } from "../world/ChunkManager";
@@ -62,7 +66,6 @@ const TOUCH_TOGGLE_KEY = Keys.T;
 
 export class PlanetScene extends Scene {
   private rover!: Rover;
-  private infoLabel!: Label;
   private hud!: Hud;
   private returnToShipBtn?: Button;
   private touchControlsOverlay?: TouchControls;
@@ -71,11 +74,13 @@ export class PlanetScene extends Scene {
   private worldActors: Actor[] = [];
   private stormRegions: StormRegion[] = [];
   private windRegions: WindRegion[] = [];
+  private sandstormRegions: SandstormRegion[] = [];
   private lightningSystem: LightningSystem | null = null;
   private chunkManager: ChunkManager | null = null;
   private worldState: WorldState | null = null;
   private quakeTimer = 0;
   private windHitTimer = 0;
+  private sandstormHitTimer = 0;
   private runEnded = false;
 
   constructor(_engine: Engine) {
@@ -95,6 +100,7 @@ export class PlanetScene extends Scene {
     this.worldActors = [];
     this.stormRegions = [];
     this.windRegions = [];
+    this.sandstormRegions = [];
     this.chunkManager = null;
     setSeed(save.seed);
     this.worldState = worldStateFromSave(save.worldState);
@@ -112,6 +118,7 @@ export class PlanetScene extends Scene {
       worldActors: this.worldActors,
       stormRegions: this.stormRegions,
       windRegions: this.windRegions,
+      sandstormRegions: this.sandstormRegions,
       worldState: this.worldState,
     });
     const mult = DIFFICULTY_MULTIPLIERS[save.difficulty];
@@ -127,6 +134,8 @@ export class PlanetScene extends Scene {
     this.lightningSystem.start();
     this.runEnded = false;
     this.windHitTimer = 0;
+    this.sandstormHitTimer = 0;
+    this.rover.setVisibilityRadiusMultiplier(1);
     if (this.rover) {
       this.rover.resetForNewMission();
       this.rover.pos.x = this.basePos.x;
@@ -195,19 +204,6 @@ export class PlanetScene extends Scene {
     this.rover.events.on("batterydepleted", () => {
       this.triggerDeath();
     });
-
-    this.infoLabel = new Label({
-      text: "W/S A/D drive. Space to fire. T = toggle touch controls. Return to base to finish.",
-      pos: vec(16, 24),
-      color: Color.White,
-      font: new Font({
-        family: "system-ui, sans-serif",
-        size: 16,
-        unit: FontUnit.Px,
-      }),
-    });
-    this.infoLabel.z = 1000;
-    this.add(this.infoLabel);
 
     this.hud = new Hud(this.engine, this.rover);
     this.hud.z = 1000;
@@ -338,6 +334,33 @@ export class PlanetScene extends Scene {
     const biomeId = this.chunkManager
       ? this.chunkManager.getBiomeAtWorldPos(this.rover.pos.x, this.rover.pos.y)
       : "barren";
+
+    const onIcePatch = this.chunkManager
+      ? this.chunkManager.isIceHazardAtWorldPos(
+          this.rover.pos.x,
+          this.rover.pos.y
+        )
+      : false;
+    this.rover.setDriveModifiersThisFrame(
+      onIcePatch ? ICE_ACCELERATION_SCALE : 1,
+      onIcePatch ? ICE_TRACTION_SCALE : 1
+    );
+
+    let sandstormVisibilityMultiplier = 1;
+    let inSandstorm = false;
+    for (const sandstorm of this.sandstormRegions) {
+      if (sandstorm.isKilled()) continue;
+      if (!sandstorm.containsWorldPoint(this.rover.pos.x, this.rover.pos.y)) {
+        continue;
+      }
+      inSandstorm = true;
+      sandstormVisibilityMultiplier = Math.min(
+        sandstormVisibilityMultiplier,
+        sandstorm.visibilityMultiplier
+      );
+    }
+    this.rover.setVisibilityRadiusMultiplier(sandstormVisibilityMultiplier);
+
     this.hud.updateFromState(
       closeToBase,
       GameState.currentHazardsHit,
@@ -353,6 +376,7 @@ export class PlanetScene extends Scene {
       this.rover,
       this.windRegions,
       this.stormRegions,
+      this.sandstormRegions,
       delta
     );
     const wind = this.rover.windEffectThisFrame;
@@ -364,6 +388,15 @@ export class PlanetScene extends Scene {
       }
     } else {
       this.windHitTimer = 0;
+    }
+    if (inSandstorm) {
+      this.sandstormHitTimer += delta;
+      if (this.sandstormHitTimer >= 800) {
+        this.sandstormHitTimer = 0;
+        recordHazardHit("sandstorm");
+      }
+    } else {
+      this.sandstormHitTimer = 0;
     }
     this.lightningSystem?.update(delta);
   }

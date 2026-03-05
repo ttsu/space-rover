@@ -2,7 +2,13 @@ import type { CargoCounts } from "../entities/Rover";
 import { addToBank } from "./Progress";
 import { evaluateGoals, getGoalResults } from "./RunGoals";
 
-export type HazardKind = "lava" | "lightning" | "rock" | "wind" | "quake";
+export type HazardKind =
+  | "lava"
+  | "lightning"
+  | "rock"
+  | "wind"
+  | "quake"
+  | "sandstorm";
 
 export interface RunStats {
   cargo: CargoCounts;
@@ -18,6 +24,7 @@ const emptyHazards: Record<HazardKind, number> = {
   rock: 0,
   wind: 0,
   quake: 0,
+  sandstorm: 0,
 };
 
 /** Tile keys "gx,gy" for tiles that have been seen this run (fog explored). */

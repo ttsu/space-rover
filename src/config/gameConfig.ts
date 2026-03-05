@@ -36,8 +36,13 @@ export const RESOURCE_DENSITY = 0.04; // fraction of tiles with resources
 
 export const LAVA_DENSITY = 0.08;
 export const ROCK_DENSITY = 0.07;
+export const ICE_PATCH_DENSITY = 0.45;
+export const ICE_PATCH_CLUSTER_SCALE = 18;
+export const ICE_PATCH_DETAIL_SCALE = 6;
 
 export const LAVA_SLOW_FACTOR = 0.5;
+export const ICE_ACCELERATION_SCALE = 0.55;
+export const ICE_TRACTION_SCALE = 0.35;
 
 // --- Storm regions (large circular areas: lightning + wind) ---
 export const STORM_REGION_COUNT = 3;
@@ -60,3 +65,9 @@ export const WIND_MOVE_SPEED = 10;
 export const WIND_PUSH_STRENGTH = 1000; // base force per second; windResist reduces
 /** Cap total wind acceleration per frame (px/s²) so overlapping regions don't stack uncontrollably. */
 export const WIND_MAX_ACCEL_PER_FRAME = 900;
+
+// --- Sandstorm regions (desert-only, wind + low visibility) ---
+export const SANDSTORM_REGION_COUNT = 3;
+export const SANDSTORM_REGION_RADIUS_PX = 220;
+export const SANDSTORM_MOVE_SPEED = 9;
+export const SANDSTORM_VISIBILITY_MULTIPLIER = 0.45;

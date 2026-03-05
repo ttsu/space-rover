@@ -2,6 +2,7 @@ import { vec, type Vector } from "excalibur";
 import type { IHazardTarget } from "../entities/Rover";
 import type { WindRegion } from "./WindRegion";
 import type { StormRegion } from "./StormRegion";
+import type { SandstormRegion } from "./SandstormRegion";
 import { WIND_MAX_ACCEL_PER_FRAME } from "../config/gameConfig";
 
 /**
@@ -13,6 +14,7 @@ export function getWindVelocityDelta(
   target: IHazardTarget,
   windRegions: WindRegion[],
   stormRegions: StormRegion[],
+  sandstormRegions: SandstormRegion[],
   deltaMs: number
 ): Vector {
   const actor = target.getActor();
@@ -37,6 +39,15 @@ export function getWindVelocityDelta(
     if (!storm.containsWorldPoint(rx, ry)) continue;
     const dir = storm.getWindDirection();
     const push = storm.windPushStrength * factor;
+    ax += dir.x * push;
+    ay += dir.y * push;
+  }
+
+  for (const sandstorm of sandstormRegions) {
+    if (sandstorm.isKilled()) continue;
+    if (!sandstorm.containsWorldPoint(rx, ry)) continue;
+    const dir = sandstorm.getWindDirection();
+    const push = sandstorm.pushStrength * factor;
     ax += dir.x * push;
     ay += dir.y * push;
   }
