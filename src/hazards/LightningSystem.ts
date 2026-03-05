@@ -84,6 +84,7 @@ export class LightningSystem {
   update(_deltaMs: number): void {
     const now = this.engine.clock.now();
     const roverPos = this.rover.getActor().pos;
+    this.syncStormTimers(now);
 
     if (this.activeStrike) {
       if (now >= this.activeStrike.warningEndAt) {
@@ -135,6 +136,20 @@ export class LightningSystem {
     const rate = LIGHTNING_STRIKES_PER_MINUTE * this.strikeRateMultiplier;
     const meanIntervalMs = rate > 0 ? 60000 / rate : 30000;
     return meanIntervalMs * (0.5 + random());
+  }
+
+  private syncStormTimers(now: number): void {
+    for (const storm of this.stormRegions) {
+      if (storm.isKilled()) continue;
+      if (!this.nextStrikeAtByStorm.has(storm)) {
+        this.nextStrikeAtByStorm.set(storm, now + this.randomDelayMs());
+      }
+    }
+    for (const storm of this.nextStrikeAtByStorm.keys()) {
+      if (storm.isKilled() || !this.stormRegions.includes(storm)) {
+        this.nextStrikeAtByStorm.delete(storm);
+      }
+    }
   }
 
   private showChargeCircle(): void {
@@ -260,5 +275,16 @@ export class LightningSystem {
         flash.graphics.opacity = (life / 200) * intensity * 0.5;
       }
     });
+  }
+
+  dispose(): void {
+    if (
+      this.activeStrike?.warningActor &&
+      !this.activeStrike.warningActor.isKilled()
+    ) {
+      this.activeStrike.warningActor.kill();
+    }
+    this.activeStrike = null;
+    this.nextStrikeAtByStorm.clear();
   }
 }

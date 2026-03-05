@@ -3,6 +3,7 @@ import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { Rover } from "./Rover";
 import { risingBurst } from "../effects/Particles";
 import { playPickup } from "../audio/sounds";
+import { onResourceCollectedAtWorldPos } from "../world/WorldState";
 
 export class ResourceNode extends Actor {
   resource: ResourceTypeDef;
@@ -38,6 +39,7 @@ export class ResourceNode extends Actor {
           }
           playPickup();
           this.showPopup(`+${this.sizeUnits} ${this.resource.name}`);
+          onResourceCollectedAtWorldPos(this.pos.x, this.pos.y);
           this.kill();
         } else {
           const shortage = this.sizeUnits - other.remainingCapacity();

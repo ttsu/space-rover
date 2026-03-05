@@ -214,7 +214,7 @@ export function createWindDustEmitter(config: {
   const maxSpeed = config.pushStrength * speedScale * 2.5;
   return createAmbientEmitter({
     color: Color.fromRGB(148, 163, 184, 0.7),
-    emitRate: 14,
+    emitRate: 6,
     lifetimeMs: 500,
     minSpeed: Math.min(120, minSpeed),
     maxSpeed: Math.min(280, maxSpeed),

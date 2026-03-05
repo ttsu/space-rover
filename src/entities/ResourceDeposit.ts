@@ -3,6 +3,10 @@ import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { ResourceNode } from "./ResourceNode";
 import type { IBlasterTarget } from "./BlasterProjectile";
 import { burst } from "../effects/Particles";
+import {
+  onDepositDamagedAtWorldPos,
+  onDepositDestroyedAtWorldPos,
+} from "../world/WorldState";
 
 const DEFAULT_HP = 8;
 
@@ -48,7 +52,15 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
     this.hp = Math.max(0, this.hp - amount);
     if (this.hp <= 0 && this.scene) {
       this.breaking = true;
+      onDepositDestroyedAtWorldPos(this.pos.x, this.pos.y);
       this.playBreakAndSpawn();
+    } else {
+      onDepositDamagedAtWorldPos(
+        this.pos.x,
+        this.pos.y,
+        this.resource.id,
+        this.hp
+      );
     }
   }
 

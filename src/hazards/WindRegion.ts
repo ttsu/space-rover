@@ -1,17 +1,11 @@
 import { Actor, Color, Engine, vec, Circle, CollisionType } from "excalibur";
 import {
-  PLANET_WIDTH_TILES,
-  PLANET_HEIGHT_TILES,
-  TILE_SIZE,
   WIND_REGION_RADIUS_PX,
   WIND_MOVE_SPEED,
   WIND_PUSH_STRENGTH,
 } from "../config/gameConfig";
 import { random } from "../utils/seedRandom";
 import { createWindDustEmitter } from "../effects/Particles";
-
-const WORLD_WIDTH = PLANET_WIDTH_TILES * TILE_SIZE;
-const WORLD_HEIGHT = PLANET_HEIGHT_TILES * TILE_SIZE;
 
 /** Wind strength variance per region (0.8–1.2). */
 function windStrengthMultiplier(): number {
@@ -25,6 +19,7 @@ export interface WindRegionParams {
   directionAngle: number;
   pushStrength?: number;
   moveSpeed?: number;
+  moveDirectionAngle?: number;
 }
 
 /**
@@ -40,7 +35,7 @@ export class WindRegion extends Actor {
   constructor(params: WindRegionParams) {
     const radius = params.radius ?? WIND_REGION_RADIUS_PX;
     const pushStrength =
-      (params.pushStrength ?? WIND_PUSH_STRENGTH) * windStrengthMultiplier();
+      params.pushStrength ?? WIND_PUSH_STRENGTH * windStrengthMultiplier();
     super({
       x: params.x,
       y: params.y,
@@ -52,7 +47,7 @@ export class WindRegion extends Actor {
     this.directionAngle = params.directionAngle;
     this.pushStrength = pushStrength;
     const moveSpeed = params.moveSpeed ?? WIND_MOVE_SPEED;
-    const angle = random() * Math.PI * 2;
+    const angle = params.moveDirectionAngle ?? random() * Math.PI * 2;
     this.velocity = vec(
       Math.cos(angle) * moveSpeed,
       Math.sin(angle) * moveSpeed
@@ -79,10 +74,6 @@ export class WindRegion extends Actor {
 
   onPreUpdate(_engine: Engine, delta: number): void {
     this.pos = this.pos.add(this.velocity.scale(delta / 1000));
-    if (this.pos.x < -this.radius) this.pos.x = WORLD_WIDTH + this.radius;
-    if (this.pos.x > WORLD_WIDTH + this.radius) this.pos.x = -this.radius;
-    if (this.pos.y < -this.radius) this.pos.y = WORLD_HEIGHT + this.radius;
-    if (this.pos.y > WORLD_HEIGHT + this.radius) this.pos.y = -this.radius;
   }
 
   containsWorldPoint(wx: number, wy: number): boolean {

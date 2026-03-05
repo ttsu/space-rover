@@ -15,13 +15,9 @@ import { Button } from "../ui/Button";
 import { Rover } from "../entities/Rover";
 import { BlasterProjectile } from "../entities/BlasterProjectile";
 import { ResourceNode } from "../entities/ResourceNode";
-import { generatePlanet } from "../world/PlanetGenerator";
+import { BaseLander } from "../entities/BaseLander";
 import { FogVisibilitySystem, drawFogOverlay } from "../world/FogOfWar";
-import {
-  TILE_SIZE,
-  PLANET_WIDTH_TILES,
-  PLANET_HEIGHT_TILES,
-} from "../config/gameConfig";
+import { TILE_SIZE } from "../config/gameConfig";
 import { resetRunTracking, GameState } from "../state/GameState";
 import { Hud } from "../ui/Hud";
 import { TouchControls } from "../ui/TouchControls";
@@ -29,7 +25,7 @@ import {
   getTouchControlsEnabled,
   setTouchControlsEnabled,
 } from "../input/TouchInputState";
-import { getCurrentSave } from "../state/Saves";
+import { getCurrentSave, saveCurrentSave } from "../state/Saves";
 import {
   getCargoLayout,
   getEquipped,
@@ -49,6 +45,13 @@ import type { WindRegion } from "../hazards/WindRegion";
 import type { StormRegion } from "../hazards/StormRegion";
 import { LightningSystem } from "../hazards/LightningSystem";
 import { DIFFICULTY_MULTIPLIERS } from "../config/difficulty";
+import { ChunkManager } from "../world/ChunkManager";
+import {
+  setActiveWorldState,
+  worldStateFromSave,
+  worldStateToSave,
+  type WorldState,
+} from "../world/WorldState";
 
 const TOUCH_TOGGLE_KEY = Keys.T;
 
@@ -64,6 +67,8 @@ export class PlanetScene extends Scene {
   private stormRegions: StormRegion[] = [];
   private windRegions: WindRegion[] = [];
   private lightningSystem: LightningSystem | null = null;
+  private chunkManager: ChunkManager | null = null;
+  private worldState: WorldState | null = null;
   private quakeTimer = 0;
   private runEnded = false;
 
@@ -78,18 +83,30 @@ export class PlanetScene extends Scene {
       this.engine.goToScene("mainMenu");
       return;
     }
+    this.lightningSystem?.dispose();
+    this.chunkManager?.destroy();
     for (const a of this.worldActors) a.kill();
     this.worldActors = [];
     this.stormRegions = [];
     this.windRegions = [];
+    this.chunkManager = null;
     setSeed(save.seed);
-    const planet = generatePlanet(this, this.engine, this.rover, {
+    this.worldState = worldStateFromSave(save.worldState);
+    setActiveWorldState(this.worldState);
+    const base = new BaseLander(TILE_SIZE / 2, TILE_SIZE / 2);
+    this.add(base);
+    this.worldActors.push(base);
+    this.basePos = base.pos.clone();
+    this.chunkManager = new ChunkManager({
+      scene: this,
+      hazardTarget: this.rover,
       difficulty: save.difficulty,
+      seed: save.seed,
+      worldActors: this.worldActors,
+      stormRegions: this.stormRegions,
+      windRegions: this.windRegions,
+      worldState: this.worldState,
     });
-    this.basePos = planet.base.pos.clone();
-    this.worldActors = planet.actors;
-    this.stormRegions = planet.stormRegions;
-    this.windRegions = planet.windRegions;
     const mult = DIFFICULTY_MULTIPLIERS[save.difficulty];
     this.lightningSystem = new LightningSystem({
       scene: this,
@@ -203,9 +220,7 @@ export class PlanetScene extends Scene {
       this.rover,
       this.camera,
       this.engine.drawWidth,
-      this.engine.drawHeight,
-      PLANET_WIDTH_TILES,
-      PLANET_HEIGHT_TILES
+      this.engine.drawHeight
     );
   }
 
@@ -257,12 +272,22 @@ export class PlanetScene extends Scene {
 
   private triggerReturnToBase(): void {
     this.runEnded = true;
+    this.persistWorldState();
     runFlowReturnToBase(this, this.engine, this.rover, this.basePos);
   }
 
   private triggerDeath(): void {
     this.runEnded = true;
+    this.persistWorldState();
     runFlowDeath(this, this.engine, this.rover);
+  }
+
+  onDeactivate(): void {
+    this.lightningSystem?.dispose();
+    this.chunkManager?.destroy();
+    this.chunkManager = null;
+    this.lightningSystem = null;
+    setActiveWorldState(null);
   }
 
   onPreUpdate(engine: Engine, delta: number): void {
@@ -279,6 +304,10 @@ export class PlanetScene extends Scene {
     if (!this.runEnded && this.rover.health <= 0) {
       this.triggerDeath();
       return;
+    }
+
+    if (!this.runEnded) {
+      this.chunkManager?.update(this.rover.pos.x, this.rover.pos.y);
     }
 
     const distanceToBase = this.rover.pos.distance(this.basePos);
@@ -311,6 +340,18 @@ export class PlanetScene extends Scene {
       delta
     );
     this.lightningSystem?.update(delta);
+  }
+
+  private persistWorldState(): void {
+    if (!this.worldState) return;
+    const save = getCurrentSave();
+    if (!save) return;
+    save.worldState = worldStateToSave(this.worldState);
+    try {
+      saveCurrentSave();
+    } catch {
+      // Avoid hard-crashing gameplay if storage quota is hit.
+    }
   }
 
   private applyMagnetism(delta: number): void {

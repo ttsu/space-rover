@@ -10,11 +10,7 @@ import {
   vec,
   ParticleEmitter,
 } from "excalibur";
-import {
-  TILE_SIZE,
-  PLANET_WIDTH_TILES,
-  PLANET_HEIGHT_TILES,
-} from "../config/gameConfig";
+import { TILE_SIZE } from "../config/gameConfig";
 import { GameState } from "../state/GameState";
 import type { Rover } from "../entities/Rover";
 import type { ExcaliburGraphicsContext } from "excalibur";
@@ -145,6 +141,7 @@ export class FogVisibilitySystem extends System {
 }
 
 const FOG_RESTORE_EMITTING = "_fogRestoreEmitting" as const;
+const FOG_STATE_KEY = "_fogInFogState" as const;
 
 function isParticleEmitter(e: unknown): e is ParticleEmitter {
   return (
@@ -163,15 +160,18 @@ function applyFogToParticleEmitter(
   inFog: boolean
 ): void {
   if (!isParticleEmitter(emitter)) return;
+  const bag = emitter as unknown as Record<string, boolean | undefined>;
+  const prevState = bag[FOG_STATE_KEY];
+  if (prevState === inFog) return;
+  bag[FOG_STATE_KEY] = inFog;
+
   if (inFog) {
-    const bag = emitter as unknown as Record<string, boolean | undefined>;
     if (bag[FOG_RESTORE_EMITTING] === undefined) {
       bag[FOG_RESTORE_EMITTING] = emitter.isEmitting;
     }
     emitter.clearParticles();
     emitter.isEmitting = false;
   } else {
-    const bag = emitter as unknown as Record<string, boolean | undefined>;
     const rest = bag[FOG_RESTORE_EMITTING];
     if (rest !== undefined) {
       emitter.isEmitting = rest;
@@ -189,9 +189,7 @@ export function drawFogOverlay(
   rover: Rover,
   camera: Camera,
   drawWidth: number,
-  drawHeight: number,
-  widthTiles: number = PLANET_WIDTH_TILES,
-  heightTiles: number = PLANET_HEIGHT_TILES
+  drawHeight: number
 ): void {
   const roverPos = rover.pos;
   const camPos = camera.pos;
@@ -203,8 +201,13 @@ export function drawFogOverlay(
   ctx.save();
   ctx.z = 50;
 
-  for (let gy = 0; gy < heightTiles; gy++) {
-    for (let gx = 0; gx < widthTiles; gx++) {
+  const minGx = Math.floor((camPos.x - halfW) / TILE_SIZE) - 1;
+  const maxGx = Math.ceil((camPos.x + halfW) / TILE_SIZE) + 1;
+  const minGy = Math.floor((camPos.y - halfH) / TILE_SIZE) - 1;
+  const maxGy = Math.ceil((camPos.y + halfH) / TILE_SIZE) + 1;
+
+  for (let gy = minGy; gy <= maxGy; gy++) {
+    for (let gx = minGx; gx <= maxGx; gx++) {
       const worldX = gx * TILE_SIZE + TILE_SIZE / 2;
       const worldY = gy * TILE_SIZE + TILE_SIZE / 2;
       const dx = worldX - roverPos.x;

@@ -18,6 +18,16 @@ export interface CargoCountsSave {
 
 export type CargoSlotContentSave = "iron" | "crystal" | "gas" | "empty";
 
+export interface WorldStateDepositSave {
+  resourceId: "iron" | "crystal";
+  hp: number;
+}
+
+export interface WorldStateSave {
+  clearedTileKeys: string[];
+  depositState: Record<string, WorldStateDepositSave>;
+}
+
 export interface GameSave {
   id: string;
   seed: number;
@@ -35,6 +45,7 @@ export interface GameSave {
   cargoLayout?: CargoSlotContentSave[];
   /** Number of cargo rows (2..6). */
   cargoRows?: number;
+  worldState?: WorldStateSave;
 }
 
 export interface SaveIndexEntry {
@@ -52,6 +63,13 @@ function saveKey(id: string): string {
 }
 
 const emptyCargo: CargoCountsSave = { iron: 0, crystal: 0, gas: 0 };
+
+function createEmptyWorldState(): WorldStateSave {
+  return {
+    clearedTileKeys: [],
+    depositState: {},
+  };
+}
 
 let currentSave: GameSave | null = null;
 
@@ -112,6 +130,35 @@ function parseCargoRows(obj: unknown): number {
   return n;
 }
 
+function parseWorldState(obj: unknown): WorldStateSave {
+  if (!obj || typeof obj !== "object") return createEmptyWorldState();
+  const o = obj as Record<string, unknown>;
+  const cleared = Array.isArray(o.clearedTileKeys)
+    ? o.clearedTileKeys.filter((k): k is string => typeof k === "string")
+    : [];
+  const depositOut: Record<string, WorldStateDepositSave> = {};
+  const rawDeposit =
+    o.depositState && typeof o.depositState === "object"
+      ? (o.depositState as Record<string, unknown>)
+      : {};
+  for (const [key, value] of Object.entries(rawDeposit)) {
+    if (!value || typeof value !== "object") continue;
+    const v = value as Record<string, unknown>;
+    const resourceId = v.resourceId;
+    const hp = typeof v.hp === "number" ? Math.floor(v.hp) : 0;
+    if ((resourceId !== "iron" && resourceId !== "crystal") || hp <= 0)
+      continue;
+    depositOut[key] = {
+      resourceId,
+      hp,
+    };
+  }
+  return {
+    clearedTileKeys: cleared,
+    depositState: depositOut,
+  };
+}
+
 function migrateBaseToBaseDefIds(
   equipped: Record<SlotId, string>
 ): Record<SlotId, string> {
@@ -160,6 +207,7 @@ function parseSave(raw: string | null): GameSave | null {
     let equipped = obj.equipped as Record<SlotId, string> | undefined;
     let ownedItems = obj.ownedItems as Record<string, number> | undefined;
     let cargoLayout = parseCargoLayout(obj.cargoLayout, totalSlots);
+    const worldState = parseWorldState(obj.worldState);
 
     if (appliedUpgrades.length > 0 && (!equipped || !ownedItems)) {
       const migrated = migrateAppliedUpgradesToEquipped(appliedUpgrades);
@@ -191,6 +239,7 @@ function parseSave(raw: string | null): GameSave | null {
       ownedItems: { ...ownedItems },
       cargoLayout: [...cargoLayout],
       cargoRows,
+      worldState,
     };
   } catch {
     return null;
@@ -313,6 +362,7 @@ export function createSave(difficulty: Difficulty): GameSave {
     ),
     cargoLayout: [...cargoLayout],
     cargoRows,
+    worldState: createEmptyWorldState(),
   };
   currentSave = save;
   const storage = getStorage();
