@@ -132,16 +132,3 @@ export function computeEffectiveRoverStatsFromEquipped(
   }
   return stats;
 }
-
-/** @deprecated Use computeEffectiveRoverStatsFromEquipped with getEquipped/getOwnedItems. */
-export function computeEffectiveRoverStats(
-  appliedUpgradeIds: string[]
-): RoverStats {
-  const stats: RoverStats = { ...BASE_STATS };
-  for (const id of appliedUpgradeIds) {
-    const def = getUpgradeById(id);
-    if (!def) continue;
-    applyEffect(stats, def.effect.kind as UpgradeEffectKind, def.effect.value);
-  }
-  return stats;
-}

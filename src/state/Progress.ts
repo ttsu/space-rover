@@ -20,7 +20,6 @@ import { CARGO_CAPACITY_PER_SLOT } from "../config/gameConfig";
 
 export interface PersistedProgress {
   bank: CargoCounts;
-  appliedUpgrades: string[];
   equipped: Record<SlotId, string>;
   ownedItems: Record<string, number>;
   cargoLayout: CargoSlotContentSave[];
@@ -51,7 +50,6 @@ export function getProgress(): PersistedProgress {
   if (!save)
     return {
       bank: { ...defaultBank },
-      appliedUpgrades: [],
       equipped: getDefaultEquipped(),
       ownedItems: getDefaultOwnedItems(),
       cargoLayout: getDefaultCargoLayout(
@@ -65,7 +63,6 @@ export function getProgress(): PersistedProgress {
     (getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[]);
   return {
     bank: cargoFromSave(save.bank),
-    appliedUpgrades: [...save.appliedUpgrades],
     equipped: { ...(save.equipped ?? getDefaultEquipped()) },
     ownedItems: { ...(save.ownedItems ?? getDefaultOwnedItems()) },
     cargoLayout:
@@ -187,12 +184,6 @@ export function getBank(): CargoCounts {
   return cargoFromSave(save.bank);
 }
 
-export function getAppliedUpgrades(): string[] {
-  const save = getCurrentSave();
-  if (!save) return [];
-  return [...save.appliedUpgrades];
-}
-
 export function spendFromBank(
   costs: Partial<Record<ResourceId, number>>
 ): boolean {
@@ -208,20 +199,6 @@ export function spendFromBank(
     if (cost > 0) bank[id] -= cost;
   }
   saveCurrentSave();
-  return true;
-}
-
-export function addAppliedUpgrade(upgradeId: string): void {
-  const save = getCurrentSave();
-  if (!save) return;
-  save.appliedUpgrades.push(upgradeId);
-  saveCurrentSave();
-}
-
-export function applyUpgrade(def: UpgradeDef): boolean {
-  const cost = getUpgradeCost(def);
-  if (!spendFromBank(cost)) return false;
-  addAppliedUpgrade(def.id);
   return true;
 }
 

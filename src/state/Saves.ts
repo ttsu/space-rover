@@ -5,9 +5,7 @@ import {
   getDefaultCargoLayout,
   DEFAULT_CARGO_ROWS,
   CARGO_MAX_ROWS,
-  DEFAULT_EQUIPPED_IDS,
 } from "../types/roverConfig";
-import { getUpgradeById } from "../upgrades/UpgradeDefs";
 
 export type Difficulty = "easy" | "normal" | "hard";
 
@@ -35,8 +33,6 @@ export interface GameSave {
   difficulty: Difficulty;
   biomePreset?: BiomePreset;
   bank: CargoCountsSave;
-  /** @deprecated Use equipped/ownedItems; kept for migration only. */
-  appliedUpgrades: string[];
   totalResourcesCollected: CargoCountsSave;
   createdAt: number;
   /** Slot -> equipped item id or "base". */
@@ -71,6 +67,12 @@ function createEmptyWorldState(): WorldStateSave {
     clearedTileKeys: [],
     depositState: {},
   };
+}
+
+function getDefaultOwnedItems(): Record<string, number> {
+  return Object.fromEntries(
+    Object.values(getDefaultEquipped()).map((id) => [id, 1])
+  );
 }
 
 let currentSave: GameSave | null = null;
@@ -161,28 +163,6 @@ function parseWorldState(obj: unknown): WorldStateSave {
   };
 }
 
-function migrateBaseToBaseDefIds(
-  equipped: Record<SlotId, string>
-): Record<SlotId, string> {
-  const out = { ...equipped };
-  for (const slot of Object.keys(DEFAULT_EQUIPPED_IDS) as SlotId[]) {
-    if (out[slot] === "base") out[slot] = DEFAULT_EQUIPPED_IDS[slot];
-  }
-  return out;
-}
-
-function ensureBaseDefsOwned(
-  equipped: Record<SlotId, string>,
-  ownedItems: Record<string, number>
-): Record<string, number> {
-  const out = { ...ownedItems };
-  const baseIds = new Set(Object.values(DEFAULT_EQUIPPED_IDS));
-  for (const id of Object.values(equipped)) {
-    if (baseIds.has(id) && (out[id] ?? 0) < 1) out[id] = 1;
-  }
-  return out;
-}
-
 function parseSave(raw: string | null): GameSave | null {
   if (!raw) return null;
   try {
@@ -208,33 +188,20 @@ function parseSave(raw: string | null): GameSave | null {
         ? obj.biomePreset
         : "mixed";
     const bank = parseCargo(obj.bank);
-    const appliedUpgrades = Array.isArray(obj.appliedUpgrades)
-      ? (obj.appliedUpgrades as string[])
-      : [];
     const totalResourcesCollected = parseCargo(obj.totalResourcesCollected);
     const createdAt =
       typeof obj.createdAt === "number" ? obj.createdAt : Date.now();
     const cargoRows = parseCargoRows(obj.cargoRows);
     const totalSlots = 4 * cargoRows;
-    let equipped = obj.equipped as Record<SlotId, string> | undefined;
-    let ownedItems = obj.ownedItems as Record<string, number> | undefined;
+    const equipped =
+      (obj.equipped as Record<SlotId, string> | undefined) ??
+      getDefaultEquipped();
+    const ownedItems =
+      (obj.ownedItems as Record<string, number> | undefined) ??
+      getDefaultOwnedItems();
     let cargoLayout = parseCargoLayout(obj.cargoLayout, totalSlots);
     const worldState = parseWorldState(obj.worldState);
 
-    if (appliedUpgrades.length > 0 && (!equipped || !ownedItems)) {
-      const migrated = migrateAppliedUpgradesToEquipped(appliedUpgrades);
-      equipped = migrated.equipped;
-      ownedItems = migrated.ownedItems;
-    }
-    if (!equipped) {
-      equipped = getDefaultEquipped();
-    }
-    if (!ownedItems) {
-      ownedItems = {};
-    }
-    // Migrate legacy "base" to base def ids and ensure ownedItems has base defs
-    equipped = migrateBaseToBaseDefIds(equipped);
-    ownedItems = ensureBaseDefsOwned(equipped, ownedItems);
     if (cargoLayout.length !== totalSlots) {
       cargoLayout = getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[];
     }
@@ -245,7 +212,6 @@ function parseSave(raw: string | null): GameSave | null {
       difficulty,
       biomePreset,
       bank: { ...bank },
-      appliedUpgrades: [...appliedUpgrades],
       totalResourcesCollected: { ...totalResourcesCollected },
       createdAt,
       equipped: { ...equipped },
@@ -257,38 +223,6 @@ function parseSave(raw: string | null): GameSave | null {
   } catch {
     return null;
   }
-}
-
-function migrateAppliedUpgradesToEquipped(appliedUpgradeIds: string[]): {
-  equipped: Record<SlotId, string>;
-  ownedItems: Record<string, number>;
-} {
-  const slotByEffectKind: Record<string, SlotId> = {
-    maxHealth: "shielding",
-    maxCapacity: "shielding",
-    maxSpeed: "engine",
-    turnSpeed: "control",
-    acceleration: "engine",
-    blasterDamage: "blaster",
-    blasterFireRate: "blaster",
-    blasterRange: "blaster",
-    lavaDamageReduction: "shielding",
-    lavaSlowResist: "shielding",
-    windResist: "shielding",
-    flatDamageReduction: "shielding",
-    lightningWarningTime: "radar",
-  };
-  const equipped = getDefaultEquipped();
-  const ownedItems: Record<string, number> = {};
-  for (const id of appliedUpgradeIds) {
-    const def = getUpgradeById(id);
-    if (!def) continue;
-    const slot = slotByEffectKind[def.effect.kind];
-    if (!slot) continue;
-    equipped[slot] = id;
-    ownedItems[id] = (ownedItems[id] ?? 0) + 1;
-  }
-  return { equipped, ownedItems };
 }
 
 function getStorage(): Storage | null {
@@ -367,13 +301,10 @@ export function createSave(difficulty: Difficulty): GameSave {
     difficulty,
     biomePreset: "mixed",
     bank: { ...emptyCargo },
-    appliedUpgrades: [],
     totalResourcesCollected: { ...emptyCargo },
     createdAt: now,
     equipped: getDefaultEquipped(),
-    ownedItems: Object.fromEntries(
-      Object.values(getDefaultEquipped()).map((id) => [id, 1])
-    ),
+    ownedItems: getDefaultOwnedItems(),
     cargoLayout: [...cargoLayout],
     cargoRows,
     worldState: createEmptyWorldState(),
