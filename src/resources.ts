@@ -23,6 +23,9 @@ export const Resources = {
   BarSquare: new ImageSource(
     `${import.meta.env.BASE_URL}assets/bar_square_large_square.png`
   ),
+  SpaceshipSprite: new ImageSource(
+    `${import.meta.env.BASE_URL}assets/spaceship.png`
+  ),
 } as const;
 
 export const loader = new Loader();

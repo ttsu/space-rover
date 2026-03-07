@@ -16,12 +16,10 @@ import {
   isGoalSatisfied,
   type GoalLiveState,
 } from "../state/RunGoals";
+import type { EdgeIndicator } from "../utils/edgeIndicator";
 
-export interface BaseIndicator {
-  screenX: number;
-  screenY: number;
-  angleRad: number;
-}
+/** @deprecated Use EdgeIndicator from utils/edgeIndicator. Kept for compatibility. */
+export type BaseIndicator = EdgeIndicator;
 
 export class Hud extends ScreenElement {
   private engineRef: Engine;

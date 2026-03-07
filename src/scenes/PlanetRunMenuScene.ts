@@ -9,7 +9,14 @@ import {
   Keys,
 } from "excalibur";
 import { Button } from "../ui/Button";
-import { getBank, getOwnedItems, getEquipped } from "../state/Progress";
+import {
+  getBank,
+  getOwnedItems,
+  getEquipped,
+  isShipRepaired,
+  canRepairShip,
+  spendForShipRepair,
+} from "../state/Progress";
 import { canAffordAnyEquipment } from "../upgrades/UpgradeDefs";
 import { requestFullscreen } from "../fullscreen";
 import {
@@ -28,6 +35,8 @@ import { getCurrentSave } from "../state/Saves";
 export class PlanetRunMenuScene extends Scene {
   private bankLabel!: Label;
   private configureButton!: Button;
+  private spaceshipButton?: Button;
+  private repairShipButton?: Button;
   private touchToggleButton?: Button;
 
   private goalChoices: RunGoal[] = [];
@@ -39,6 +48,7 @@ export class PlanetRunMenuScene extends Scene {
 
   onActivate(): void {
     this.updateBankAndUpgradeButton();
+    this.updateShipButtons();
     this.touchToggleButton && this.updateTouchToggleLabel();
     this.refreshGoalChoices();
     setCurrentGoals(this.goalChoices);
@@ -58,6 +68,16 @@ export class PlanetRunMenuScene extends Scene {
     const equipped = getEquipped();
     const anyAffordable = canAffordAnyEquipment(bank, ownedItems, equipped);
     this.configureButton.setHighlighted(anyAffordable);
+  }
+
+  private updateShipButtons(): void {
+    const repaired = isShipRepaired();
+    if (this.spaceshipButton) {
+      this.spaceshipButton.graphics.isVisible = repaired;
+    }
+    if (this.repairShipButton) {
+      this.repairShipButton.graphics.isVisible = !repaired && canRepairShip();
+    }
   }
 
   private updateTouchToggleLabel(): void {
@@ -183,8 +203,50 @@ export class PlanetRunMenuScene extends Scene {
       },
     });
 
-    const exitButton = new Button({
+    this.spaceshipButton = new Button({
       pos: vec(cx, midY + 170),
+      width: 200,
+      height: 48,
+      text: "Spaceship",
+      color: Color.White,
+      font: new Font({
+        family: "system-ui, sans-serif",
+        size: 22,
+        unit: FontUnit.Px,
+      }),
+      onClick: () => {
+        playClick();
+        this.engine.goToScene("spaceship");
+      },
+    });
+    this.spaceshipButton.graphics.isVisible = isShipRepaired();
+    this.add(this.spaceshipButton);
+
+    this.repairShipButton = new Button({
+      pos: vec(cx, midY + 170),
+      width: 200,
+      height: 48,
+      text: "Repair ship",
+      color: Color.fromHex("#fbbf24"),
+      font: new Font({
+        family: "system-ui, sans-serif",
+        size: 20,
+        unit: FontUnit.Px,
+      }),
+      onClick: () => {
+        playClick();
+        if (spendForShipRepair()) {
+          this.updateBankAndUpgradeButton();
+          this.updateShipButtons();
+        }
+      },
+    });
+    this.repairShipButton.graphics.isVisible =
+      !isShipRepaired() && canRepairShip();
+    this.add(this.repairShipButton);
+
+    const exitButton = new Button({
+      pos: vec(cx, midY + 226),
       width: 200,
       height: 48,
       text: "Exit to Main Menu",
@@ -206,7 +268,7 @@ export class PlanetRunMenuScene extends Scene {
 
     if (isTouchDeviceCapable()) {
       this.touchToggleButton = new Button({
-        pos: vec(cx, midY + 226),
+        pos: vec(cx, midY + 282),
         width: 200,
         height: 40,
         text: getTouchControlsEnabled()

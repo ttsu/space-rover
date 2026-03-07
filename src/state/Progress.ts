@@ -7,7 +7,9 @@ import {
   saveCurrentSave,
   type CargoCountsSave,
   type CargoSlotContentSave,
+  type WorldStateSave,
 } from "./Saves";
+import { SHIP_REPAIR_COST } from "../config/shipConfig";
 import type { SlotId } from "../types/roverConfig";
 import {
   getDefaultEquipped,
@@ -208,4 +210,98 @@ export function purchaseEquipment(def: UpgradeDef): boolean {
   if (!spendFromBank(cost)) return false;
   addOwnedItem(def.id);
   return true;
+}
+
+// --- Ship and space progression ---
+
+export function isShipRepaired(): boolean {
+  const save = getCurrentSave();
+  return save?.shipRepaired === true;
+}
+
+export function setShipRepaired(value: boolean): void {
+  const save = getCurrentSave();
+  if (!save) return;
+  save.shipRepaired = value;
+  saveCurrentSave();
+}
+
+export function getCurrentPlanetId(): string {
+  const save = getCurrentSave();
+  return save?.currentPlanetId ?? "home";
+}
+
+export function setCurrentPlanetId(planetId: string): void {
+  const save = getCurrentSave();
+  if (!save) return;
+  save.currentPlanetId = planetId;
+  saveCurrentSave();
+}
+
+export function getCurrentLocation(): "planet" | "orbit" {
+  const save = getCurrentSave();
+  return save?.currentLocation ?? "planet";
+}
+
+export function setCurrentLocation(loc: "planet" | "orbit"): void {
+  const save = getCurrentSave();
+  if (!save) return;
+  save.currentLocation = loc;
+  saveCurrentSave();
+}
+
+export function getShipUpgrades(): Record<string, number> {
+  const save = getCurrentSave();
+  return save?.shipUpgrades ? { ...save.shipUpgrades } : {};
+}
+
+export function setShipUpgrade(upgradeId: string, level: number): void {
+  const save = getCurrentSave();
+  if (!save) return;
+  save.shipUpgrades = save.shipUpgrades ?? {};
+  save.shipUpgrades[upgradeId] = Math.max(0, Math.floor(level));
+  saveCurrentSave();
+}
+
+/** Returns true if bank meets ship repair cost and ship was not yet repaired. */
+export function canRepairShip(): boolean {
+  if (isShipRepaired()) return false;
+  const bank = getBank();
+  return (
+    bank.iron >= SHIP_REPAIR_COST.iron &&
+    bank.crystal >= SHIP_REPAIR_COST.crystal &&
+    bank.gas >= SHIP_REPAIR_COST.gas
+  );
+}
+
+/** Spend bank for ship repair and set shipRepaired. Returns true if successful. */
+export function spendForShipRepair(): boolean {
+  if (isShipRepaired()) return false;
+  if (!spendFromBank(SHIP_REPAIR_COST)) return false;
+  setShipRepaired(true);
+  return true;
+}
+
+const emptyWorldStateSave: WorldStateSave = {
+  clearedTileKeys: [],
+  depositState: {},
+};
+
+export function getWorldStateSaveForPlanet(planetId: string): WorldStateSave {
+  const save = getCurrentSave();
+  if (!save) return { ...emptyWorldStateSave };
+  const byPlanet = save.worldStateByPlanet;
+  if (!byPlanet || !byPlanet[planetId]) return { ...emptyWorldStateSave };
+  return byPlanet[planetId];
+}
+
+export function setWorldStateSaveForPlanet(
+  planetId: string,
+  state: WorldStateSave
+): void {
+  const save = getCurrentSave();
+  if (!save) return;
+  save.worldStateByPlanet = save.worldStateByPlanet ?? {};
+  save.worldStateByPlanet[planetId] = state;
+  saveCurrentSave();
 }

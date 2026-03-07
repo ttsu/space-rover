@@ -26,18 +26,22 @@ import {
   GameState,
   recordHazardHit,
 } from "../state/GameState";
-import { Hud, type BaseIndicator } from "../ui/Hud";
+import { Hud } from "../ui/Hud";
+import { getEdgeIndicator } from "../utils/edgeIndicator";
 import { TouchControls } from "../ui/TouchControls";
 import {
   getTouchControlsEnabled,
   setTouchControlsEnabled,
 } from "../input/TouchInputState";
-import { getCurrentSave, saveCurrentSave } from "../state/Saves";
+import { getCurrentSave } from "../state/Saves";
 import {
   getCargoLayout,
   getEquipped,
   getMaxCargoFromLayout,
   getOwnedItems,
+  getCurrentPlanetId,
+  getWorldStateSaveForPlanet,
+  setWorldStateSaveForPlanet,
 } from "../state/Progress";
 import { computeEffectiveRoverStatsFromEquipped } from "../upgrades/RoverStats";
 import { setSeed } from "../utils/seedRandom";
@@ -103,7 +107,8 @@ export class PlanetScene extends Scene {
     this.sandstormRegions = [];
     this.chunkManager = null;
     setSeed(save.seed);
-    this.worldState = worldStateFromSave(save.worldState);
+    const planetId = getCurrentPlanetId();
+    this.worldState = worldStateFromSave(getWorldStateSaveForPlanet(planetId));
     setActiveWorldState(this.worldState);
     const base = new BaseLander(TILE_SIZE / 2, TILE_SIZE / 2);
     this.add(base);
@@ -361,7 +366,13 @@ export class PlanetScene extends Scene {
     }
     this.rover.setVisibilityRadiusMultiplier(sandstormVisibilityMultiplier);
 
-    const baseIndicator = this.getBaseIndicator();
+    const baseIndicator = getEdgeIndicator(
+      this.basePos.x,
+      this.basePos.y,
+      this.camera.pos,
+      this.engine.drawWidth,
+      this.engine.drawHeight
+    );
     this.hud.updateFromState(
       closeToBase,
       GameState.currentHazardsHit,
@@ -403,61 +414,13 @@ export class PlanetScene extends Scene {
     this.lightningSystem?.update(delta);
   }
 
-  /**
-   * When base is off-screen, returns position and angle for the edge arrow; otherwise null.
-   */
-  private getBaseIndicator(): BaseIndicator | null {
-    const w = this.engine.drawWidth;
-    const h = this.engine.drawHeight;
-    const margin = 48;
-    const halfW = w / 2;
-    const halfH = h / 2;
-    const cam = this.camera.pos;
-    const baseScreenX = this.basePos.x - cam.x + halfW;
-    const baseScreenY = this.basePos.y - cam.y + halfH;
-
-    if (
-      baseScreenX >= margin &&
-      baseScreenX <= w - margin &&
-      baseScreenY >= margin &&
-      baseScreenY <= h - margin
-    ) {
-      return null;
-    }
-
-    const dx = baseScreenX - halfW;
-    const dy = baseScreenY - halfH;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    if (len < 1) return null;
-    const ux = dx / len;
-    const uy = dy / len;
-
-    const edgeMargin = 36;
-    const left = edgeMargin;
-    const right = w - edgeMargin;
-    const top = edgeMargin;
-    const bottom = h - edgeMargin;
-
-    let t = Infinity;
-    if (ux > 0) t = Math.min(t, (right - halfW) / ux);
-    else if (ux < 0) t = Math.min(t, (left - halfW) / ux);
-    if (uy > 0) t = Math.min(t, (bottom - halfH) / uy);
-    else if (uy < 0) t = Math.min(t, (top - halfH) / uy);
-
-    if (t === Infinity || t <= 0) return null;
-    const screenX = halfW + ux * t;
-    const screenY = halfH + uy * t;
-    const angleRad = Math.atan2(dy, dx);
-    return { screenX, screenY, angleRad };
-  }
-
   private persistWorldState(): void {
     if (!this.worldState) return;
-    const save = getCurrentSave();
-    if (!save) return;
-    save.worldState = worldStateToSave(this.worldState);
     try {
-      saveCurrentSave();
+      setWorldStateSaveForPlanet(
+        getCurrentPlanetId(),
+        worldStateToSave(this.worldState)
+      );
     } catch {
       // Avoid hard-crashing gameplay if storage quota is hit.
     }

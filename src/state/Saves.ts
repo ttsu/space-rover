@@ -44,6 +44,20 @@ export interface GameSave {
   /** Number of cargo rows (2..6). */
   cargoRows?: number;
   worldState?: WorldStateSave;
+  /** Per-planet world state (cleared tiles, deposits). Key = planetId. */
+  worldStateByPlanet?: Record<string, WorldStateSave>;
+  /** One-time: ship repaired and Spaceship screen unlocked. */
+  shipRepaired?: boolean;
+  /** Future: hyperspace drive repaired for interstellar. */
+  hyperspaceRepaired?: boolean;
+  /** Current context: on planet surface or in orbit. */
+  currentLocation?: "planet" | "orbit";
+  /** Which planet the player is at / last landed on (solar system planet id). */
+  currentPlanetId?: string;
+  /** Which solar system (for multi-system later). */
+  currentSolarSystemId?: string;
+  /** Ship upgrade id -> level. */
+  shipUpgrades?: Record<string, number>;
 }
 
 export interface SaveIndexEntry {
@@ -201,6 +215,33 @@ function parseSave(raw: string | null): GameSave | null {
       getDefaultOwnedItems();
     let cargoLayout = parseCargoLayout(obj.cargoLayout, totalSlots);
     const worldState = parseWorldState(obj.worldState);
+    const shipRepaired = obj.shipRepaired === true;
+    const hyperspaceRepaired = obj.hyperspaceRepaired === true;
+    const currentLocation =
+      obj.currentLocation === "planet" || obj.currentLocation === "orbit"
+        ? obj.currentLocation
+        : undefined;
+    const currentPlanetId =
+      typeof obj.currentPlanetId === "string" ? obj.currentPlanetId : undefined;
+    const currentSolarSystemId =
+      typeof obj.currentSolarSystemId === "string"
+        ? obj.currentSolarSystemId
+        : undefined;
+    const rawShipUpgrades = obj.shipUpgrades;
+    const shipUpgrades: Record<string, number> = {};
+    if (rawShipUpgrades && typeof rawShipUpgrades === "object") {
+      for (const [k, v] of Object.entries(rawShipUpgrades)) {
+        if (typeof v === "number" && v >= 0) shipUpgrades[k] = Math.floor(v);
+      }
+    }
+    const rawWorldStateByPlanet = obj.worldStateByPlanet;
+    const worldStateByPlanet: Record<string, WorldStateSave> = {};
+    if (rawWorldStateByPlanet && typeof rawWorldStateByPlanet === "object") {
+      for (const [planetId, ws] of Object.entries(rawWorldStateByPlanet)) {
+        if (typeof planetId === "string" && ws)
+          worldStateByPlanet[planetId] = parseWorldState(ws);
+      }
+    }
 
     if (cargoLayout.length !== totalSlots) {
       cargoLayout = getDefaultCargoLayout(cargoRows) as CargoSlotContentSave[];
@@ -219,6 +260,15 @@ function parseSave(raw: string | null): GameSave | null {
       cargoLayout: [...cargoLayout],
       cargoRows,
       worldState,
+      worldStateByPlanet: Object.keys(worldStateByPlanet).length
+        ? worldStateByPlanet
+        : undefined,
+      shipRepaired: shipRepaired || undefined,
+      hyperspaceRepaired: hyperspaceRepaired || undefined,
+      currentLocation,
+      currentPlanetId,
+      currentSolarSystemId,
+      shipUpgrades: Object.keys(shipUpgrades).length ? shipUpgrades : undefined,
     };
   } catch {
     return null;
@@ -308,6 +358,9 @@ export function createSave(difficulty: Difficulty): GameSave {
     cargoLayout: [...cargoLayout],
     cargoRows,
     worldState: createEmptyWorldState(),
+    shipRepaired: false,
+    currentLocation: "planet",
+    currentPlanetId: "home",
   };
   currentSave = save;
   const storage = getStorage();
