@@ -1,4 +1,5 @@
 import { Actor, Circle, Color, Engine, vec } from "excalibur";
+import { GravityReceiverComponent } from "../world/components/GravityComponents";
 
 export interface AsteroidParams {
   x: number;
@@ -28,6 +29,7 @@ export class Asteroid extends Actor {
     });
     this.radius = r;
     this.vel = vec(params.vx ?? 0, params.vy ?? 0);
+    this.addComponent(new GravityReceiverComponent());
 
     const circle = new Circle({
       radius: r,

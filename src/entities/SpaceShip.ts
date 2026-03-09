@@ -5,6 +5,7 @@ import {
   getTouchControlsEnabled,
 } from "../input/TouchInputState";
 import type { ShipStats } from "../config/shipConfig";
+import { GravityReceiverComponent } from "../world/components/GravityComponents";
 
 const SPACESHIP_SPRITE_SIZE = 128;
 
@@ -46,6 +47,7 @@ export class SpaceShip extends Actor {
     const sprite = spriteSheet.getSprite(0, 0);
     if (sprite) this.graphics.use(sprite);
     this.hull = stats.hull;
+    this.addComponent(new GravityReceiverComponent());
   }
 
   takeDamage(amount: number, heatShieldingFactor = 0): void {

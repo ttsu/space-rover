@@ -5,15 +5,14 @@ import {
   vec,
   Font,
   FontUnit,
-  SpriteSheet,
 } from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { Rover } from "./Rover";
 import { risingBurst } from "../effects/Particles";
 import { playPickup } from "../audio/sounds";
 import { onResourceCollectedAtWorldPos } from "../world/WorldState";
-import { Resources } from "../resources";
-import { random } from "../utils/seedRandom";
+import { applyResourceSprite } from "../resources/ResourceGraphics";
+import { MagneticResourceComponent } from "../world/components/MagneticResourceComponent";
 
 export class ResourceNode extends Actor {
   resource: ResourceTypeDef;
@@ -42,6 +41,7 @@ export class ResourceNode extends Actor {
 
   onInitialize(): void {
     this.applySpriteGraphicIfNeeded();
+    this.addComponent(new MagneticResourceComponent());
     this.on("collisionstart", (evt) => {
       const other = evt.other.owner;
       if (other instanceof Rover) {
@@ -74,30 +74,7 @@ export class ResourceNode extends Actor {
   }
 
   private applySpriteGraphicIfNeeded(): void {
-    let image = null;
-    if (this.resource.id === "iron") {
-      image = Resources.IronSprite;
-    } else if (this.resource.id === "crystal") {
-      image = Resources.CrystalSprite;
-    }
-    if (!image) return;
-
-    const index = this.spriteIndex ?? Math.floor(random() * 4);
-    const spriteSheet = SpriteSheet.fromImageSource({
-      image,
-      grid: {
-        rows: 1,
-        columns: 4,
-        spriteWidth: 64,
-        spriteHeight: 64,
-      },
-    });
-    const sprite = spriteSheet.getSprite(index, 0, {
-      scale: vec(0.5, 0.5),
-    });
-    if (sprite) {
-      this.graphics.use(sprite);
-    }
+    applyResourceSprite(this, this.resource, "node", this.spriteIndex);
   }
 
   private showPopup(text: string, color = Color.White): void {

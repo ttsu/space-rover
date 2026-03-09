@@ -88,7 +88,16 @@ export class FogVisibilitySystem extends System {
     const roverGx = Math.floor(roverPos.x / TILE_SIZE);
     const roverGy = Math.floor(roverPos.y / TILE_SIZE);
     const radius = this.rover.getVisibilityRadiusTiles();
+    const radiusSq = radius * radius;
     const explored = GameState.exploredTileKeys;
+    const cam = this.rover.scene?.camera;
+    const screen = this.rover.scene?.engine.screen;
+    const halfW = screen ? screen.resolution.width / 2 : 0;
+    const halfH = screen ? screen.resolution.height / 2 : 0;
+    const minGx = cam ? Math.floor((cam.pos.x - halfW) / TILE_SIZE) - 2 : -Infinity;
+    const maxGx = cam ? Math.ceil((cam.pos.x + halfW) / TILE_SIZE) + 2 : Infinity;
+    const minGy = cam ? Math.floor((cam.pos.y - halfH) / TILE_SIZE) - 2 : -Infinity;
+    const maxGy = cam ? Math.ceil((cam.pos.y + halfH) / TILE_SIZE) + 2 : Infinity;
 
     for (const entity of this.query.entities) {
       const fog = entity.get(FogAffectedComponent);
@@ -109,11 +118,29 @@ export class FogVisibilitySystem extends System {
           ? transform.pos
           : transform.globalPos;
       const { gx, gy } = entityTilePosition(fog, pos);
+      const inViewport =
+        gx >= minGx && gx <= maxGx && gy >= minGy && gy <= maxGy;
+      if (!inViewport) {
+        const key = tileKey(gx, gy);
+        if (
+          fog.gridX !== undefined &&
+          fog.gridY !== undefined &&
+          explored.has(key)
+        ) {
+          graphics.isVisible = true;
+          graphics.opacity = EXPLORED_OPACITY;
+          applyFogToParticleEmitter(entity as ParticleEmitter, true);
+        } else {
+          graphics.isVisible = false;
+          applyFogToParticleEmitter(entity as ParticleEmitter, true);
+        }
+        continue;
+      }
       const dx = gx - roverGx;
       const dy = gy - roverGy;
-      const distTiles = Math.sqrt(dx * dx + dy * dy);
+      const distTilesSq = dx * dx + dy * dy;
 
-      if (distTiles <= radius) {
+      if (distTilesSq <= radiusSq) {
         graphics.isVisible = true;
         graphics.opacity = 1;
         if (fog.gridX !== undefined && fog.gridY !== undefined) {

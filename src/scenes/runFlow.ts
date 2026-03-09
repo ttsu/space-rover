@@ -1,9 +1,27 @@
-import { Color, Engine, Label, Scene, vec, Font, FontUnit } from "excalibur";
+import {
+  Color,
+  Engine,
+  Label,
+  Scene,
+  vec,
+  Font,
+  FontUnit,
+  Actor,
+} from "excalibur";
 import type { Rover } from "../entities/Rover";
 import type { Vector } from "excalibur";
 import { finishRun } from "../state/GameState";
 import { burst, risingBurst } from "../effects/Particles";
 import { playDock, playDeath } from "../audio/sounds";
+
+function runAfter(scene: Scene, delayMs: number, fn: () => void): void {
+  const timerActor = new Actor({ x: -9999, y: -9999, width: 1, height: 1 });
+  scene.add(timerActor);
+  timerActor.actions.delay(delayMs).callMethod(() => {
+    fn();
+    timerActor.kill();
+  });
+}
 
 /**
  * Handles the "return to base" flow: effects, label, rover move, then finishRun and scene transition.
@@ -44,11 +62,11 @@ export function triggerReturnToBase(
   const roverTarget = basePos.clone();
   rover.actions.moveTo(roverTarget, 120);
 
-  setTimeout(() => {
+  runAfter(scene, 1200, () => {
     bankedLabel.kill();
     finishRun(rover.cargo, rover.usedCapacity, rover.maxCapacity, rover.health);
     engine.goToScene("summary");
-  }, 1200);
+  });
 }
 
 /**
@@ -83,11 +101,11 @@ export function triggerDeath(scene: Scene, engine: Engine, rover: Rover): void {
   failLabel.anchor.setTo(0.5, 0.5);
   scene.add(failLabel);
 
-  setTimeout(() => {
+  runAfter(scene, 1500, () => {
     failLabel.kill();
     // On death (battery or health), cargo is lost; only bank when returning to base.
     const emptyCargo = { iron: 0, crystal: 0, gas: 0 };
     finishRun(emptyCargo, 0, rover.maxCapacity, rover.health);
     engine.goToScene("summary");
-  }, 1500);
+  });
 }

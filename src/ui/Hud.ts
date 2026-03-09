@@ -9,7 +9,7 @@ import {
   Actor,
   Polygon,
 } from "excalibur";
-import type { Rover } from "../entities/Rover";
+import type { CargoCounts } from "../entities/Rover";
 import type { HazardKind } from "../state/GameState";
 import {
   getCurrentGoals,
@@ -17,13 +17,26 @@ import {
   type GoalLiveState,
 } from "../state/RunGoals";
 import type { EdgeIndicator } from "../utils/edgeIndicator";
+import { onSceneEvent, type HudSnapshotEvent } from "../events/GameEvents";
 
 /** @deprecated Use EdgeIndicator from utils/edgeIndicator. Kept for compatibility. */
 export type BaseIndicator = EdgeIndicator;
 
 export class Hud extends ScreenElement {
   private engineRef: Engine;
-  private rover: Rover;
+  private snapshot: {
+    health: number;
+    battery: number;
+    usedCapacity: number;
+    maxCapacity: number;
+    cargo: CargoCounts;
+  } = {
+    health: 0,
+    battery: 0,
+    usedCapacity: 0,
+    maxCapacity: 0,
+    cargo: { iron: 0, crystal: 0, gas: 0 },
+  };
 
   private healthLabel!: Label;
   private batteryLabel!: Label;
@@ -34,10 +47,9 @@ export class Hud extends ScreenElement {
   private baseHintLabel!: Label;
   private baseArrowActor!: Actor;
 
-  constructor(engine: Engine, rover: Rover) {
+  constructor(engine: Engine) {
     super({ x: 0, y: 0 });
     this.engineRef = engine;
-    this.rover = rover;
   }
 
   onInitialize(): void {
@@ -150,6 +162,24 @@ export class Hud extends ScreenElement {
     this.addChild(this.totalLabel);
     this.addChild(this.baseHintLabel);
     this.addChild(this.baseArrowActor);
+
+    if (this.scene) {
+      onSceneEvent<HudSnapshotEvent>(this.scene, "hud:update", (payload) => {
+        this.snapshot = {
+          health: payload.health,
+          battery: payload.battery,
+          usedCapacity: payload.usedCapacity,
+          maxCapacity: payload.maxCapacity,
+          cargo: payload.cargo,
+        };
+        this.updateFromState(
+          payload.isNearBase,
+          payload.hazardHits,
+          payload.biomeName,
+          payload.baseIndicator
+        );
+      });
+    }
   }
 
   updateFromState(
@@ -158,18 +188,24 @@ export class Hud extends ScreenElement {
     biomeName: string,
     baseIndicator: BaseIndicator | null = null
   ): void {
-    this.healthLabel.text = `Health: ${this.rover.health}`;
-    this.batteryLabel.text = `Battery: ${Math.ceil(this.rover.battery)}s`;
-    this.capacityLabel.text = `Cargo: ${this.rover.usedCapacity}/${this.rover.maxCapacity} (left ${this.rover.remainingCapacity()})`;
-    this.cargoLabel.text = `Iron: ${this.rover.cargo.iron}  Crystal: ${this.rover.cargo.crystal}  Gas: ${this.rover.cargo.gas}`;
+    const remainingCapacity = Math.max(
+      0,
+      this.snapshot.maxCapacity - this.snapshot.usedCapacity
+    );
+    this.healthLabel.text = `Health: ${this.snapshot.health}`;
+    this.batteryLabel.text = `Battery: ${Math.ceil(this.snapshot.battery)}s`;
+    this.capacityLabel.text = `Cargo: ${this.snapshot.usedCapacity}/${this.snapshot.maxCapacity} (left ${remainingCapacity})`;
+    this.cargoLabel.text = `Iron: ${this.snapshot.cargo.iron}  Crystal: ${this.snapshot.cargo.crystal}  Gas: ${this.snapshot.cargo.gas}`;
     const totalPieces =
-      this.rover.cargo.iron + this.rover.cargo.crystal + this.rover.cargo.gas;
-    this.totalLabel.text = `${totalPieces} in cargo  |  ${this.rover.usedCapacity}/${this.rover.maxCapacity} slots  |  Biome: ${biomeName}`;
+      this.snapshot.cargo.iron +
+      this.snapshot.cargo.crystal +
+      this.snapshot.cargo.gas;
+    this.totalLabel.text = `${totalPieces} in cargo  |  ${this.snapshot.usedCapacity}/${this.snapshot.maxCapacity} slots  |  Biome: ${biomeName}`;
 
     const liveState: GoalLiveState = {
-      cargo: this.rover.cargo,
-      usedCapacity: this.rover.usedCapacity,
-      maxCapacity: this.rover.maxCapacity,
+      cargo: this.snapshot.cargo,
+      usedCapacity: this.snapshot.usedCapacity,
+      maxCapacity: this.snapshot.maxCapacity,
       hazardHits,
     };
     const goals = getCurrentGoals();

@@ -7,6 +7,7 @@ import {
 } from "../config/gameConfig";
 import { createAmbientEmitter } from "../effects/Particles";
 import { random } from "../utils/seedRandom";
+import type { IHazardTarget } from "../entities/Rover";
 
 function windStrengthMultiplier(): number {
   return 0.85 + random() * 0.45;
@@ -21,6 +22,7 @@ export interface SandstormRegionParams {
   moveSpeed?: number;
   moveDirectionAngle?: number;
   visibilityMultiplier?: number;
+  hazardTarget?: IHazardTarget;
 }
 
 export class SandstormRegion extends Actor {

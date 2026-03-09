@@ -28,11 +28,7 @@ import {
 } from "../config/solarSystemConfig";
 import { SpaceShip } from "../entities/SpaceShip";
 import { Asteroid } from "../entities/Asteroid";
-import {
-  applyGravity,
-  type GravitySource,
-  type GravityReceiver,
-} from "../space/GravitySystem";
+import { GravitySystem } from "../space/GravitySystem";
 import { getShipStats } from "../config/shipConfig";
 import {
   getShipUpgrades,
@@ -44,16 +40,11 @@ import {
   getTouchControlsEnabled,
 } from "../input/TouchInputState";
 import { Keys } from "excalibur";
+import { ParallaxStarField } from "../space/ParallaxStarField";
+import { computeDynamicZoom } from "../space/DynamicZoom";
+import { emitSceneEvent } from "../events/GameEvents";
 
 const STAR_COLOR = Color.fromHex("#fef08a");
-
-/** Parallax star layer: speed factor for drift, and star list. */
-interface ParallaxLayer {
-  speed: number;
-  offsetX: number;
-  offsetY: number;
-  stars: { x: number; y: number; size: number; alpha: number }[];
-}
 
 const PLANET_COLORS: Record<string, string> = {
   home: "#4ade80",
@@ -89,12 +80,9 @@ export class SpaceNavScene extends Scene {
   private smoothedZoom: number = 1;
   /** Hysteresis: only switch nearest body if new one is this much closer (px). */
   private static readonly NEAREST_BODY_HYSTERESIS_PX = 40;
-  private lastNearestBody: SpaceBody | null = null;
+  private lastNearestBodyId: string | null = null;
   private lastNearestDist: number = Infinity;
-  /** Parallax star layers (far, mid, near) for motion sense. */
-  private parallaxLayers: ParallaxLayer[] = [];
-  private parallaxWrapW: number = 0;
-  private parallaxWrapH: number = 0;
+  private parallaxStarField = new ParallaxStarField();
   /** Off-screen planet direction arrows (one per planet, same order as config). */
   private planetIndicatorContainer: ScreenElement | null = null;
   private planetArrowActors: Actor[] = [];
@@ -110,10 +98,10 @@ export class SpaceNavScene extends Scene {
 
   onActivate(): void {
     setCurrentLocation("orbit");
-    this.lastNearestBody = null;
+    this.lastNearestBodyId = null;
     this.lastNearestDist = Infinity;
     this.smoothedZoom = 1;
-    this.initParallaxStars();
+    this.parallaxStarField.init(this.engine.drawWidth, this.engine.drawHeight);
     this.spawnBodies();
   }
 
@@ -127,7 +115,7 @@ export class SpaceNavScene extends Scene {
   }
 
   onPreDraw(ctx: ExcaliburGraphicsContext): void {
-    this.drawParallaxStars(ctx);
+    this.parallaxStarField.draw(ctx);
   }
 
   onPostUpdate(): void {
@@ -149,49 +137,29 @@ export class SpaceNavScene extends Scene {
     const zoomMax = 1.4;
     const zoomLerp = 0.12; // smooth zoom changes to avoid jitter
 
-    const bodies = this.getGravityBodies();
-    let nearestBody: SpaceBody | null = null;
-    let nearestDist = Infinity;
-    const distByBody = new Map<SpaceBody, number>();
-    for (const body of bodies) {
-      const d = this.ship.pos.distance(body.pos);
-      distByBody.set(body, d);
-      if (d < nearestDist) {
-        nearestDist = d;
-        nearestBody = body;
-      }
-    }
-
-    // Hysteresis: only switch to a different nearest body if it's meaningfully closer
-    const hysteresis = SpaceNavScene.NEAREST_BODY_HYSTERESIS_PX;
-    const trueNearestBody = nearestBody;
-    const trueNearestDist = nearestDist;
-    if (
-      this.lastNearestBody != null &&
-      nearestBody !== this.lastNearestBody &&
-      nearestDist > this.lastNearestDist - hysteresis
-    ) {
-      nearestBody = this.lastNearestBody;
-      nearestDist = this.ship.pos.distance(nearestBody.pos);
-    }
-    this.lastNearestBody = nearestBody;
-    this.lastNearestDist = nearestDist;
-
-    // Radius to fit the body we're "tracking" (after hysteresis)
-    const nearestRadius = nearestBody?.radiusPx ?? 0;
-    let radiusToFit = nearestDist + nearestRadius + margin;
-    // When hysteresis kept a different body, also fit the true nearest so it stays in view
-    if (trueNearestBody != null && trueNearestBody !== nearestBody) {
-      const trueDist = distByBody.get(trueNearestBody) ?? trueNearestDist;
-      const trueRadius = trueNearestBody.radiusPx;
-      const trueRadiusToFit = trueDist + trueRadius + margin;
-      radiusToFit = Math.max(radiusToFit, trueRadiusToFit);
-    }
-    const targetZoom =
-      radiusToFit <= 0 ? zoomMax : viewSize / (2 * radiusToFit);
-    const clampedTarget = Math.max(zoomMin, Math.min(zoomMax, targetZoom));
-    this.smoothedZoom += (clampedTarget - this.smoothedZoom) * zoomLerp;
-    this.camera.zoom = this.smoothedZoom;
+    const zoomBodies = this.getGravityBodies().map((body, idx) => ({
+      id: body.bodyId ?? `${body.kind}-${idx}`,
+      distanceToShip: this.ship!.pos.distance(body.pos),
+      radiusPx: body.radiusPx,
+    }));
+    const zoom = computeDynamicZoom(
+      {
+        smoothedZoom: this.smoothedZoom,
+        lastNearestId: this.lastNearestBodyId,
+        lastNearestDist: this.lastNearestDist,
+      },
+      zoomBodies,
+      viewSize,
+      margin,
+      SpaceNavScene.NEAREST_BODY_HYSTERESIS_PX,
+      zoomMin,
+      zoomMax,
+      zoomLerp
+    );
+    this.smoothedZoom = zoom.smoothedZoom;
+    this.lastNearestBodyId = zoom.lastNearestId;
+    this.lastNearestDist = zoom.lastNearestDist;
+    this.camera.zoom = zoom.zoom;
 
     // Update off-screen planet direction arrows. Use resolution (pixel) dimensions,
     // not drawWidth/drawHeight (which are resolution/zoom and wrong for screen space).
@@ -224,41 +192,12 @@ export class SpaceNavScene extends Scene {
     const dt = delta / 1000;
 
     // Update parallax star offsets from ship velocity for sense of motion
-    if (
-      this.ship &&
-      !this.ship.isDestroyed() &&
-      this.parallaxLayers.length > 0
-    ) {
+    if (this.ship && !this.ship.isDestroyed()) {
       const v = this.ship.vel;
-      for (const layer of this.parallaxLayers) {
-        layer.offsetX += v.x * dt * layer.speed;
-        layer.offsetY += v.y * dt * layer.speed;
-        layer.offsetX =
-          ((layer.offsetX % this.parallaxWrapW) + this.parallaxWrapW) %
-          this.parallaxWrapW;
-        layer.offsetY =
-          ((layer.offsetY % this.parallaxWrapH) + this.parallaxWrapH) %
-          this.parallaxWrapH;
-      }
+      this.parallaxStarField.updateOffsets(v.x, v.y, dt);
     }
 
     if (!this.ship) return;
-
-    // Apply gravity via dedicated system (before ship/asteroid onPreUpdate).
-    const bodies = this.getGravityBodies();
-    const sources: GravitySource[] = bodies.map((b) => ({
-      pos: b.pos,
-      mass: b.mass,
-      radiusPx: b.radiusPx,
-    }));
-    const receivers: GravityReceiver[] = [];
-    if (!this.ship.isDestroyed()) {
-      receivers.push({ pos: this.ship.pos, vel: this.ship.vel });
-    }
-    for (const ast of this.asteroids) {
-      if (!ast.isKilled()) receivers.push({ pos: ast.pos, vel: ast.vel });
-    }
-    applyGravity(sources, receivers, dt);
 
     if (!this.ship.isDestroyed()) {
       // Asteroid collision
@@ -346,80 +285,6 @@ export class SpaceNavScene extends Scene {
     }
   }
 
-  private initParallaxStars(): void {
-    const w = this.engine.drawWidth;
-    const h = this.engine.drawHeight;
-    this.parallaxWrapW = w;
-    this.parallaxWrapH = h;
-
-    const random = (min: number, max: number) =>
-      min + Math.random() * (max - min);
-    const layerConfigs = [
-      {
-        speed: 0.01,
-        count: 80,
-        sizeMin: 0.5,
-        sizeMax: 1,
-        alphaMin: 0.3,
-        alphaMax: 0.6,
-      },
-      {
-        speed: 0.03,
-        count: 50,
-        sizeMin: 1,
-        sizeMax: 1.8,
-        alphaMin: 0.5,
-        alphaMax: 0.9,
-      },
-      {
-        speed: 0.08,
-        count: 30,
-        sizeMin: 1.2,
-        sizeMax: 2.2,
-        alphaMin: 0.6,
-        alphaMax: 1,
-      },
-    ];
-
-    this.parallaxLayers = layerConfigs.map((cfg) => ({
-      speed: cfg.speed,
-      offsetX: 0,
-      offsetY: 0,
-      stars: Array.from({ length: cfg.count }, () => ({
-        x: random(0, w),
-        y: random(0, h),
-        size: random(cfg.sizeMin, cfg.sizeMax),
-        alpha: random(cfg.alphaMin, cfg.alphaMax),
-      })),
-    }));
-  }
-
-  private drawParallaxStars(ctx: ExcaliburGraphicsContext): void {
-    const w = this.engine.drawWidth;
-    const h = this.engine.drawHeight;
-    if (this.parallaxLayers.length === 0 || w <= 0 || h <= 0) return;
-
-    ctx.save();
-    ctx.z = -1000;
-
-    for (const layer of this.parallaxLayers) {
-      const ox = layer.offsetX;
-      const oy = layer.offsetY;
-      for (const s of layer.stars) {
-        const sx =
-          (((s.x - ox) % this.parallaxWrapW) + this.parallaxWrapW) %
-          this.parallaxWrapW;
-        const sy =
-          (((s.y - oy) % this.parallaxWrapH) + this.parallaxWrapH) %
-          this.parallaxWrapH;
-        const starColor = Color.fromRGB(255, 255, 255, s.alpha);
-        ctx.drawCircle(vec(sx, sy), s.size, starColor);
-      }
-    }
-
-    ctx.restore();
-  }
-
   private getPlanetInLandingRange(): string | null {
     if (!this.ship) return null;
     let closest: string | null = null;
@@ -485,7 +350,10 @@ export class SpaceNavScene extends Scene {
     const spawnRadius = homePlanet ? homePlanet.orbitRadius + 60 : 460;
     const stats = getShipStats(getShipUpgrades());
     this.ship = new SpaceShip(spawnRadius, 0, stats);
-    this.ship.onDestroyed = () => this.showGameOver();
+    this.ship.onDestroyed = () => {
+      emitSceneEvent(this, "shipDestroyed", undefined);
+      this.showGameOver();
+    };
     this.add(this.ship);
 
     this.spawnAsteroids(config);
@@ -839,6 +707,7 @@ export class SpaceNavScene extends Scene {
 
   onInitialize(): void {
     this.ensureBackButton();
+    this.world.add(new GravitySystem(this.world));
   }
 
   /** All gravity sources (star + planets + moons) for the ship. */

@@ -9,6 +9,10 @@ import {
   Shape,
   type Vector,
 } from "excalibur";
+import type {
+  RoverDamageEvent,
+  RoverFireBlasterEvent,
+} from "../events/GameEvents";
 import type { ResourceId } from "../resources/ResourceTypes";
 import { Resources } from "../resources";
 import {
@@ -167,6 +171,7 @@ export class Rover extends Actor implements IHazardTarget {
   addResource(id: ResourceId, size: number) {
     this.cargo[id] += size;
     this.usedCapacity += size;
+    this.emitStateChanged();
   }
 
   takeDamage(amount: number, damageType: DamageType = "generic") {
@@ -178,8 +183,9 @@ export class Rover extends Actor implements IHazardTarget {
     this.health = Math.max(0, this.health - effective);
     this.damageFlashTimer = 150;
 
-    this.events.emit("damage", { amount: effective });
+    this.events.emit("damage", { amount: effective } as RoverDamageEvent);
     this.onDamaged?.(effective);
+    this.emitStateChanged();
 
     if (this.health <= 0) {
       this.isDisabled = true;
@@ -227,6 +233,7 @@ export class Rover extends Actor implements IHazardTarget {
       this.isDisabled = true;
       this.events.emit("batterydepleted", undefined);
       this.onBatteryDepleted?.();
+      this.emitStateChanged();
       return;
     }
 
@@ -340,7 +347,14 @@ export class Rover extends Actor implements IHazardTarget {
       const damage = this.roverStats.blasterDamage;
       const speed = 600;
       const range = this.roverStats.blasterRange;
-      this.events.emit("fireblaster", { x, y, angle, damage, speed, range });
+      this.events.emit("fireblaster", {
+        x,
+        y,
+        angle,
+        damage,
+        speed,
+        range,
+      } as RoverFireBlasterEvent);
       this.onFireBlaster?.(x, y, angle, damage, speed, range);
     }
 
@@ -355,5 +369,16 @@ export class Rover extends Actor implements IHazardTarget {
     this.slowFactorThisFrame = 1;
     this.accelerationScaleThisFrame = 1;
     this.tractionScaleThisFrame = 1;
+    this.emitStateChanged();
+  }
+
+  private emitStateChanged(): void {
+    this.events.emit("statechanged", {
+      health: this.health,
+      battery: this.battery,
+      usedCapacity: this.usedCapacity,
+      maxCapacity: this.maxCapacity,
+      cargo: { ...this.cargo },
+    });
   }
 }

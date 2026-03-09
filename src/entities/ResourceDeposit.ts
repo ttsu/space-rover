@@ -1,4 +1,4 @@
-import { Actor, CollisionType, SpriteSheet, vec } from "excalibur";
+import { Actor, CollisionType, vec } from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import { ResourceNode } from "./ResourceNode";
 import type { IBlasterTarget } from "./BlasterProjectile";
@@ -7,8 +7,7 @@ import {
   onDepositDamagedAtWorldPos,
   onDepositDestroyedAtWorldPos,
 } from "../world/WorldState";
-import { Resources } from "../resources";
-import { random } from "../utils/seedRandom";
+import { applyResourceSprite } from "../resources/ResourceGraphics";
 
 const DEFAULT_HP = 8;
 
@@ -100,29 +99,6 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
   }
 
   private applySpriteGraphicIfNeeded(): void {
-    let image = null;
-    if (this.resource.id === "iron") {
-      image = Resources.IronDepositSprite;
-    } else if (this.resource.id === "crystal") {
-      image = Resources.CrystalDepositSprite;
-    }
-    if (!image) return;
-
-    const index = this.spriteIndex ?? Math.floor(random() * 4);
-    const spriteSheet = SpriteSheet.fromImageSource({
-      image,
-      grid: {
-        rows: 1,
-        columns: 4,
-        spriteWidth: 64,
-        spriteHeight: 64,
-      },
-    });
-    const sprite = spriteSheet.getSprite(index, 0, {
-      scale: vec(0.5, 0.5),
-    });
-    if (sprite) {
-      this.graphics.use(sprite);
-    }
+    applyResourceSprite(this, this.resource, "deposit", this.spriteIndex);
   }
 }

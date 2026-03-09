@@ -1,4 +1,5 @@
 import { Actor, Circle, Color, Engine, vec, type Vector } from "excalibur";
+import { GravitySourceComponent } from "../world/components/GravityComponents";
 
 export type SpaceBodyKind = "star" | "planet" | "moon";
 
@@ -50,6 +51,7 @@ export class SpaceBody extends Actor {
     this.orbitPeriod = Math.max(0.001, params.orbitPeriod ?? 1);
     this.orbitPhase = params.orbitPhase ?? 0;
     this.orbitParent = params.orbitParent ?? null;
+    this.addComponent(new GravitySourceComponent(this.mass, this.radiusPx));
 
     const circle = new Circle({
       radius: this.radiusPx,

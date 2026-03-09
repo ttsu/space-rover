@@ -27,7 +27,6 @@ import {
   WIND_REGION_RADIUS_PX,
 } from "../config/gameConfig";
 import { DIFFICULTY_MULTIPLIERS } from "../config/difficulty";
-import type { IHazardTarget } from "../entities/Rover";
 import { ResourceDeposit } from "../entities/ResourceDeposit";
 import { ResourceNode } from "../entities/ResourceNode";
 import { LavaPool, RockObstacle } from "../hazards/Hazards";
@@ -41,6 +40,7 @@ import { hashToUnit } from "../utils/worldHash";
 import { FogAffectedComponent } from "./FogOfWar";
 import { Tile } from "./Tile";
 import { getDepositAtTile, tileKey, type WorldState } from "./WorldState";
+import { HazardTargetRegistry } from "../hazards/HazardTargetRegistry";
 
 interface ChunkRecord {
   key: string;
@@ -54,7 +54,7 @@ interface ChunkRecord {
 
 export interface ChunkManagerParams {
   scene: Scene;
-  hazardTarget: IHazardTarget;
+  hazardTargetRegistry: HazardTargetRegistry;
   difficulty: Difficulty;
   seed: number;
   biomePreset: BiomePreset;
@@ -67,7 +67,7 @@ export interface ChunkManagerParams {
 
 export class ChunkManager {
   private scene: Scene;
-  private hazardTarget: IHazardTarget;
+  private hazardTargetRegistry: HazardTargetRegistry;
   private difficulty: Difficulty;
   private seed: number;
   private biomePreset: BiomePreset;
@@ -82,7 +82,7 @@ export class ChunkManager {
 
   constructor(params: ChunkManagerParams) {
     this.scene = params.scene;
-    this.hazardTarget = params.hazardTarget;
+    this.hazardTargetRegistry = params.hazardTargetRegistry;
     this.difficulty = params.difficulty;
     this.seed = params.seed;
     this.biomePreset = params.biomePreset;
@@ -250,13 +250,15 @@ export class ChunkManager {
           continue;
         }
         if (!inBaseSafeZone && content < resourceProb + lavaProb) {
+          const target = this.hazardTargetRegistry.getPrimary();
+          if (!target) continue;
           const lava = new LavaPool(
             gx * TILE_SIZE + TILE_SIZE / 2,
             gy * TILE_SIZE + TILE_SIZE / 2,
             TILE_SIZE,
             TILE_SIZE,
             Color.fromHex("#b91c1c"),
-            this.hazardTarget,
+            target,
             "lava"
           );
           lava.addComponent(new FogAffectedComponent());
@@ -266,13 +268,15 @@ export class ChunkManager {
           continue;
         }
         if (!inBaseSafeZone && content < resourceProb + lavaProb + rockProb) {
+          const target = this.hazardTargetRegistry.getPrimary();
+          if (!target) continue;
           const rock = new RockObstacle(
             gx * TILE_SIZE + TILE_SIZE / 2,
             gy * TILE_SIZE + TILE_SIZE / 2,
             TILE_SIZE,
             TILE_SIZE,
             Color.fromHex("#4b5563"),
-            this.hazardTarget,
+            target,
             "rock"
           );
           rock.addComponent(new FogAffectedComponent());
@@ -313,29 +317,35 @@ export class ChunkManager {
 
     if (hashToUnit(this.seed, "storm-chance", cx, cy) < stormChance) {
       const storm = this.createStorm(cx, cy);
-      this.scene.add(storm);
-      actors.push(storm);
-      storms.push(storm);
-      this.worldActors.push(storm);
-      this.stormRegions.push(storm);
+      if (storm) {
+        this.scene.add(storm);
+        actors.push(storm);
+        storms.push(storm);
+        this.worldActors.push(storm);
+        this.stormRegions.push(storm);
+      }
     }
 
     if (hashToUnit(this.seed, "wind-chance", cx, cy) < windChance) {
       const wind = this.createWind(cx, cy);
-      this.scene.add(wind);
-      actors.push(wind);
-      winds.push(wind);
-      this.worldActors.push(wind);
-      this.windRegions.push(wind);
+      if (wind) {
+        this.scene.add(wind);
+        actors.push(wind);
+        winds.push(wind);
+        this.worldActors.push(wind);
+        this.windRegions.push(wind);
+      }
     }
 
     if (hashToUnit(this.seed, "sandstorm-chance", cx, cy) < sandstormChance) {
       const sandstorm = this.createSandstorm(cx, cy);
-      this.scene.add(sandstorm);
-      actors.push(sandstorm);
-      sandstorms.push(sandstorm);
-      this.worldActors.push(sandstorm);
-      this.sandstormRegions.push(sandstorm);
+      if (sandstorm) {
+        this.scene.add(sandstorm);
+        actors.push(sandstorm);
+        sandstorms.push(sandstorm);
+        this.worldActors.push(sandstorm);
+        this.sandstormRegions.push(sandstorm);
+      }
     }
 
     return { actors, storms, winds, sandstorms };
@@ -367,7 +377,9 @@ export class ChunkManager {
     this.worldActors.push(deposit);
   }
 
-  private createStorm(cx: number, cy: number): StormRegion {
+  private createStorm(cx: number, cy: number): StormRegion | null {
+    const target = this.hazardTargetRegistry.getPrimary();
+    if (!target) return null;
     const [minGx, minGy, maxGx, maxGy] = chunkBounds(cx, cy);
     const gx = Math.floor(
       minGx + hashToUnit(this.seed, "storm-gx", cx, cy) * (maxGx - minGx)
@@ -387,10 +399,13 @@ export class ChunkManager {
       windDirectionAngle: angle,
       moveDirectionAngle: moveAngle,
       windPushStrength: 1000 * strengthMult,
+      hazardTarget: target,
     });
   }
 
-  private createWind(cx: number, cy: number): WindRegion {
+  private createWind(cx: number, cy: number): WindRegion | null {
+    const target = this.hazardTargetRegistry.getPrimary();
+    if (!target) return null;
     const [minGx, minGy, maxGx, maxGy] = chunkBounds(cx, cy);
     const gx = Math.floor(
       minGx + hashToUnit(this.seed, "wind-gx", cx, cy) * (maxGx - minGx)
@@ -410,10 +425,13 @@ export class ChunkManager {
       directionAngle: angle,
       moveDirectionAngle: moveAngle,
       pushStrength: 1000 * strengthMult,
+      hazardTarget: target,
     });
   }
 
-  private createSandstorm(cx: number, cy: number): SandstormRegion {
+  private createSandstorm(cx: number, cy: number): SandstormRegion | null {
+    const target = this.hazardTargetRegistry.getPrimary();
+    if (!target) return null;
     const [minGx, minGy, maxGx, maxGy] = chunkBounds(cx, cy);
     const gx = Math.floor(
       minGx + hashToUnit(this.seed, "sandstorm-gx", cx, cy) * (maxGx - minGx)
@@ -435,6 +453,7 @@ export class ChunkManager {
       moveDirectionAngle: moveAngle,
       pushStrength: 1000 * strengthMult,
       visibilityMultiplier: SANDSTORM_VISIBILITY_MULTIPLIER,
+      hazardTarget: target,
     });
   }
 

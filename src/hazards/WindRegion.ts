@@ -6,6 +6,7 @@ import {
 } from "../config/gameConfig";
 import { random } from "../utils/seedRandom";
 import { createWindDustEmitter } from "../effects/Particles";
+import type { IHazardTarget } from "../entities/Rover";
 
 /** Wind strength variance per region (0.8–1.2). */
 function windStrengthMultiplier(): number {
@@ -20,6 +21,7 @@ export interface WindRegionParams {
   pushStrength?: number;
   moveSpeed?: number;
   moveDirectionAngle?: number;
+  hazardTarget?: IHazardTarget;
 }
 
 /**

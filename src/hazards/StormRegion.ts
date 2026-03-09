@@ -6,6 +6,7 @@ import {
 } from "../config/gameConfig";
 import { random } from "../utils/seedRandom";
 import { createWindDustEmitter } from "../effects/Particles";
+import type { IHazardTarget } from "../entities/Rover";
 
 function windStrengthMultiplier(): number {
   return 0.8 + random() * 0.4;
@@ -19,6 +20,7 @@ export interface StormRegionParams {
   windPushStrength?: number;
   moveSpeed?: number;
   moveDirectionAngle?: number;
+  hazardTarget?: IHazardTarget;
 }
 
 /**
