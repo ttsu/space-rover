@@ -8,7 +8,7 @@ import {
   Label,
   CollisionType,
 } from "excalibur";
-import type { IHazardTarget } from "../entities/Rover";
+import type { IHazardTarget } from "../entities/contracts";
 import type { DamageType } from "../types/DamageTypes";
 import { recordHazardHit, type HazardKind } from "../state/GameState";
 import { LAVA_SLOW_FACTOR } from "../config/gameConfig";

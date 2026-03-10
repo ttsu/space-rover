@@ -7,14 +7,21 @@ import {
   SpriteSheet,
   vec,
   Shape,
-  type Vector,
 } from "excalibur";
 import type {
   RoverDamageEvent,
   RoverFireBlasterEvent,
+  RoverStateChangedEvent,
 } from "../events/GameEvents";
 import type { ResourceId } from "../resources/ResourceTypes";
 import { Resources } from "../resources";
+import type { IHazardTarget, IResourceCollector } from "./contracts";
+import {
+  FogViewerComponent,
+  MagnetismSourceComponent,
+  PlayerTagComponent,
+  WindReceiverComponent,
+} from "../world/components/PlayerComponents";
 import {
   getTouchInput,
   setTouchInput,
@@ -44,15 +51,7 @@ export type BlasterSpawnFn = (
 /** Per-resource max capacity from cargo layout. If set, addResource/canPick enforce per-resource caps. */
 export type CargoConfig = Record<ResourceId, number>;
 
-/** Target for hazards (damage, slow, wind). Used so hazards don't depend on Rover. */
-export interface IHazardTarget {
-  takeDamage(amount: number, damageType?: DamageType): void;
-  applySlow(factor: number): void;
-  getWindResist(): number;
-  getActor(): Actor;
-}
-
-export class Rover extends Actor implements IHazardTarget {
+export class Rover extends Actor implements IHazardTarget, IResourceCollector {
   maxCapacity: number;
   usedCapacity = 0;
   cargo: CargoCounts = {
@@ -73,16 +72,12 @@ export class Rover extends Actor implements IHazardTarget {
   onFireBlaster?: BlasterSpawnFn;
   onBatteryDepleted?: () => void;
 
-  /** Set by PlanetScene each frame; rover adds this to vel after drive velocity. */
-  windEffectThisFrame?: Vector;
-
   private currentSpeed = 0;
   private blasterCooldown = 0;
   private isDisabled = false;
   private slowFactorThisFrame = 1;
   private accelerationScaleThisFrame = 1;
   private tractionScaleThisFrame = 1;
-  private visibilityRadiusMultiplier = 1;
   private damageFlashTimer = 0;
   private readonly maxForwardSpeed: number;
   private readonly maxReverseSpeed: number;
@@ -153,7 +148,7 @@ export class Rover extends Actor implements IHazardTarget {
     this.slowFactorThisFrame = 1;
     this.accelerationScaleThisFrame = 1;
     this.tractionScaleThisFrame = 1;
-    this.visibilityRadiusMultiplier = 1;
+    this.setVisibilityRadiusMultiplier(1);
   }
 
   remainingCapacity(): number {
@@ -207,17 +202,29 @@ export class Rover extends Actor implements IHazardTarget {
     return this;
   }
 
+  onInitialize(): void {
+    this.addComponent(new PlayerTagComponent());
+    this.addComponent(new FogViewerComponent(this.roverStats.visibilityRadius));
+    this.addComponent(new MagnetismSourceComponent(this.roverStats.magnetism));
+    this.addComponent(new WindReceiverComponent(this.getWindResist()));
+  }
+
   setDriveModifiersThisFrame(accelerationScale: number, tractionScale: number) {
     this.accelerationScaleThisFrame = Math.max(0, accelerationScale);
     this.tractionScaleThisFrame = Math.max(0, tractionScale);
   }
 
   setVisibilityRadiusMultiplier(multiplier: number): void {
-    this.visibilityRadiusMultiplier = Math.max(0.1, multiplier);
+    const fogViewer = this.get(FogViewerComponent);
+    if (fogViewer) {
+      fogViewer.multiplier = Math.max(0.1, multiplier);
+    }
   }
 
   getVisibilityRadiusTiles(): number {
-    return this.roverStats.visibilityRadius * this.visibilityRadiusMultiplier;
+    const fogViewer = this.get(FogViewerComponent);
+    if (!fogViewer) return this.roverStats.visibilityRadius;
+    return fogViewer.baseRadiusTiles * fogViewer.multiplier;
   }
 
   onPreUpdate(engine: Engine, delta: number): void {
@@ -321,9 +328,10 @@ export class Rover extends Actor implements IHazardTarget {
 
     const forward = vec(Math.cos(this.rotation), Math.sin(this.rotation));
     this.vel = forward.scale(this.currentSpeed * this.slowFactorThisFrame);
-    if (this.windEffectThisFrame) {
-      this.vel = this.vel.add(this.windEffectThisFrame);
-      this.windEffectThisFrame = undefined;
+    const windReceiver = this.get(WindReceiverComponent);
+    if (windReceiver) {
+      this.vel = this.vel.add(windReceiver.velocityDelta);
+      windReceiver.velocityDelta = vec(0, 0);
     }
 
     if (this.blasterCooldown > 0) {
@@ -379,6 +387,6 @@ export class Rover extends Actor implements IHazardTarget {
       usedCapacity: this.usedCapacity,
       maxCapacity: this.maxCapacity,
       cargo: { ...this.cargo },
-    });
+    } as RoverStateChangedEvent);
   }
 }

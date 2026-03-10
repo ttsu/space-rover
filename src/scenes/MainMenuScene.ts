@@ -17,6 +17,7 @@ import {
   type SaveIndexEntry,
 } from "../state/Saves";
 import { playClick } from "../audio/sounds";
+import { SCENE_KEYS, goToScene } from "../config/sceneKeys";
 
 function formatTotalResources(
   t: SaveIndexEntry["totalResourcesCollected"]
@@ -85,7 +86,7 @@ export class MainMenuScene extends Scene {
         onClick: () => {
           playClick();
           loadSave(entry.id);
-          this.engine.goToScene("planetRunMenu");
+          goToScene(this.engine, SCENE_KEYS.planetRunMenu);
         },
       });
 
@@ -147,7 +148,7 @@ export class MainMenuScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engine.goToScene("difficultySelect");
+        goToScene(this.engine, SCENE_KEYS.difficultySelect);
       },
     });
 

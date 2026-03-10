@@ -35,6 +35,7 @@ import {
 import { saveCurrentSave } from "../state/Saves";
 import { CARGO_MAX_ROWS, DEFAULT_EQUIPPED_IDS } from "../types/roverConfig";
 import type { CargoSlotContentSave } from "../state/Saves";
+import { SCENE_KEYS, goToScene } from "../config/sceneKeys";
 
 const SLOT_COLORS: Record<SlotId, string> = {
   battery: "#facc15",
@@ -565,7 +566,7 @@ export class ConfigureRoverScene extends Scene {
       onClick: () => {
         playClick();
         requestFullscreen().finally(() => {
-          this.engine.goToScene("planet");
+          goToScene(this.engine, SCENE_KEYS.planet);
         });
       },
     });
@@ -583,7 +584,7 @@ export class ConfigureRoverScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engine.goToScene("planetRunMenu");
+        goToScene(this.engine, SCENE_KEYS.planetRunMenu);
       },
     });
 

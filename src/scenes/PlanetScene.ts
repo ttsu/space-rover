@@ -8,25 +8,21 @@ import {
   Keys,
   ScreenElement,
   Actor,
+  CollisionType,
   type ExcaliburGraphicsContext,
 } from "excalibur";
 import { Button } from "../ui/Button";
 import { Rover } from "../entities/Rover";
 import { BlasterProjectile } from "../entities/BlasterProjectile";
 import { BaseLander } from "../entities/BaseLander";
-import { FogVisibilitySystem, drawFogOverlay } from "../world/FogOfWar";
 import {
-  ICE_ACCELERATION_SCALE,
-  ICE_TRACTION_SCALE,
-  TILE_SIZE,
-} from "../config/gameConfig";
-import {
-  resetRunTracking,
-  GameState,
-  recordHazardHit,
-} from "../state/GameState";
+  FogVisibilitySystem,
+  drawFogOverlay,
+  getPrimaryFogViewerData,
+} from "../world/FogOfWar";
+import { TILE_SIZE } from "../config/gameConfig";
+import { resetRunTracking, GameState } from "../state/GameState";
 import { Hud } from "../ui/Hud";
-import { getEdgeIndicator } from "../utils/edgeIndicator";
 import { TouchControls } from "../ui/TouchControls";
 import {
   getTouchControlsEnabled,
@@ -67,13 +63,18 @@ import { HazardTargetRegistry } from "../hazards/HazardTargetRegistry";
 import { PlanetWindSystem } from "../systems/PlanetWindSystem";
 import { PlanetLightningUpdateSystem } from "../systems/PlanetLightningUpdateSystem";
 import { MagnetismSystem } from "../systems/MagnetismSystem";
+import { PlayerTagComponent } from "../world/components/PlayerComponents";
+import { PlanetRunController } from "./PlanetRunController";
+import { BlasterTargetRegistry } from "../hazards/BlasterTargetRegistry";
+import { SCENE_KEYS, goToScene } from "../config/sceneKeys";
 import {
   emitSceneEvent,
   onSceneEvent,
-  type HudSnapshotEvent,
+  type HudContextEvent,
   type ProjectileSpawnRequestedEvent,
   type RoverDamageEvent,
   type RoverFireBlasterEvent,
+  type RoverStateChangedEvent,
 } from "../events/GameEvents";
 
 const TOUCH_TOGGLE_KEY = Keys.T;
@@ -90,14 +91,17 @@ export class PlanetScene extends Scene {
   private windRegions: WindRegion[] = [];
   private sandstormRegions: SandstormRegion[] = [];
   private hazardTargetRegistry = new HazardTargetRegistry();
+  private blasterTargetRegistry = new BlasterTargetRegistry();
   private lightningSystem: LightningSystem | null = null;
   private lightningUpdateSystem: PlanetLightningUpdateSystem | null = null;
   private windSystem: PlanetWindSystem | null = null;
   private chunkManager: ChunkManager | null = null;
+  private runController: PlanetRunController | null = null;
   private worldState: WorldState | null = null;
-  private quakeTimer = 0;
   private runEnded = false;
   private hasInitializedActors = false;
+  private isPlayerInBaseTrigger = false;
+  private baseReturnTrigger?: Actor;
 
   constructor(_engine: Engine) {
     super();
@@ -108,7 +112,7 @@ export class PlanetScene extends Scene {
     resetRunTracking();
     const save = getCurrentSave();
     if (!save) {
-      this.engine.goToScene("mainMenu");
+      goToScene(this.engine, SCENE_KEYS.mainMenu);
       return;
     }
     this.lightningSystem?.dispose();
@@ -119,6 +123,7 @@ export class PlanetScene extends Scene {
     this.chunkManager?.destroy();
     for (const a of this.worldActors) a.kill();
     this.worldActors.length = 0;
+    this.blasterTargetRegistry.clear();
     this.stormRegions.length = 0;
     this.windRegions.length = 0;
     this.sandstormRegions.length = 0;
@@ -134,6 +139,7 @@ export class PlanetScene extends Scene {
     this.chunkManager = new ChunkManager({
       scene: this,
       hazardTargetRegistry: this.hazardTargetRegistry,
+      blasterTargetRegistry: this.blasterTargetRegistry,
       difficulty: save.difficulty,
       seed: save.seed,
       biomePreset: save.biomePreset ?? "mixed",
@@ -159,11 +165,25 @@ export class PlanetScene extends Scene {
     );
     this.world.add(this.lightningUpdateSystem);
     this.runEnded = false;
+    this.isPlayerInBaseTrigger = false;
     this.windSystem?.reset();
     this.rover.setVisibilityRadiusMultiplier(1);
     this.rover.resetForNewMission();
     this.rover.pos.x = this.basePos.x;
     this.rover.pos.y = this.basePos.y - TILE_SIZE;
+    if (!this.runController) {
+      this.runController = new PlanetRunController({
+        basePos: this.basePos,
+        sandstormRegions: this.sandstormRegions,
+        chunkManager: this.chunkManager,
+      });
+    }
+    this.runController?.reset({
+      basePos: this.basePos,
+      sandstormRegions: this.sandstormRegions,
+      chunkManager: this.chunkManager,
+    });
+    this.setupBaseReturnTrigger();
   }
 
   onInitialize() {
@@ -241,6 +261,9 @@ export class PlanetScene extends Scene {
       emitSceneEvent(this, "runEnded", { reason: "death" });
       this.triggerDeath();
     });
+    this.rover.events.on("statechanged", (evt) => {
+      emitSceneEvent(this, "hud:state", evt as RoverStateChangedEvent);
+    });
 
     this.hud = new Hud(this.engine);
     this.hud.z = 1000;
@@ -252,21 +275,30 @@ export class PlanetScene extends Scene {
 
     this.camera.strategy.lockToActor(this.rover);
 
-    this.world.add(new FogVisibilitySystem(this.world, this.rover));
-    this.world.add(new MagnetismSystem(this.world, this.rover));
+    this.world.add(new FogVisibilitySystem(this.world, this));
+    this.world.add(new MagnetismSystem(this.world));
     this.windSystem = new PlanetWindSystem({
-      rover: this.rover,
+      world: this.world,
       windRegions: this.windRegions,
       stormRegions: this.stormRegions,
       sandstormRegions: this.sandstormRegions,
     });
     this.world.add(this.windSystem);
+    this.runController = new PlanetRunController({
+      basePos: this.basePos,
+      sandstormRegions: this.sandstormRegions,
+      chunkManager: this.chunkManager,
+    });
+    this.setupBaseReturnTrigger();
   }
 
   onPostDraw(ctx: ExcaliburGraphicsContext, _elapsed: number): void {
+    const viewer = getPrimaryFogViewerData(this.world);
+    if (!viewer) return;
     drawFogOverlay(
       ctx,
-      this.rover,
+      viewer.pos,
+      viewer.visibilityRadiusTiles,
       this.camera,
       this.engine.drawWidth,
       this.engine.drawHeight
@@ -319,17 +351,60 @@ export class PlanetScene extends Scene {
     }
   }
 
+  private setupBaseReturnTrigger(): void {
+    this.baseReturnTrigger?.kill();
+    const trigger = new Actor({
+      pos: this.basePos.clone(),
+      width: 160,
+      height: 160,
+      anchor: vec(0.5, 0.5),
+      color: Color.Transparent,
+    });
+    trigger.body.collisionType = CollisionType.Passive;
+    trigger.on("collisionstart", (evt) => {
+      if (evt.other.owner.get(PlayerTagComponent)) {
+        this.isPlayerInBaseTrigger = true;
+      }
+    });
+    trigger.on("collisionend", (evt) => {
+      if (evt.other.owner.get(PlayerTagComponent)) {
+        this.isPlayerInBaseTrigger = false;
+      }
+    });
+    this.baseReturnTrigger = trigger;
+    this.add(trigger);
+    this.worldActors.push(trigger);
+  }
+
   private triggerReturnToBase(): void {
     this.runEnded = true;
     emitSceneEvent(this, "runEnded", { reason: "return" });
     this.persistWorldState();
-    runFlowReturnToBase(this, this.engine, this.rover, this.basePos);
+    runFlowReturnToBase(
+      this,
+      this.engine,
+      {
+        cargo: this.rover.cargo,
+        usedCapacity: this.rover.usedCapacity,
+        maxCapacity: this.rover.maxCapacity,
+        health: this.rover.health,
+        pos: this.rover.pos.clone(),
+        moveTo: (target, speed) => this.rover.actions.moveTo(target, speed),
+      },
+      this.basePos
+    );
   }
 
   private triggerDeath(): void {
     this.runEnded = true;
     this.persistWorldState();
-    runFlowDeath(this, this.engine, this.rover);
+    runFlowDeath(this, this.engine, {
+      cargo: this.rover.cargo,
+      usedCapacity: this.rover.usedCapacity,
+      maxCapacity: this.rover.maxCapacity,
+      health: this.rover.health,
+      pos: this.rover.pos.clone(),
+    });
   }
 
   onDeactivate(): void {
@@ -361,12 +436,18 @@ export class PlanetScene extends Scene {
       return;
     }
 
-    if (!this.runEnded) {
-      this.chunkManager?.update(this.rover.pos.x, this.rover.pos.y);
+    if (!this.runEnded && this.runController?.update(this.rover.pos, delta)) {
+      this.engine.currentScene.camera.shake(5, 5, 500);
     }
 
-    const distanceToBase = this.rover.pos.distance(this.basePos);
-    const closeToBase = distanceToBase < 80;
+    const runSnapshot = this.runController?.getSnapshot(
+      this.rover.pos,
+      this.camera.pos,
+      this.engine.drawWidth,
+      this.engine.drawHeight
+    );
+    const closeToBase =
+      (runSnapshot?.isNearBase ?? false) || this.isPlayerInBaseTrigger;
 
     if (!this.runEnded && closeToBase) {
       const keyboard = engine.input.keyboard;
@@ -375,60 +456,20 @@ export class PlanetScene extends Scene {
       }
     }
 
-    this.quakeTimer += delta;
-    if (this.quakeTimer > 15000) {
-      this.quakeTimer = 0;
-      this.engine.currentScene.camera.shake(5, 5, 500);
-      recordHazardHit("quake");
-    }
-
-    const biomeId = this.chunkManager
-      ? this.chunkManager.getBiomeAtWorldPos(this.rover.pos.x, this.rover.pos.y)
-      : "barren";
-
-    const onIcePatch = this.chunkManager
-      ? this.chunkManager.isIceHazardAtWorldPos(
-          this.rover.pos.x,
-          this.rover.pos.y
-        )
-      : false;
     this.rover.setDriveModifiersThisFrame(
-      onIcePatch ? ICE_ACCELERATION_SCALE : 1,
-      onIcePatch ? ICE_TRACTION_SCALE : 1
+      runSnapshot?.accelerationScale ?? 1,
+      runSnapshot?.tractionScale ?? 1
+    );
+    this.rover.setVisibilityRadiusMultiplier(
+      runSnapshot?.visibilityMultiplier ?? 1
     );
 
-    let sandstormVisibilityMultiplier = 1;
-    for (const sandstorm of this.sandstormRegions) {
-      if (sandstorm.isKilled()) continue;
-      if (!sandstorm.containsWorldPoint(this.rover.pos.x, this.rover.pos.y)) {
-        continue;
-      }
-      sandstormVisibilityMultiplier = Math.min(
-        sandstormVisibilityMultiplier,
-        sandstorm.visibilityMultiplier
-      );
-    }
-    this.rover.setVisibilityRadiusMultiplier(sandstormVisibilityMultiplier);
-
-    const baseIndicator = getEdgeIndicator(
-      this.basePos.x,
-      this.basePos.y,
-      this.camera.pos,
-      this.engine.drawWidth,
-      this.engine.drawHeight
-    );
-    const hudSnapshot: HudSnapshotEvent = {
-      health: this.rover.health,
-      battery: this.rover.battery,
-      usedCapacity: this.rover.usedCapacity,
-      maxCapacity: this.rover.maxCapacity,
-      cargo: { ...this.rover.cargo },
-      biomeName: biomeLabel(biomeId),
+    emitSceneEvent(this, "hud:context", {
+      biomeName: runSnapshot?.biomeName ?? biomeLabel("barren"),
       isNearBase: closeToBase,
-      baseIndicator,
+      baseIndicator: runSnapshot?.baseIndicator ?? null,
       hazardHits: { ...GameState.currentHazardsHit },
-    };
-    emitSceneEvent(this, "hud:update", hudSnapshot);
+    } satisfies HudContextEvent);
 
     if (this.returnToShipBtn) {
       this.returnToShipBtn.graphics.isVisible = !this.runEnded && closeToBase;
@@ -451,19 +492,6 @@ export class PlanetScene extends Scene {
     fromX: number,
     fromY: number
   ): Actor | undefined {
-    const from = vec(fromX, fromY);
-    let nearest: Actor | undefined;
-    let nearestDist = Infinity;
-    for (const actor of this.actors) {
-      if (actor === this.rover) continue;
-      const target = actor as { takeBlasterDamage?: (n: number) => void };
-      if (typeof target.takeBlasterDamage !== "function") continue;
-      const d = actor.pos.distance(from);
-      if (d < nearestDist) {
-        nearestDist = d;
-        nearest = actor;
-      }
-    }
-    return nearest;
+    return this.blasterTargetRegistry.findNearest(fromX, fromY);
   }
 }

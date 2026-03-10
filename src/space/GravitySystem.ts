@@ -66,7 +66,10 @@ export class GravitySystem extends System {
 
   constructor(world: World) {
     super();
-    this.sourceQuery = world.query([GravitySourceComponent, TransformComponent]);
+    this.sourceQuery = world.query([
+      GravitySourceComponent,
+      TransformComponent,
+    ]);
     this.receiverQuery = world.query([
       GravityReceiverComponent,
       TransformComponent,

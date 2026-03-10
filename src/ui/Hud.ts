@@ -16,11 +16,12 @@ import {
   isGoalSatisfied,
   type GoalLiveState,
 } from "../state/RunGoals";
-import type { EdgeIndicator } from "../utils/edgeIndicator";
-import { onSceneEvent, type HudSnapshotEvent } from "../events/GameEvents";
-
-/** @deprecated Use EdgeIndicator from utils/edgeIndicator. Kept for compatibility. */
-export type BaseIndicator = EdgeIndicator;
+import {
+  onSceneEvent,
+  type HudContextEvent,
+  type RoverStateChangedEvent,
+} from "../events/GameEvents";
+import { Panel } from "./Panel";
 
 export class Hud extends ScreenElement {
   private engineRef: Engine;
@@ -36,6 +37,19 @@ export class Hud extends ScreenElement {
     usedCapacity: 0,
     maxCapacity: 0,
     cargo: { iron: 0, crystal: 0, gas: 0 },
+  };
+  private context: HudContextEvent = {
+    biomeName: "",
+    isNearBase: false,
+    baseIndicator: null,
+    hazardHits: {
+      lava: 0,
+      rock: 0,
+      lightning: 0,
+      wind: 0,
+      sandstorm: 0,
+      quake: 0,
+    },
   };
 
   private healthLabel!: Label;
@@ -121,7 +135,6 @@ export class Hud extends ScreenElement {
         font: goalFont,
       });
       this.goalLabels.push(lbl);
-      this.addChild(lbl);
     }
 
     this.baseHintLabel = new Label({
@@ -155,39 +168,68 @@ export class Hud extends ScreenElement {
     this.baseArrowActor.graphics.use(arrowGraphic);
     this.baseArrowActor.graphics.isVisible = false;
 
-    this.addChild(this.healthLabel);
-    this.addChild(this.batteryLabel);
-    this.addChild(this.capacityLabel);
-    this.addChild(this.cargoLabel);
-    this.addChild(this.totalLabel);
+    // add panels to the hud
+    // 1. health panel - top left
+    // 2. mission goals panel - top right
+    // 3 cargo panel - bottom left
+
+    const healthPanel = new Panel({
+      pos: vec(16, 32),
+      width: 300,
+      height: 200,
+      // futuristic blue tint
+      tint: Color.fromHex("#007bff"),
+    });
+    this.addChild(healthPanel);
+    healthPanel.addChild(this.healthLabel);
+    healthPanel.addChild(this.batteryLabel);
+
+    const missionGoalsPanel = new Panel({
+      pos: vec(this.engineRef.screen.width - 300 - 32, 32),
+      width: 300,
+      height: 200,
+    });
+    this.addChild(missionGoalsPanel);
+    for (const goalLabel of this.goalLabels) {
+      missionGoalsPanel.addChild(goalLabel);
+    }
+
+    const cargoPanel = new Panel({
+      pos: vec(32, this.engineRef.screen.height - 200 - 32),
+      width: 300,
+      height: 200,
+    });
+    this.addChild(cargoPanel);
+    cargoPanel.addChild(this.cargoLabel);
+    cargoPanel.addChild(this.capacityLabel);
+    cargoPanel.addChild(this.totalLabel);
+
     this.addChild(this.baseHintLabel);
     this.addChild(this.baseArrowActor);
 
     if (this.scene) {
-      onSceneEvent<HudSnapshotEvent>(this.scene, "hud:update", (payload) => {
-        this.snapshot = {
-          health: payload.health,
-          battery: payload.battery,
-          usedCapacity: payload.usedCapacity,
-          maxCapacity: payload.maxCapacity,
-          cargo: payload.cargo,
-        };
-        this.updateFromState(
-          payload.isNearBase,
-          payload.hazardHits,
-          payload.biomeName,
-          payload.baseIndicator
-        );
+      onSceneEvent<RoverStateChangedEvent>(
+        this.scene,
+        "hud:state",
+        (payload) => {
+          this.snapshot = {
+            health: payload.health,
+            battery: payload.battery,
+            usedCapacity: payload.usedCapacity,
+            maxCapacity: payload.maxCapacity,
+            cargo: payload.cargo,
+          };
+          this.updateFromState();
+        }
+      );
+      onSceneEvent<HudContextEvent>(this.scene, "hud:context", (payload) => {
+        this.context = payload;
+        this.updateFromState();
       });
     }
   }
 
-  updateFromState(
-    isNearBase: boolean,
-    hazardHits: Record<HazardKind, number>,
-    biomeName: string,
-    baseIndicator: BaseIndicator | null = null
-  ): void {
+  updateFromState(): void {
     const remainingCapacity = Math.max(
       0,
       this.snapshot.maxCapacity - this.snapshot.usedCapacity
@@ -200,13 +242,13 @@ export class Hud extends ScreenElement {
       this.snapshot.cargo.iron +
       this.snapshot.cargo.crystal +
       this.snapshot.cargo.gas;
-    this.totalLabel.text = `${totalPieces} in cargo  |  ${this.snapshot.usedCapacity}/${this.snapshot.maxCapacity} slots  |  Biome: ${biomeName}`;
+    this.totalLabel.text = `${totalPieces} in cargo  |  ${this.snapshot.usedCapacity}/${this.snapshot.maxCapacity} slots  |  Biome: ${this.context.biomeName}`;
 
     const liveState: GoalLiveState = {
       cargo: this.snapshot.cargo,
       usedCapacity: this.snapshot.usedCapacity,
       maxCapacity: this.snapshot.maxCapacity,
-      hazardHits,
+      hazardHits: this.context.hazardHits as Record<HazardKind, number>,
     };
     const goals = getCurrentGoals();
     for (let i = 0; i < this.goalLabels.length; i++) {
@@ -225,14 +267,16 @@ export class Hud extends ScreenElement {
       }
     }
 
-    this.baseHintLabel.text = isNearBase ? "Press Enter to return to ship" : "";
+    this.baseHintLabel.text = this.context.isNearBase
+      ? "Press Enter to return to ship"
+      : "";
 
-    if (baseIndicator) {
+    if (this.context.baseIndicator) {
       this.baseArrowActor.pos = vec(
-        baseIndicator.screenX,
-        baseIndicator.screenY
+        this.context.baseIndicator.screenX,
+        this.context.baseIndicator.screenY
       );
-      this.baseArrowActor.rotation = baseIndicator.angleRad;
+      this.baseArrowActor.rotation = this.context.baseIndicator.angleRad;
       this.baseArrowActor.graphics.isVisible = true;
     } else {
       this.baseArrowActor.graphics.isVisible = false;

@@ -10,6 +10,7 @@ import { SummaryScene } from "./scenes/SummaryScene";
 import { ConfigureRoverScene } from "./scenes/ConfigureRoverScene";
 import { SpaceshipScene } from "./scenes/SpaceshipScene";
 import { SpaceNavScene } from "./scenes/SpaceNavScene";
+import { SCENE_KEYS, goToScene } from "./config/sceneKeys";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
 
@@ -25,15 +26,15 @@ const engine = new Engine({
   backgroundColor: Color.fromHex("#050816"),
 });
 
-engine.add("splash", new SplashScene(engine));
-engine.add("mainMenu", new MainMenuScene(engine));
-engine.add("difficultySelect", new DifficultySelectScene(engine));
-engine.add("planetRunMenu", new PlanetRunMenuScene(engine));
-engine.add("planet", new PlanetScene(engine));
-engine.add("summary", new SummaryScene(engine));
-engine.add("configureRover", new ConfigureRoverScene(engine));
-engine.add("spaceship", new SpaceshipScene(engine));
-engine.add("spaceNav", new SpaceNavScene(engine));
+engine.add(SCENE_KEYS.splash, new SplashScene(engine));
+engine.add(SCENE_KEYS.mainMenu, new MainMenuScene(engine));
+engine.add(SCENE_KEYS.difficultySelect, new DifficultySelectScene(engine));
+engine.add(SCENE_KEYS.planetRunMenu, new PlanetRunMenuScene(engine));
+engine.add(SCENE_KEYS.planet, new PlanetScene(engine));
+engine.add(SCENE_KEYS.summary, new SummaryScene(engine));
+engine.add(SCENE_KEYS.configureRover, new ConfigureRoverScene(engine));
+engine.add(SCENE_KEYS.spaceship, new SpaceshipScene(engine));
+engine.add(SCENE_KEYS.spaceNav, new SpaceNavScene(engine));
 
-engine.goToScene("splash");
+goToScene(engine, SCENE_KEYS.splash);
 engine.start(loader);

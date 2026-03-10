@@ -6,21 +6,35 @@ import {
   vec,
   Font,
   FontUnit,
-  Actor,
+  Timer,
+  Vector,
 } from "excalibur";
-import type { Rover } from "../entities/Rover";
-import type { Vector } from "excalibur";
+import type { CargoCounts } from "../entities/Rover";
 import { finishRun } from "../state/GameState";
 import { burst, risingBurst } from "../effects/Particles";
 import { playDock, playDeath } from "../audio/sounds";
+import { SCENE_KEYS, goToScene } from "../config/sceneKeys";
 
 function runAfter(scene: Scene, delayMs: number, fn: () => void): void {
-  const timerActor = new Actor({ x: -9999, y: -9999, width: 1, height: 1 });
-  scene.add(timerActor);
-  timerActor.actions.delay(delayMs).callMethod(() => {
-    fn();
-    timerActor.kill();
+  const timer = new Timer({
+    interval: delayMs,
+    repeats: false,
+    fcn: () => {
+      fn();
+      timer.cancel();
+    },
   });
+  scene.add(timer);
+  timer.start();
+}
+
+export interface RunFlowSubject {
+  cargo: CargoCounts;
+  usedCapacity: number;
+  maxCapacity: number;
+  health: number;
+  pos: Vector;
+  moveTo?: (target: Vector, speed: number) => void;
 }
 
 /**
@@ -30,7 +44,7 @@ function runAfter(scene: Scene, delayMs: number, fn: () => void): void {
 export function triggerReturnToBase(
   scene: Scene,
   engine: Engine,
-  rover: Rover,
+  subject: RunFlowSubject,
   basePos: Vector
 ): void {
   playDock();
@@ -60,12 +74,17 @@ export function triggerReturnToBase(
   scene.add(bankedLabel);
 
   const roverTarget = basePos.clone();
-  rover.actions.moveTo(roverTarget, 120);
+  subject.moveTo?.(roverTarget, 120);
 
   runAfter(scene, 1200, () => {
     bankedLabel.kill();
-    finishRun(rover.cargo, rover.usedCapacity, rover.maxCapacity, rover.health);
-    engine.goToScene("summary");
+    finishRun(
+      subject.cargo,
+      subject.usedCapacity,
+      subject.maxCapacity,
+      subject.health
+    );
+    goToScene(engine, SCENE_KEYS.summary);
   });
 }
 
@@ -73,12 +92,16 @@ export function triggerReturnToBase(
  * Handles the death flow: effects, label, then finishRun and scene transition.
  * Caller should set runEnded = true before calling.
  */
-export function triggerDeath(scene: Scene, engine: Engine, rover: Rover): void {
+export function triggerDeath(
+  scene: Scene,
+  engine: Engine,
+  subject: RunFlowSubject
+): void {
   playDeath();
 
   engine.currentScene.camera.shake(8, 8, 500);
 
-  burst(scene, rover.pos.x, rover.pos.y, {
+  burst(scene, subject.pos.x, subject.pos.y, {
     color: Color.fromHex("#ef4444"),
     count: 20,
     speedMin: 40,
@@ -105,7 +128,7 @@ export function triggerDeath(scene: Scene, engine: Engine, rover: Rover): void {
     failLabel.kill();
     // On death (battery or health), cargo is lost; only bank when returning to base.
     const emptyCargo = { iron: 0, crystal: 0, gas: 0 };
-    finishRun(emptyCargo, 0, rover.maxCapacity, rover.health);
-    engine.goToScene("summary");
+    finishRun(emptyCargo, 0, subject.maxCapacity, subject.health);
+    goToScene(engine, SCENE_KEYS.summary);
   });
 }

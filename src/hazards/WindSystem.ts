@@ -1,5 +1,4 @@
 import { vec, type Vector } from "excalibur";
-import type { IHazardTarget } from "../entities/Rover";
 import type { WindRegion } from "./WindRegion";
 import type { StormRegion } from "./StormRegion";
 import type { SandstormRegion } from "./SandstormRegion";
@@ -11,16 +10,16 @@ import { WIND_MAX_ACCEL_PER_FRAME } from "../config/gameConfig";
  * after it has set velocity from input (so wind is not overwritten).
  */
 export function getWindVelocityDelta(
-  target: IHazardTarget,
+  x: number,
+  y: number,
+  windResist: number,
   windRegions: WindRegion[],
   stormRegions: StormRegion[],
   sandstormRegions: SandstormRegion[],
   deltaMs: number
 ): Vector {
-  const actor = target.getActor();
-  const rx = actor.pos.x;
-  const ry = actor.pos.y;
-  const windResist = target.getWindResist();
+  const rx = x;
+  const ry = y;
   const factor = (1 - windResist) * (deltaMs / 1000);
   let ax = 0;
   let ay = 0;

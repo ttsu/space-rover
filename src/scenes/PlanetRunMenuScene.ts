@@ -31,6 +31,7 @@ import {
 } from "../state/RunGoals";
 import { playClick } from "../audio/sounds";
 import { getCurrentSave } from "../state/Saves";
+import { SCENE_KEYS, goToScene } from "../config/sceneKeys";
 
 export class PlanetRunMenuScene extends Scene {
   private bankLabel!: Label;
@@ -181,7 +182,7 @@ export class PlanetRunMenuScene extends Scene {
         playClick();
         setCurrentGoals(this.goalChoices);
         requestFullscreen().finally(() => {
-          this.engine.goToScene("planet");
+          goToScene(this.engine, SCENE_KEYS.planet);
         });
       },
     });
@@ -199,7 +200,7 @@ export class PlanetRunMenuScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engine.goToScene("configureRover");
+        goToScene(this.engine, SCENE_KEYS.configureRover);
       },
     });
 
@@ -216,7 +217,7 @@ export class PlanetRunMenuScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engine.goToScene("spaceship");
+        goToScene(this.engine, SCENE_KEYS.spaceship);
       },
     });
     this.spaceshipButton.graphics.isVisible = isShipRepaired();
@@ -258,7 +259,7 @@ export class PlanetRunMenuScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engine.goToScene("mainMenu");
+        goToScene(this.engine, SCENE_KEYS.mainMenu);
       },
     });
 

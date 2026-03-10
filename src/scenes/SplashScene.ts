@@ -11,6 +11,7 @@ import {
 } from "excalibur";
 import { requestFullscreen } from "../fullscreen";
 import { Button } from "../ui/Button";
+import { SCENE_KEYS, goToScene } from "../config/sceneKeys";
 
 export class SplashScene extends Scene {
   constructor(_engine: Engine) {
@@ -46,7 +47,7 @@ export class SplashScene extends Scene {
       }),
       onClick: () => {
         requestFullscreen().finally(() => {
-          this.engine.goToScene("mainMenu");
+          goToScene(this.engine, SCENE_KEYS.mainMenu);
         });
       },
     });

@@ -16,12 +16,15 @@ export interface RoverFireBlasterEvent {
   range: number;
 }
 
-export interface HudSnapshotEvent {
+export interface RoverStateChangedEvent {
   health: number;
   battery: number;
   usedCapacity: number;
   maxCapacity: number;
   cargo: CargoCounts;
+}
+
+export interface HudContextEvent {
   biomeName: string;
   isNearBase: boolean;
   baseIndicator: EdgeIndicator | null;

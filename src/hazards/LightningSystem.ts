@@ -8,7 +8,7 @@ import {
   CollisionType,
 } from "excalibur";
 import type { StormRegion } from "./StormRegion";
-import type { IHazardTarget } from "../entities/Rover";
+import type { IHazardTarget } from "../entities/contracts";
 import { recordHazardHit } from "../state/GameState";
 import {
   LIGHTNING_STRIKES_PER_MINUTE,

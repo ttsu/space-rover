@@ -43,6 +43,7 @@ import { Keys } from "excalibur";
 import { ParallaxStarField } from "../space/ParallaxStarField";
 import { computeDynamicZoom } from "../space/DynamicZoom";
 import { emitSceneEvent } from "../events/GameEvents";
+import { SCENE_KEYS, goToScene } from "../config/sceneKeys";
 
 const STAR_COLOR = Color.fromHex("#fef08a");
 
@@ -304,7 +305,7 @@ export class SpaceNavScene extends Scene {
   private doLand(planetId: string): void {
     setCurrentPlanetId(planetId);
     setCurrentLocation("planet");
-    this.engine.goToScene("planetRunMenu");
+    goToScene(this.engine, SCENE_KEYS.planetRunMenu);
   }
 
   private spawnBodies(): void {
@@ -435,7 +436,7 @@ export class SpaceNavScene extends Scene {
         playClick();
         this.gameOverOverlay?.kill();
         this.gameOverOverlay = null;
-        this.engine.goToScene("planetRunMenu");
+        goToScene(this.engine, SCENE_KEYS.planetRunMenu);
       },
     });
     overlay.addChild(backBtn);
@@ -454,7 +455,7 @@ export class SpaceNavScene extends Scene {
         playClick();
         this.gameOverOverlay?.kill();
         this.gameOverOverlay = null;
-        this.engine.goToScene("mainMenu");
+        goToScene(this.engine, SCENE_KEYS.mainMenu);
       },
     });
     overlay.addChild(menuBtn);
@@ -697,7 +698,7 @@ export class SpaceNavScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engine.goToScene("spaceship");
+        goToScene(this.engine, SCENE_KEYS.spaceship);
       },
     });
     container.addChild(backButton);

@@ -52,7 +52,10 @@ export function computeDynamicZoom(
   if (nearestId) {
     for (const body of bodies) {
       if (body.id === nearestId) continue;
-      radiusToFit = Math.max(radiusToFit, body.distanceToShip + body.radiusPx + margin);
+      radiusToFit = Math.max(
+        radiusToFit,
+        body.distanceToShip + body.radiusPx + margin
+      );
     }
   }
 

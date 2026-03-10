@@ -12,6 +12,7 @@ import {
 import { createSave, type Difficulty } from "../state/Saves";
 import { Button } from "../ui/Button";
 import { playClick } from "../audio/sounds";
+import { SCENE_KEYS, goToScene } from "../config/sceneKeys";
 
 const DIFFICULTIES: { id: Difficulty; label: string }[] = [
   { id: "easy", label: "Easy" },
@@ -61,7 +62,7 @@ export class DifficultySelectScene extends Scene {
         onClick: () => {
           playClick();
           createSave(d.id);
-          this.engine.goToScene("planetRunMenu");
+          goToScene(this.engine, SCENE_KEYS.planetRunMenu);
         },
       });
       this.add(btn);

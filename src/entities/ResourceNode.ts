@@ -1,13 +1,6 @@
-import {
-  Actor,
-  Color,
-  Label,
-  vec,
-  Font,
-  FontUnit,
-} from "excalibur";
+import { Actor, Color, Label, vec, Font, FontUnit } from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
-import { Rover } from "./Rover";
+import type { IResourceCollector } from "./contracts";
 import { risingBurst } from "../effects/Particles";
 import { playPickup } from "../audio/sounds";
 import { onResourceCollectedAtWorldPos } from "../world/WorldState";
@@ -44,9 +37,14 @@ export class ResourceNode extends Actor {
     this.addComponent(new MagneticResourceComponent());
     this.on("collisionstart", (evt) => {
       const other = evt.other.owner;
-      if (other instanceof Rover) {
-        if (other.canPick(this.resource.id, this.sizeUnits)) {
-          other.addResource(this.resource.id, this.sizeUnits);
+      const collector = other as unknown as IResourceCollector;
+      if (
+        collector &&
+        typeof collector.canPick === "function" &&
+        typeof collector.addResource === "function"
+      ) {
+        if (collector.canPick(this.resource.id, this.sizeUnits)) {
+          collector.addResource(this.resource.id, this.sizeUnits);
           const scene = this.scene;
           if (scene) {
             risingBurst(scene, this.pos.x, this.pos.y, {
@@ -62,7 +60,7 @@ export class ResourceNode extends Actor {
           onResourceCollectedAtWorldPos(this.pos.x, this.pos.y);
           this.kill();
         } else {
-          const shortage = this.sizeUnits - other.remainingCapacity();
+          const shortage = this.sizeUnits - collector.remainingCapacity();
           const shortageText = shortage > 0 ? `${shortage}` : "0";
           this.showPopup(
             `Not enough space.\nNeed ${this.sizeUnits}, short by ${shortageText}.`,

@@ -4,6 +4,7 @@ import { GameState } from "../state/GameState";
 import { getBank } from "../state/Progress";
 import { getGoalResults } from "../state/RunGoals";
 import { playClick } from "../audio/sounds";
+import { SCENE_KEYS, goToScene } from "../config/sceneKeys";
 
 export class SummaryScene extends Scene {
   private statsLabel!: Label;
@@ -65,7 +66,7 @@ export class SummaryScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engine.goToScene("planetRunMenu");
+        goToScene(this.engine, SCENE_KEYS.planetRunMenu);
       },
     });
 

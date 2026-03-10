@@ -27,6 +27,7 @@ import {
   DEFAULT_SOLAR_SYSTEM,
   getPlanetById,
 } from "../config/solarSystemConfig";
+import { SCENE_KEYS, goToScene } from "../config/sceneKeys";
 
 const UPGRADE_LABELS: Record<ShipUpgradeId, string> = {
   thrust: "Thrust",
@@ -177,7 +178,7 @@ export class SpaceshipScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engine.goToScene("spaceNav");
+        goToScene(this.engine, SCENE_KEYS.spaceNav);
       },
     });
     this.add(launchButton);
@@ -195,7 +196,7 @@ export class SpaceshipScene extends Scene {
       }),
       onClick: () => {
         playClick();
-        this.engine.goToScene("planetRunMenu");
+        goToScene(this.engine, SCENE_KEYS.planetRunMenu);
       },
     });
     this.add(backButton);

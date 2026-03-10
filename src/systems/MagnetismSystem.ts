@@ -7,8 +7,11 @@ import {
   World,
   vec,
 } from "excalibur";
-import type { Rover } from "../entities/Rover";
 import { MagneticResourceComponent } from "../world/components/MagneticResourceComponent";
+import {
+  MagnetismSourceComponent,
+  PlayerTagComponent,
+} from "../world/components/PlayerComponents";
 
 export class MagnetismSystem extends System {
   static priority = SystemPriority.Higher;
@@ -17,22 +20,31 @@ export class MagnetismSystem extends System {
   }
 
   query;
-  private rover: Rover;
+  private playerQuery;
 
-  constructor(world: World, rover: Rover) {
+  constructor(world: World) {
     super();
-    this.rover = rover;
     this.query = world.query([
       MagneticResourceComponent,
       TransformComponent,
       MotionComponent,
     ]);
+    this.playerQuery = world.query([
+      PlayerTagComponent,
+      MagnetismSourceComponent,
+      TransformComponent,
+    ]);
   }
 
   update(elapsed: number): void {
-    const magnetism = this.rover.roverStats.magnetism;
+    const playerEntity = this.playerQuery.entities[0];
+    if (!playerEntity) return;
+    const playerTransform = playerEntity.get(TransformComponent);
+    const magnetismSource = playerEntity.get(MagnetismSourceComponent);
+    if (!playerTransform || !magnetismSource) return;
+    const magnetism = magnetismSource.radiusPx;
     if (magnetism <= 0) return;
-    const roverPos = this.rover.pos;
+    const roverPos = playerTransform.pos;
     const attractionSpeed = 80;
     const dtScale = elapsed / 1000;
 

@@ -213,7 +213,7 @@ export const DEFAULT_SOLAR_SYSTEM: SolarSystemConfig = {
           name: "Dione",
           mass: 0.0005 * EM,
           radiusPx: 0.076 * ER,
-          orbitRadius: .59 * AU,
+          orbitRadius: 0.59 * AU,
           orbitPeriod: 0.558 * OP,
         },
         {
@@ -221,7 +221,7 @@ export const DEFAULT_SOLAR_SYSTEM: SolarSystemConfig = {
           name: "Rhea",
           mass: 0.003 * EM,
           radiusPx: 0.12 * ER,
-          orbitRadius: .730 * AU,
+          orbitRadius: 0.73 * AU,
           orbitPeriod: 0.8107 * OP,
         },
         {
@@ -229,7 +229,7 @@ export const DEFAULT_SOLAR_SYSTEM: SolarSystemConfig = {
           name: "Tethys",
           mass: 0.001 * EM,
           radiusPx: 0.1 * ER,
-          orbitRadius: .861 * AU,
+          orbitRadius: 0.861 * AU,
           orbitPeriod: 1.31 * OP,
         },
         {

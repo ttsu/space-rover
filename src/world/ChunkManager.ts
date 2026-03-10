@@ -41,6 +41,7 @@ import { FogAffectedComponent } from "./FogOfWar";
 import { Tile } from "./Tile";
 import { getDepositAtTile, tileKey, type WorldState } from "./WorldState";
 import { HazardTargetRegistry } from "../hazards/HazardTargetRegistry";
+import type { BlasterTargetRegistry } from "../hazards/BlasterTargetRegistry";
 
 interface ChunkRecord {
   key: string;
@@ -63,6 +64,7 @@ export interface ChunkManagerParams {
   windRegions: WindRegion[];
   sandstormRegions: SandstormRegion[];
   worldState: WorldState;
+  blasterTargetRegistry?: BlasterTargetRegistry;
 }
 
 export class ChunkManager {
@@ -76,6 +78,7 @@ export class ChunkManager {
   private windRegions: WindRegion[];
   private sandstormRegions: SandstormRegion[];
   private worldState: WorldState;
+  private blasterTargetRegistry?: BlasterTargetRegistry;
   private loaded = new Map<string, ChunkRecord>();
   private readonly noise2D: (x: number, y: number) => number;
   private readonly biomeNoise2D: (x: number, y: number) => number;
@@ -91,6 +94,7 @@ export class ChunkManager {
     this.windRegions = params.windRegions;
     this.sandstormRegions = params.sandstormRegions;
     this.worldState = params.worldState;
+    this.blasterTargetRegistry = params.blasterTargetRegistry;
     this.noise2D = getNoise2D(this.seed);
     this.biomeNoise2D = getNoise2D((this.seed ^ 0x9e3779b1) >>> 0);
   }
@@ -238,6 +242,7 @@ export class ChunkManager {
           );
           deposit.addComponent(new FogAffectedComponent());
           this.scene.add(deposit);
+          this.blasterTargetRegistry?.register(deposit);
           actors.push(deposit);
           this.worldActors.push(deposit);
           continue;
@@ -373,6 +378,7 @@ export class ChunkManager {
     const deposit = new ResourceDeposit(x, y, type, 4, spriteIndex);
     deposit.addComponent(new FogAffectedComponent());
     this.scene.add(deposit);
+    this.blasterTargetRegistry?.register(deposit);
     actors.push(deposit);
     this.worldActors.push(deposit);
   }

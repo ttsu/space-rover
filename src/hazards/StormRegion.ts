@@ -6,7 +6,7 @@ import {
 } from "../config/gameConfig";
 import { random } from "../utils/seedRandom";
 import { createWindDustEmitter } from "../effects/Particles";
-import type { IHazardTarget } from "../entities/Rover";
+import type { IHazardTarget } from "../entities/contracts";
 
 function windStrengthMultiplier(): number {
   return 0.8 + random() * 0.4;

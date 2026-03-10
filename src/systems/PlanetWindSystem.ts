@@ -1,13 +1,22 @@
-import { System, SystemPriority, SystemType } from "excalibur";
-import type { Rover } from "../entities/Rover";
+import {
+  System,
+  SystemPriority,
+  SystemType,
+  TransformComponent,
+  World,
+} from "excalibur";
 import type { WindRegion } from "../hazards/WindRegion";
 import type { StormRegion } from "../hazards/StormRegion";
 import type { SandstormRegion } from "../hazards/SandstormRegion";
 import { getWindVelocityDelta } from "../hazards/WindSystem";
 import { recordHazardHit } from "../state/GameState";
+import {
+  PlayerTagComponent,
+  WindReceiverComponent,
+} from "../world/components/PlayerComponents";
 
 export interface PlanetWindSystemParams {
-  rover: Rover;
+  world: World;
   windRegions: WindRegion[];
   stormRegions: StormRegion[];
   sandstormRegions: SandstormRegion[];
@@ -19,7 +28,7 @@ export class PlanetWindSystem extends System {
     return SystemType.Update;
   }
 
-  private rover: Rover;
+  private playerQuery;
   private windRegions: WindRegion[];
   private stormRegions: StormRegion[];
   private sandstormRegions: SandstormRegion[];
@@ -28,7 +37,11 @@ export class PlanetWindSystem extends System {
 
   constructor(params: PlanetWindSystemParams) {
     super();
-    this.rover = params.rover;
+    this.playerQuery = params.world.query([
+      PlayerTagComponent,
+      WindReceiverComponent,
+      TransformComponent,
+    ]);
     this.windRegions = params.windRegions;
     this.stormRegions = params.stormRegions;
     this.sandstormRegions = params.sandstormRegions;
@@ -40,15 +53,22 @@ export class PlanetWindSystem extends System {
   }
 
   update(elapsed: number): void {
-    this.rover.windEffectThisFrame = getWindVelocityDelta(
-      this.rover,
+    const player = this.playerQuery.entities[0];
+    if (!player) return;
+    const transform = player.get(TransformComponent);
+    const windReceiver = player.get(WindReceiverComponent);
+    if (!transform || !windReceiver) return;
+    windReceiver.velocityDelta = getWindVelocityDelta(
+      transform.pos.x,
+      transform.pos.y,
+      windReceiver.resistance,
       this.windRegions,
       this.stormRegions,
       this.sandstormRegions,
       elapsed
     );
 
-    const wind = this.rover.windEffectThisFrame;
+    const wind = windReceiver.velocityDelta;
     if (wind && (wind.x !== 0 || wind.y !== 0)) {
       this.windHitTimer += elapsed;
       if (this.windHitTimer >= 800) {
@@ -62,7 +82,7 @@ export class PlanetWindSystem extends System {
     let inSandstorm = false;
     for (const sandstorm of this.sandstormRegions) {
       if (sandstorm.isKilled()) continue;
-      if (sandstorm.containsWorldPoint(this.rover.pos.x, this.rover.pos.y)) {
+      if (sandstorm.containsWorldPoint(transform.pos.x, transform.pos.y)) {
         inSandstorm = true;
         break;
       }

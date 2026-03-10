@@ -26,6 +26,9 @@ export const Resources = {
   SpaceshipSprite: new ImageSource(
     `${import.meta.env.BASE_URL}assets/spaceship.png`
   ),
+  PanelGlassNotches: new ImageSource(
+    `${import.meta.env.BASE_URL}assets/panel_glass_notches.png`
+  ),
 } as const;
 
 export const loader = new Loader();

@@ -77,7 +77,11 @@ export class ParallaxStarField {
       for (const s of layer.stars) {
         const sx = (((s.x - ox) % this.wrapW) + this.wrapW) % this.wrapW;
         const sy = (((s.y - oy) % this.wrapH) + this.wrapH) % this.wrapH;
-        ctx.drawCircle(vec(sx, sy), s.size, Color.fromRGB(255, 255, 255, s.alpha));
+        ctx.drawCircle(
+          vec(sx, sy),
+          s.size,
+          Color.fromRGB(255, 255, 255, s.alpha)
+        );
       }
     }
     ctx.restore();

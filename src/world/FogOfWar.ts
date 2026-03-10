@@ -3,6 +3,7 @@ import {
   System,
   SystemType,
   World,
+  type Scene,
   TransformComponent,
   GraphicsComponent,
   Color,
@@ -12,9 +13,12 @@ import {
 } from "excalibur";
 import { TILE_SIZE } from "../config/gameConfig";
 import { GameState } from "../state/GameState";
-import type { Rover } from "../entities/Rover";
 import type { ExcaliburGraphicsContext } from "excalibur";
 import type { Camera } from "excalibur";
+import {
+  FogViewerComponent,
+  PlayerTagComponent,
+} from "./components/PlayerComponents";
 
 const EXPLORED_OPACITY = 0.4;
 const FOG_COLOR = Color.fromHex("#0a0a0f");
@@ -63,41 +67,82 @@ function entityTilePosition(
   return { gx, gy };
 }
 
+export interface FogViewerData {
+  pos: { x: number; y: number };
+  visibilityRadiusTiles: number;
+}
+
+export function getPrimaryFogViewerData(world: World): FogViewerData | null {
+  const query = world.query([
+    PlayerTagComponent,
+    FogViewerComponent,
+    TransformComponent,
+  ]);
+  const entity = query.entities[0];
+  if (!entity) return null;
+  const transform = entity.get(TransformComponent);
+  const fog = entity.get(FogViewerComponent);
+  if (!transform || !fog) return null;
+  return {
+    pos: transform.pos,
+    visibilityRadiusTiles: fog.baseRadiusTiles * fog.multiplier,
+  };
+}
+
 export class FogVisibilitySystem extends System {
   static priority = SystemPriority.Lower;
   get systemType(): SystemType {
     return SystemType.Update;
   }
   query;
-  private rover: Rover;
+  private viewerQuery;
+  private scene: Scene;
   world: World;
 
-  constructor(world: World, rover: Rover) {
+  constructor(world: World, scene: Scene) {
     super();
     this.world = world;
-    this.rover = rover;
+    this.scene = scene;
     this.query = this.world.query([
       FogAffectedComponent,
       TransformComponent,
       GraphicsComponent,
     ]);
+    this.viewerQuery = this.world.query([
+      PlayerTagComponent,
+      FogViewerComponent,
+      TransformComponent,
+    ]);
   }
 
   update(_elapsed: number): void {
-    const roverPos = this.rover.pos;
+    const viewerEntity = this.viewerQuery.entities[0];
+    if (!viewerEntity) return;
+    const viewerTransform = viewerEntity.get(TransformComponent);
+    const viewerFog = viewerEntity.get(FogViewerComponent);
+    if (!viewerTransform || !viewerFog) return;
+    const roverPos = viewerTransform.pos;
     const roverGx = Math.floor(roverPos.x / TILE_SIZE);
     const roverGy = Math.floor(roverPos.y / TILE_SIZE);
-    const radius = this.rover.getVisibilityRadiusTiles();
+    const radius = viewerFog.baseRadiusTiles * viewerFog.multiplier;
     const radiusSq = radius * radius;
     const explored = GameState.exploredTileKeys;
-    const cam = this.rover.scene?.camera;
-    const screen = this.rover.scene?.engine.screen;
+    const cam = this.scene.camera;
+    const screen = this.scene.engine.screen;
     const halfW = screen ? screen.resolution.width / 2 : 0;
     const halfH = screen ? screen.resolution.height / 2 : 0;
-    const minGx = cam ? Math.floor((cam.pos.x - halfW) / TILE_SIZE) - 2 : -Infinity;
-    const maxGx = cam ? Math.ceil((cam.pos.x + halfW) / TILE_SIZE) + 2 : Infinity;
-    const minGy = cam ? Math.floor((cam.pos.y - halfH) / TILE_SIZE) - 2 : -Infinity;
-    const maxGy = cam ? Math.ceil((cam.pos.y + halfH) / TILE_SIZE) + 2 : Infinity;
+    const minGx = cam
+      ? Math.floor((cam.pos.x - halfW) / TILE_SIZE) - 2
+      : -Infinity;
+    const maxGx = cam
+      ? Math.ceil((cam.pos.x + halfW) / TILE_SIZE) + 2
+      : Infinity;
+    const minGy = cam
+      ? Math.floor((cam.pos.y - halfH) / TILE_SIZE) - 2
+      : -Infinity;
+    const maxGy = cam
+      ? Math.ceil((cam.pos.y + halfH) / TILE_SIZE) + 2
+      : Infinity;
 
     for (const entity of this.query.entities) {
       const fog = entity.get(FogAffectedComponent);
@@ -213,14 +258,15 @@ function applyFogToParticleEmitter(
  */
 export function drawFogOverlay(
   ctx: ExcaliburGraphicsContext,
-  rover: Rover,
+  viewerPos: { x: number; y: number },
+  visibilityRadiusTiles: number,
   camera: Camera,
   drawWidth: number,
   drawHeight: number
 ): void {
-  const roverPos = rover.pos;
+  const roverPos = viewerPos;
   const camPos = camera.pos;
-  const radiusTiles = rover.getVisibilityRadiusTiles();
+  const radiusTiles = visibilityRadiusTiles;
   const radiusPx = radiusTiles * TILE_SIZE;
   const halfW = drawWidth / 2;
   const halfH = drawHeight / 2;

@@ -1,4 +1,4 @@
-import type { IHazardTarget } from "../entities/Rover";
+import type { IHazardTarget } from "../entities/contracts";
 
 /**
  * Registry for active hazard targets in a scene.
