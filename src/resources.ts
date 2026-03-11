@@ -29,6 +29,9 @@ export const Resources = {
   BarSegmentRemaining: new ImageSource(
     `${import.meta.env.BASE_URL}assets/bar_square_gloss_small_square.png`
   ),
+  BarGlossBattery: new ImageSource(
+    `${import.meta.env.BASE_URL}assets/bar_square_gloss_small_square copy.png`
+  ),
   SpaceshipSprite: new ImageSource(
     `${import.meta.env.BASE_URL}assets/spaceship.png`
   ),

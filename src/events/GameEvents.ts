@@ -20,6 +20,7 @@ export interface RoverStateChangedEvent {
   health: number;
   maxHealth: number;
   battery: number;
+  maxBattery: number;
   usedCapacity: number;
   maxCapacity: number;
   cargo: CargoCounts;

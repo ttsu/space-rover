@@ -8,6 +8,8 @@ import {
   Engine,
   Actor,
   Polygon,
+  NineSlice,
+  NineSliceStretch,
   type Sprite,
 } from "excalibur";
 import type { CargoCounts } from "../entities/Rover";
@@ -31,6 +33,7 @@ export class Hud extends ScreenElement {
     health: number;
     maxHealth: number;
     battery: number;
+    maxBattery: number;
     usedCapacity: number;
     maxCapacity: number;
     cargo: CargoCounts;
@@ -38,6 +41,7 @@ export class Hud extends ScreenElement {
     health: 0,
     maxHealth: 10,
     battery: 0,
+    maxBattery: 30,
     usedCapacity: 0,
     maxCapacity: 0,
     cargo: { iron: 0, crystal: 0, gas: 0 },
@@ -62,7 +66,18 @@ export class Hud extends ScreenElement {
   private readonly healthSegmentGap = 2;
   private segmentRemainingSprite!: Sprite;
   private segmentLostSprite!: Sprite;
-  private batteryLabel!: Label;
+  private batteryBarBackground!: Actor;
+  private batteryBarFill!: Actor;
+  private batteryBarFillGraphic!: NineSlice;
+  /** Animated width for battery fill; lerped toward target each frame. */
+  private displayedBatteryBarWidth = 0;
+  /** Lerp speed: 1 - exp(-k * dt). Higher = bar tracks battery faster. */
+  private static readonly BATTERY_BAR_LERP_K = 6;
+  private static readonly BATTERY_BAR_WIDTH = 200;
+  private static readonly BATTERY_BAR_HEIGHT = 32;
+  /** Small square bar assets; slice margins for nine-slice. */
+  private static readonly BAR_SLICE_SOURCE_SIZE = 32;
+  private static readonly BAR_SLICE_MARGIN = 8;
   private capacityLabel!: Label;
   private cargoLabel!: Label;
   private totalLabel!: Label;
@@ -76,8 +91,12 @@ export class Hud extends ScreenElement {
   }
 
   onInitialize(): void {
-    this.segmentLostSprite = Resources.BarSegmentLost.toSprite({ scale: vec(0.5, 1)});
-    this.segmentRemainingSprite = Resources.BarSegmentRemaining.toSprite({ scale: vec(0.5, 1) });
+    this.segmentLostSprite = Resources.BarSegmentLost.toSprite({
+      scale: vec(0.5, 1),
+    });
+    this.segmentRemainingSprite = Resources.BarSegmentRemaining.toSprite({
+      scale: vec(0.5, 1),
+    });
 
     for (let i = 0; i < this.maxHealthSegments; i++) {
       const segment = new Actor({
@@ -91,16 +110,53 @@ export class Hud extends ScreenElement {
       this.healthBarSegments.push(segment);
     }
 
-    this.batteryLabel = new Label({
-      text: "",
-      pos: vec(16, 48),
-      color: Color.fromHex("#fcd34d"),
-      font: new Font({
-        family: "system-ui, sans-serif",
-        size: 16,
-        unit: FontUnit.Px,
-      }),
+    const barW = Hud.BATTERY_BAR_WIDTH;
+    const barH = Hud.BATTERY_BAR_HEIGHT;
+    const src = Hud.BAR_SLICE_SOURCE_SIZE;
+    const margin = Hud.BAR_SLICE_MARGIN;
+    const sliceConfig = {
+      width: src,
+      height: src,
+      leftMargin: margin,
+      topMargin: margin,
+      rightMargin: margin,
+      bottomMargin: margin,
+    };
+    const destConfig = {
+      drawCenter: true,
+      horizontalStretch: NineSliceStretch.Stretch,
+      verticalStretch: NineSliceStretch.Stretch,
+    };
+
+    const batteryBgGraphic = new NineSlice({
+      width: barW,
+      height: barH,
+      source: Resources.BarSegmentLost,
+      sourceConfig: sliceConfig,
+      destinationConfig: destConfig,
     });
+    this.batteryBarBackground = new Actor({
+      pos: vec(16, 76),
+      width: barW,
+      height: barH,
+      anchor: vec(0, 0),
+    });
+    this.batteryBarBackground.graphics.use(batteryBgGraphic);
+
+    this.batteryBarFillGraphic = new NineSlice({
+      width: barW,
+      height: barH,
+      source: Resources.BarGlossBattery,
+      sourceConfig: sliceConfig,
+      destinationConfig: destConfig,
+    });
+    this.batteryBarFill = new Actor({
+      pos: vec(16, 76),
+      width: barW,
+      height: barH,
+      anchor: vec(0, 0),
+    });
+    this.batteryBarFill.graphics.use(this.batteryBarFillGraphic);
 
     this.capacityLabel = new Label({
       text: "",
@@ -197,7 +253,8 @@ export class Hud extends ScreenElement {
     for (const segment of this.healthBarSegments) {
       healthPanel.addChild(segment);
     }
-    healthPanel.addChild(this.batteryLabel);
+    healthPanel.addChild(this.batteryBarBackground);
+    healthPanel.addChild(this.batteryBarFill);
 
     const missionGoalsPanel = new Panel({
       pos: vec(this.engineRef.screen.width - 300 - 32, 32),
@@ -231,6 +288,7 @@ export class Hud extends ScreenElement {
             health: payload.health,
             maxHealth: payload.maxHealth,
             battery: payload.battery,
+            maxBattery: payload.maxBattery,
             usedCapacity: payload.usedCapacity,
             maxCapacity: payload.maxCapacity,
             cargo: payload.cargo,
@@ -243,6 +301,23 @@ export class Hud extends ScreenElement {
         this.updateFromState();
       });
     }
+  }
+
+  onPreUpdate(_engine: Engine, delta: number): void {
+    const maxBatt = Math.max(1, this.snapshot.maxBattery);
+    const targetWidth = Math.max(
+      0,
+      (this.snapshot.battery / maxBatt) * Hud.BATTERY_BAR_WIDTH
+    );
+    const deltaSec = delta / 1000;
+    const t = 1 - Math.exp(-Hud.BATTERY_BAR_LERP_K * deltaSec);
+    this.displayedBatteryBarWidth +=
+      (targetWidth - this.displayedBatteryBarWidth) * t;
+    this.batteryBarFillGraphic.width = Math.max(
+      0,
+      this.displayedBatteryBarWidth
+    );
+    this.batteryBarFill.scale.setTo(this.displayedBatteryBarWidth / Hud.BATTERY_BAR_WIDTH, 1);
   }
 
   updateFromState(): void {
@@ -266,7 +341,6 @@ export class Hud extends ScreenElement {
         segment.graphics.isVisible = false;
       }
     }
-    this.batteryLabel.text = `Battery: ${Math.ceil(this.snapshot.battery)}s`;
     this.capacityLabel.text = `Cargo: ${this.snapshot.usedCapacity}/${this.snapshot.maxCapacity} (left ${remainingCapacity})`;
     this.cargoLabel.text = `Iron: ${this.snapshot.cargo.iron}  Crystal: ${this.snapshot.cargo.crystal}  Gas: ${this.snapshot.cargo.gas}`;
     const totalPieces =

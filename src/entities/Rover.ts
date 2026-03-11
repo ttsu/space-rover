@@ -385,6 +385,7 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
       health: this.health,
       maxHealth: this.roverStats.maxHealth,
       battery: this.battery,
+      maxBattery: this.roverStats.maxBattery,
       usedCapacity: this.usedCapacity,
       maxCapacity: this.maxCapacity,
       cargo: { ...this.cargo },
