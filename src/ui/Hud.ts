@@ -8,8 +8,10 @@ import {
   Engine,
   Actor,
   Polygon,
+  type Sprite,
 } from "excalibur";
 import type { CargoCounts } from "../entities/Rover";
+import { Resources } from "../resources";
 import type { HazardKind } from "../state/GameState";
 import {
   getCurrentGoals,
@@ -27,12 +29,14 @@ export class Hud extends ScreenElement {
   private engineRef: Engine;
   private snapshot: {
     health: number;
+    maxHealth: number;
     battery: number;
     usedCapacity: number;
     maxCapacity: number;
     cargo: CargoCounts;
   } = {
     health: 0,
+    maxHealth: 10,
     battery: 0,
     usedCapacity: 0,
     maxCapacity: 0,
@@ -52,7 +56,12 @@ export class Hud extends ScreenElement {
     },
   };
 
-  private healthLabel!: Label;
+  private healthBarSegments: Actor[] = [];
+  private readonly maxHealthSegments = 20;
+  private readonly healthSegmentSize = 16;
+  private readonly healthSegmentGap = 2;
+  private segmentRemainingSprite!: Sprite;
+  private segmentLostSprite!: Sprite;
   private batteryLabel!: Label;
   private capacityLabel!: Label;
   private cargoLabel!: Label;
@@ -67,16 +76,20 @@ export class Hud extends ScreenElement {
   }
 
   onInitialize(): void {
-    this.healthLabel = new Label({
-      text: "",
-      pos: vec(16, 32),
-      color: Color.fromHex("#fca5a5"),
-      font: new Font({
-        family: "system-ui, sans-serif",
-        size: 16,
-        unit: FontUnit.Px,
-      }),
-    });
+    this.segmentLostSprite = Resources.BarSegmentLost.toSprite({ scale: vec(0.5, 1)});
+    this.segmentRemainingSprite = Resources.BarSegmentRemaining.toSprite({ scale: vec(0.5, 1) });
+
+    for (let i = 0; i < this.maxHealthSegments; i++) {
+      const segment = new Actor({
+        pos: vec(16 + i * (this.healthSegmentSize + this.healthSegmentGap), 32),
+        width: this.healthSegmentSize,
+        height: this.healthSegmentSize,
+        anchor: vec(0, 0),
+      });
+      segment.graphics.use(this.segmentLostSprite.clone());
+      segment.graphics.isVisible = false;
+      this.healthBarSegments.push(segment);
+    }
 
     this.batteryLabel = new Label({
       text: "",
@@ -181,7 +194,9 @@ export class Hud extends ScreenElement {
       tint: Color.fromHex("#007bff"),
     });
     this.addChild(healthPanel);
-    healthPanel.addChild(this.healthLabel);
+    for (const segment of this.healthBarSegments) {
+      healthPanel.addChild(segment);
+    }
     healthPanel.addChild(this.batteryLabel);
 
     const missionGoalsPanel = new Panel({
@@ -214,6 +229,7 @@ export class Hud extends ScreenElement {
         (payload) => {
           this.snapshot = {
             health: payload.health,
+            maxHealth: payload.maxHealth,
             battery: payload.battery,
             usedCapacity: payload.usedCapacity,
             maxCapacity: payload.maxCapacity,
@@ -234,7 +250,22 @@ export class Hud extends ScreenElement {
       0,
       this.snapshot.maxCapacity - this.snapshot.usedCapacity
     );
-    this.healthLabel.text = `Health: ${this.snapshot.health}`;
+    const maxH = Math.min(this.snapshot.maxHealth, this.maxHealthSegments);
+    const health = Math.max(0, Math.min(this.snapshot.health, maxH));
+    for (let i = 0; i < this.maxHealthSegments; i++) {
+      const segment = this.healthBarSegments[i];
+      if (i < maxH) {
+        segment.graphics.isVisible = true;
+        segment.graphics.use(
+          (i < health
+            ? this.segmentRemainingSprite
+            : this.segmentLostSprite
+          ).clone()
+        );
+      } else {
+        segment.graphics.isVisible = false;
+      }
+    }
     this.batteryLabel.text = `Battery: ${Math.ceil(this.snapshot.battery)}s`;
     this.capacityLabel.text = `Cargo: ${this.snapshot.usedCapacity}/${this.snapshot.maxCapacity} (left ${remainingCapacity})`;
     this.cargoLabel.text = `Iron: ${this.snapshot.cargo.iron}  Crystal: ${this.snapshot.cargo.crystal}  Gas: ${this.snapshot.cargo.gas}`;

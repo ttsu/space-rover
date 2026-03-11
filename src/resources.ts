@@ -23,6 +23,12 @@ export const Resources = {
   BarSquare: new ImageSource(
     `${import.meta.env.BASE_URL}assets/bar_square_large_square.png`
   ),
+  BarSegmentLost: new ImageSource(
+    `${import.meta.env.BASE_URL}assets/bar_shadow_square_outline_small_square.png`
+  ),
+  BarSegmentRemaining: new ImageSource(
+    `${import.meta.env.BASE_URL}assets/bar_square_gloss_small_square.png`
+  ),
   SpaceshipSprite: new ImageSource(
     `${import.meta.env.BASE_URL}assets/spaceship.png`
   ),

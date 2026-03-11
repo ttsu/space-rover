@@ -18,6 +18,7 @@ export interface RoverFireBlasterEvent {
 
 export interface RoverStateChangedEvent {
   health: number;
+  maxHealth: number;
   battery: number;
   usedCapacity: number;
   maxCapacity: number;

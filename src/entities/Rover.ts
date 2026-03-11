@@ -383,6 +383,7 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
   private emitStateChanged(): void {
     this.events.emit("statechanged", {
       health: this.health,
+      maxHealth: this.roverStats.maxHealth,
       battery: this.battery,
       usedCapacity: this.usedCapacity,
       maxCapacity: this.maxCapacity,
