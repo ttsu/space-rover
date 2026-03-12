@@ -24,7 +24,10 @@ export type UpgradeEffectKind =
   | "maxBattery"
   | "batteryDrainPerSecond"
   | "blasterBehavior"
-  | "magnetism";
+  | "magnetism"
+  | "minimapRevealAllResources"
+  | "minimapShowHazards"
+  | "minimapNoFog";
 
 export interface UpgradeEffect {
   kind: UpgradeEffectKind;
@@ -187,6 +190,36 @@ const RESOURCE_MAGNET_DEF: UpgradeDef = {
   slotType: "radar",
 };
 
+const MINIMAP_REVEAL_RESOURCES_DEF: UpgradeDef = {
+  id: "minimap-reveal-resources",
+  cost: cost(0, 3, 1),
+  name: "Survey Scanner",
+  description: "Reveal all resources on the minimap",
+  effect: { kind: "minimapRevealAllResources", value: 1 },
+  maxStack: 1,
+  slotType: "radar",
+};
+
+const MINIMAP_SHOW_HAZARDS_DEF: UpgradeDef = {
+  id: "minimap-show-hazards",
+  cost: cost(1, 2, 1),
+  name: "Hazard Tracker",
+  description: "Show storms, lava, and ice on the minimap",
+  effect: { kind: "minimapShowHazards", value: 1 },
+  maxStack: 1,
+  slotType: "radar",
+};
+
+const MINIMAP_NO_FOG_DEF: UpgradeDef = {
+  id: "minimap-no-fog",
+  cost: cost(2, 2, 0),
+  name: "Satellite Uplink",
+  description: "Remove fog of war on the minimap",
+  effect: { kind: "minimapNoFog", value: 1 },
+  maxStack: 1,
+  slotType: "radar",
+};
+
 const CRYSTAL_UPGRADES: UpgradeDef[] = [
   {
     id: "crystal-capacity-1",
@@ -289,6 +322,9 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
   },
   LIGHTNING_ROD_DEF,
   RESOURCE_MAGNET_DEF,
+  MINIMAP_REVEAL_RESOURCES_DEF,
+  MINIMAP_SHOW_HAZARDS_DEF,
+  MINIMAP_NO_FOG_DEF,
 ];
 
 const GAS_UPGRADES: UpgradeDef[] = [

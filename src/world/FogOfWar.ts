@@ -188,9 +188,8 @@ export class FogVisibilitySystem extends System {
       if (distTilesSq <= radiusSq) {
         graphics.isVisible = true;
         graphics.opacity = 1;
-        if (fog.gridX !== undefined && fog.gridY !== undefined) {
-          explored.add(tileKey(fog.gridX, fog.gridY));
-        }
+        // Mark tile as explored when in view (use computed gx,gy so resources/lava without grid coords still count)
+        explored.add(tileKey(gx, gy));
         applyFogToParticleEmitter(entity as ParticleEmitter, false);
         continue;
       }

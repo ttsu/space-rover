@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rover Configuration — Mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-deep: #0c0e14;
+        --bg-panel: #1e293b;
+        --bg-slot: #1e293b;
+        --border-subtle: #334155;
+        --text-primary: #f1f5f9;
+        --text-muted: #94a3b8;
+        --accent-goals: #fbbf24;
+        --accent-equipment: #a5b4fc;
+        --accent-cargo: #86efac;
+        --accent-shop: #fcd34d;
+        --slot-battery: #facc15;
+        --slot-engine: #f97316;
+        --slot-control: #22d3ee;
+        --slot-shielding: #f43f5e;
+        --slot-radar: #3b82f6;
+        --slot-blaster: #a855f7;
+        --cargo-empty: #374151;
+        --cargo-gas: #22c55e;
+        --cargo-crystal: #a855f7;
+        --cargo-iron: #9ca3af;
+        --btn-primary: #e2e8f0;
+        --btn-secondary: #64748b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg-deep);
+        color: var(--text-primary);
+        font-family: "Share Tech Mono", monospace;
+        font-size: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0 24px 32px;
+        background-image:
+          radial-gradient(
+            ellipse 120% 60% at 50% -20%,
+            rgba(59, 130, 246, 0.08),
+            transparent
+          ),
+          radial-gradient(
+            ellipse 80% 40% at 80% 100%,
+            rgba(168, 85, 247, 0.06),
+            transparent
+          );
+      }
+
+      .screen {
+        width: 100%;
+        max-width: 640px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      h1 {
+        font-family: Orbitron, sans-serif;
+        font-weight: 800;
+        font-size: 1.75rem;
+        letter-spacing: 0.08em;
+        text-align: center;
+        margin: 24px 0 8px;
+        color: #fff;
+        text-shadow: 0 0 24px rgba(59, 130, 246, 0.3);
+      }
+
+      .goals-block {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .goals-title {
+        font-family: Orbitron, sans-serif;
+        font-weight: 500;
+        font-size: 0.8rem;
+        color: var(--accent-goals);
+        letter-spacing: 0.1em;
+        margin-bottom: 6px;
+      }
+
+      .goal {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin: 2px 0;
+      }
+
+      .section-title {
+        font-family: Orbitron, sans-serif;
+        font-weight: 500;
+        font-size: 0.85rem;
+        letter-spacing: 0.06em;
+        margin-bottom: 10px;
+        padding-left: 2px;
+      }
+
+      .section-equipment .section-title {
+        color: var(--accent-equipment);
+      }
+      .section-cargo .section-title {
+        color: var(--accent-cargo);
+      }
+      .section-shop .section-title {
+        color: var(--accent-shop);
+      }
+
+      /* Equipment slots grid */
+      .slots-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      .slot {
+        height: 36px;
+        background: var(--bg-slot);
+        border: 1px solid var(--border-subtle);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 10px 0 12px;
+      }
+
+      .slot-name {
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .slot-battery .slot-name {
+        color: var(--slot-battery);
+      }
+      .slot-engine .slot-name {
+        color: var(--slot-engine);
+      }
+      .slot-control .slot-name {
+        color: var(--slot-control);
+      }
+      .slot-shielding .slot-name {
+        color: var(--slot-shielding);
+      }
+      .slot-radar .slot-name {
+        color: var(--slot-radar);
+      }
+      .slot-blaster .slot-name {
+        color: var(--slot-blaster);
+      }
+
+      .slot-equip {
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+
+      .level-up {
+        font-size: 9px;
+        color: var(--accent-shop);
+        background: rgba(252, 211, 77, 0.15);
+        padding: 4px 8px;
+        border-radius: 4px;
+        white-space: nowrap;
+      }
+
+      /* Inventory */
+      .inventory-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+
+      .inventory-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 24px;
+      }
+
+      .chip {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 10px;
+        color: #fff;
+      }
+
+      .chip-battery {
+        background: var(--slot-battery);
+        color: #1e293b;
+      }
+      .chip-engine {
+        background: var(--slot-engine);
+      }
+      .chip-control {
+        background: var(--slot-control);
+        color: #0c0e14;
+      }
+      .chip-shielding {
+        background: var(--slot-shielding);
+      }
+      .chip-radar {
+        background: var(--slot-radar);
+      }
+      .chip-blaster {
+        background: var(--slot-blaster);
+      }
+
+      /* Cargo layout */
+      .cargo-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 44px);
+        gap: 4px;
+        margin-bottom: 24px;
+      }
+
+      .cargo-cell {
+        width: 44px;
+        height: 44px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        color: #fff;
+        text-align: center;
+        line-height: 1.2;
+      }
+
+      .cargo-empty {
+        background: var(--cargo-empty);
+        color: var(--text-muted);
+      }
+      .cargo-gas {
+        background: var(--cargo-gas);
+      }
+      .cargo-crystal {
+        background: var(--cargo-crystal);
+      }
+      .cargo-iron {
+        background: var(--cargo-iron);
+      }
+
+      /* Shop */
+      .bank-line {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+
+      .shop-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--bg-panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin-bottom: 6px;
+      }
+
+      .shop-info {
+        font-size: 11px;
+        color: var(--text-primary);
+      }
+
+      .shop-cost {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      .shop-btn {
+        font-family: "Share Tech Mono", monospace;
+        font-size: 10px;
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: none;
+        background: var(--btn-primary);
+        color: #1e293b;
+        cursor: pointer;
+      }
+
+      .shop-btn:disabled {
+        background: var(--btn-secondary);
+        color: var(--text-muted);
+        cursor: not-allowed;
+      }
+
+      .catalog-title {
+        font-size: 11px;
+        color: var(--accent-shop);
+        margin: 12px 0 8px;
+      }
+
+      /* Actions */
+      .actions {
+        margin-top: auto;
+        padding-top: 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .btn {
+        font-family: Orbitron, sans-serif;
+        font-weight: 700;
+        font-size: 1rem;
+        letter-spacing: 0.06em;
+        padding: 14px 32px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition:
+          transform 0.12s ease,
+          box-shadow 0.12s ease;
+      }
+
+      .btn:active {
+        transform: scale(0.98);
+      }
+
+      .btn-primary {
+        background: linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%);
+        color: #0c0e14;
+        box-shadow:
+          0 4px 0 #94a3b8,
+          0 6px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .btn-primary:hover {
+        box-shadow:
+          0 4px 0 #94a3b8,
+          0 8px 28px rgba(59, 130, 246, 0.25);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--text-muted);
+        border: 1px solid var(--border-subtle);
+        font-size: 0.9rem;
+      }
+
+      .btn-secondary:hover {
+        color: var(--text-primary);
+        border-color: var(--text-muted);
+      }
+
+      .mockup-badge {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        font-size: 10px;
+        color: var(--text-muted);
+        background: var(--bg-panel);
+        padding: 4px 10px;
+        border-radius: 4px;
+        border: 1px solid var(--border-subtle);
+      }
+    </style>
+  </head>
+  <body>
+    <span class="mockup-badge">UI mockup</span>
+
+    <div class="screen">
+      <h1>Configure Rover</h1>
+
+      <section class="goals-block">
+        <div class="goals-title">Mission goals</div>
+        <div class="goal">Collect 5 crystal</div>
+        <div class="goal">Return to base with 3 gas</div>
+        <div class="goal">Survive 2 minutes</div>
+      </section>
+
+      <section class="section-equipment">
+        <div class="section-title">Equipment (slots & inventory)</div>
+        <div class="slots-grid">
+          <div class="slot slot-battery">
+            <span class="slot-name">Battery</span>
+            <span class="slot-equip">Base (1)</span>
+            <span class="level-up">Level up (0/2/1)</span>
+          </div>
+          <div class="slot slot-engine">
+            <span class="slot-name">Engine</span>
+            <span class="slot-equip">Base (1)</span>
+            <span class="level-up">Level up (2/0/2)</span>
+          </div>
+          <div class="slot slot-control">
+            <span class="slot-name">Control</span>
+            <span class="slot-equip">Base (2)</span>
+            <span class="level-up">Level up (1/1/1)</span>
+          </div>
+          <div class="slot slot-shielding">
+            <span class="slot-name">Shielding</span>
+            <span class="slot-equip">Reinforced Hull (2)</span>
+          </div>
+          <div class="slot slot-radar">
+            <span class="slot-name">Radar</span>
+            <span class="slot-equip">Base (1)</span>
+            <span class="level-up">Level up (0/2/0)</span>
+          </div>
+          <div class="slot slot-blaster">
+            <span class="slot-name">Blaster</span>
+            <span class="slot-equip">Base (1)</span>
+            <span class="level-up">Level up (1/1/0)</span>
+          </div>
+        </div>
+        <div class="inventory-label">Inventory (drag to slot):</div>
+        <div class="inventory-chips">
+          <span class="chip chip-shielding">Reinforced Hull (2)</span>
+          <span class="chip chip-battery">Long-Life Cell (1)</span>
+          <span class="chip chip-engine">Thrust Nozzle (1)</span>
+        </div>
+      </section>
+
+      <section class="section-cargo">
+        <div class="section-title">Cargo layout</div>
+        <div class="cargo-grid">
+          <div class="cargo-cell cargo-gas">Gas</div>
+          <div class="cargo-cell cargo-gas">Gas</div>
+          <div class="cargo-cell cargo-crystal">Crystal</div>
+          <div class="cargo-cell cargo-crystal">Crystal</div>
+          <div class="cargo-cell cargo-iron">Iron</div>
+          <div class="cargo-cell cargo-iron">Iron</div>
+          <div class="cargo-cell cargo-empty">—</div>
+          <div class="cargo-cell cargo-empty">—</div>
+        </div>
+      </section>
+
+      <section class="section-shop">
+        <div class="section-title">Buy upgrades</div>
+        <div class="bank-line">Bank: 12 iron, 8 crystal, 5 gas</div>
+        <button type="button" class="shop-btn">+1 Cargo Row (8 crystal)</button>
+        <div class="catalog-title">Buy new equipment (level 0 → 1):</div>
+        <div class="shop-row">
+          <div>
+            <div class="shop-info">
+              Lava Plating — Take 1 less damage from lava
+            </div>
+            <div class="shop-cost">4 iron</div>
+          </div>
+          <button type="button" class="shop-btn">Purchase</button>
+        </div>
+        <div class="shop-row">
+          <div>
+            <div class="shop-info">
+              Heat Resistant Treads — 10% less slow in lava
+            </div>
+            <div class="shop-cost">3 iron</div>
+          </div>
+          <button type="button" class="shop-btn">Purchase</button>
+        </div>
+        <div class="shop-row">
+          <div>
+            <div class="shop-info">Extended Mag — +1 blaster damage</div>
+            <div class="shop-cost">2 iron, 1 crystal</div>
+          </div>
+          <button type="button" class="shop-btn" disabled>Purchase</button>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button type="button" class="btn btn-primary">Start Mission</button>
+        <button type="button" class="btn btn-secondary">Back</button>
+      </div>
+    </div>
+  </body>
+</html>

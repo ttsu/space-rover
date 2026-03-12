@@ -26,6 +26,7 @@ import {
   type RoverStateChangedEvent,
 } from "../events/GameEvents";
 import { Panel } from "./Panel";
+import { MinimapWidget } from "./MinimapWidget";
 
 export class Hud extends ScreenElement {
   private engineRef: Engine;
@@ -303,6 +304,9 @@ export class Hud extends ScreenElement {
 
     this.addChild(this.baseHintLabel);
     this.addChild(this.baseArrowActor);
+
+    const minimap = new MinimapWidget(this.engineRef);
+    this.addChild(minimap);
 
     if (this.scene) {
       onSceneEvent<RoverStateChangedEvent>(

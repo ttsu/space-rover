@@ -39,6 +39,12 @@ export interface RoverStats {
   blasterBehavior: number;
   /** Distance (pixels) at which resources are attracted to the rover. */
   magnetism: number;
+  /** Minimap: show all resources (including undiscovered). 0 = off, 1 = on. */
+  minimapRevealAllResources: number;
+  /** Minimap: show hazards (storms, lava, ice). 0 = off, 1 = on. */
+  minimapShowHazards: number;
+  /** Minimap: no fog of war. 0 = off, 1 = on. */
+  minimapNoFog: number;
 }
 
 /** Returns total damage reduction (flat + type-specific) for given damage type. */
@@ -92,6 +98,9 @@ const EFFECT_REGISTRY: Record<
   },
   blasterBehavior: { default: 0, apply: "override" },
   magnetism: { default: 0, apply: "additive" },
+  minimapRevealAllResources: { default: 0, apply: "override" },
+  minimapShowHazards: { default: 0, apply: "override" },
+  minimapNoFog: { default: 0, apply: "override" },
 };
 
 const BASE_STATS: RoverStats = Object.fromEntries(
