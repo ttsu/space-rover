@@ -32,7 +32,7 @@ export const ROVER_BASE_TURN_SPEED = Math.PI;
 /** Capacity per cargo slot per resource type (Gas Canisters, Crystal Crates, Iron Hoppers). */
 export const CARGO_CAPACITY_PER_SLOT = 4;
 
-export const RESOURCE_DENSITY = 0.04; // fraction of tiles with resources
+export const RESOURCE_DENSITY = 0.11; // fraction of tiles with resources
 
 export const LAVA_DENSITY = 0.08;
 export const ROCK_DENSITY = 0.07;
