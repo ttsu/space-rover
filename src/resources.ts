@@ -1,4 +1,5 @@
 import { ImageSource, Loader } from "excalibur";
+import { getAllTerrainImageSources } from "./resources/terrainAssets";
 
 export const Resources = {
   RoverSprite: new ImageSource(
@@ -35,6 +36,9 @@ export const Resources = {
   SpaceshipSprite: new ImageSource(
     `${import.meta.env.BASE_URL}assets/spaceship.png`
   ),
+  BaseLanderSprite: new ImageSource(
+    `${import.meta.env.BASE_URL}assets/base.png`
+  ),
   PanelGlassNotches: new ImageSource(
     `${import.meta.env.BASE_URL}assets/panel_glass_notches.png`
   ),
@@ -42,5 +46,8 @@ export const Resources = {
 
 export const loader = new Loader();
 for (const res of Object.values(Resources)) {
+  loader.addResource(res);
+}
+for (const res of getAllTerrainImageSources()) {
   loader.addResource(res);
 }

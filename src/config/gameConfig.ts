@@ -36,6 +36,13 @@ export const RESOURCE_DENSITY = 0.04; // fraction of tiles with resources
 
 export const LAVA_DENSITY = 0.08;
 export const ROCK_DENSITY = 0.07;
+
+/** Fraction of tiles with destructible obstacles (trees, vegetation, cactus, etc.). */
+export const DESTRUCTIBLE_OBSTACLE_DENSITY = 0.06;
+/** Fraction of tiles with indestructible obstacles (boulders, craters, etc.). */
+export const INDESTRUCTIBLE_OBSTACLE_DENSITY = 0.05;
+/** Weights for indestructible sizes: 1x1, 2x2, 3x3. Must sum to 1. */
+export const INDESTRUCTIBLE_SIZE_WEIGHTS = { 1: 0.6, 2: 0.3, 3: 0.1 } as const;
 export const ICE_PATCH_DENSITY = 0.45;
 export const ICE_PATCH_CLUSTER_SCALE = 18;
 export const ICE_PATCH_DETAIL_SCALE = 6;

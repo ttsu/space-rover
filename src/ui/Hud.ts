@@ -100,7 +100,7 @@ export class Hud extends ScreenElement {
 
     for (let i = 0; i < this.maxHealthSegments; i++) {
       const segment = new Actor({
-        pos: vec(16 + i * (this.healthSegmentSize + this.healthSegmentGap), 32),
+        pos: vec(32 + i * (this.healthSegmentSize + this.healthSegmentGap), 48),
         width: this.healthSegmentSize,
         height: this.healthSegmentSize,
         anchor: vec(0, 0),
@@ -136,7 +136,7 @@ export class Hud extends ScreenElement {
       destinationConfig: destConfig,
     });
     this.batteryBarBackground = new Actor({
-      pos: vec(16, 76),
+      pos: vec(32, 108),
       width: barW,
       height: barH,
       anchor: vec(0, 0),
@@ -151,7 +151,7 @@ export class Hud extends ScreenElement {
       destinationConfig: destConfig,
     });
     this.batteryBarFill = new Actor({
-      pos: vec(16, 76),
+      pos: vec(32, 108),
       width: barW,
       height: barH,
       anchor: vec(0, 0),
@@ -256,6 +256,31 @@ export class Hud extends ScreenElement {
     healthPanel.addChild(this.batteryBarBackground);
     healthPanel.addChild(this.batteryBarFill);
 
+    healthPanel.addChild(
+      new Label({
+        text: "Health",
+        pos: vec(32, 80),
+        color: Color.fromHex("#23cd87"),
+        font: new Font({
+          family: "system-ui, sans-serif",
+          size: 16,
+          unit: FontUnit.Px,
+        }),
+      })
+    );
+    healthPanel.addChild(
+      new Label({
+        text: "Battery",
+        pos: vec(32, 144),
+        color: Color.fromHex("#2aade5"),
+        font: new Font({
+          family: "system-ui, sans-serif",
+          size: 16,
+          unit: FontUnit.Px,
+        }),
+      })
+    );
+
     const missionGoalsPanel = new Panel({
       pos: vec(this.engineRef.screen.width - 300 - 32, 32),
       width: 300,
@@ -317,7 +342,10 @@ export class Hud extends ScreenElement {
       0,
       this.displayedBatteryBarWidth
     );
-    this.batteryBarFill.scale.setTo(this.displayedBatteryBarWidth / Hud.BATTERY_BAR_WIDTH, 1);
+    this.batteryBarFill.scale.setTo(
+      this.displayedBatteryBarWidth / Hud.BATTERY_BAR_WIDTH,
+      1
+    );
   }
 
   updateFromState(): void {
