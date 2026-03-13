@@ -1,4 +1,13 @@
-import { Actor, Color, Label, vec, Font, FontUnit } from "excalibur";
+import {
+  Actor,
+  Color,
+  Label,
+  vec,
+  Font,
+  FontUnit,
+  ParticleEmitter,
+  EmitterType,
+} from "excalibur";
 import type { ResourceTypeDef } from "../resources/ResourceTypes";
 import type { IResourceCollector } from "./contracts";
 import { risingBurst } from "../effects/Particles";
@@ -6,11 +15,14 @@ import { playPickup } from "../audio/sounds";
 import { onResourceCollectedAtWorldPos } from "../world/WorldState";
 import { applyResourceSprite } from "../resources/ResourceGraphics";
 import { MagneticResourceComponent } from "../world/components/MagneticResourceComponent";
+import { FogAffectedComponent } from "../world/FogOfWar";
 
 export class ResourceNode extends Actor {
   resource: ResourceTypeDef;
   sizeUnits: number;
   private spriteIndex?: number;
+  private depleted = false;
+  private gasEmitter: ParticleEmitter | null = null;
 
   constructor(
     x: number,
@@ -18,14 +30,16 @@ export class ResourceNode extends Actor {
     resource: ResourceTypeDef,
     spriteIndex?: number
   ) {
-    const hasSprite = resource.id === "iron" || resource.id === "crystal";
+    const hasSprite =
+      resource.id === "iron" ||
+      resource.id === "crystal" ||
+      resource.id === "gas";
     super({
       x,
       y,
       width: hasSprite ? 32 : 20,
       height: hasSprite ? 32 : 20,
       anchor: vec(0.5, 0.5),
-      ...(hasSprite ? {} : { color: resource.color }),
     });
     this.resource = resource;
     this.sizeUnits = resource.size;
@@ -35,7 +49,29 @@ export class ResourceNode extends Actor {
   onInitialize(): void {
     this.applySpriteGraphicIfNeeded();
     this.addComponent(new MagneticResourceComponent());
+    if (this.resource.id === "gas") {
+      const emitter = new ParticleEmitter({
+        isEmitting: true,
+        emitRate: 15,
+        emitterType: EmitterType.Circle,
+        particle: {
+          minSpeed: 10,
+          minSize: 5,
+          maxSize: 10,
+          acc: vec(0, -5),
+          life: 4000,
+          opacity: 0.75,
+          fade: true,
+          beginColor: this.resource.color,
+          endColor: this.resource.color,
+        },
+      });
+      emitter.addComponent(new FogAffectedComponent());
+      this.addChild(emitter);
+      this.gasEmitter = emitter;
+    }
     this.on("collisionstart", (evt) => {
+      if (this.depleted) return;
       const other = evt.other.owner;
       const collector = other as unknown as IResourceCollector;
       if (
@@ -58,7 +94,13 @@ export class ResourceNode extends Actor {
           playPickup();
           this.showPopup(`+${this.sizeUnits} ${this.resource.name}`);
           onResourceCollectedAtWorldPos(this.pos.x, this.pos.y);
-          this.kill();
+          if (this.resource.id === "gas") {
+            this.gasEmitter?.kill();
+            this.gasEmitter = null;
+            this.depleted = true;
+          } else {
+            this.kill();
+          }
         } else {
           const shortage = this.sizeUnits - collector.remainingCapacity();
           const shortageText = shortage > 0 ? `${shortage}` : "0";

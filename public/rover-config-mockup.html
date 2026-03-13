@@ -34,6 +34,8 @@
         --cargo-iron: #9ca3af;
         --btn-primary: #e2e8f0;
         --btn-secondary: #64748b;
+        --wireframe-stroke: #475569;
+        --wireframe-glow: rgba(148, 163, 184, 0.4);
       }
 
       * {
@@ -66,7 +68,7 @@
 
       .screen {
         width: 100%;
-        max-width: 640px;
+        max-width: 720px;
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -79,13 +81,172 @@
         font-size: 1.75rem;
         letter-spacing: 0.08em;
         text-align: center;
-        margin: 24px 0 8px;
+        margin: 24px 0 16px;
         color: #fff;
         text-shadow: 0 0 24px rgba(59, 130, 246, 0.3);
       }
 
+      /* Rover diagram: wireframe + slots + connector lines */
+      .rover-bay {
+        margin-bottom: 24px;
+      }
+
+      .rover-bay .section-title {
+        font-family: Orbitron, sans-serif;
+        font-weight: 500;
+        font-size: 0.85rem;
+        letter-spacing: 0.06em;
+        color: var(--accent-equipment);
+        margin-bottom: 12px;
+        padding-left: 2px;
+      }
+
+      .rover-diagram {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        max-height: 320px;
+        background: var(--bg-panel);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+      }
+
+      .rover-diagram svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .rover-diagram .rover-wireframe {
+        fill: none;
+        stroke: var(--wireframe-stroke);
+        stroke-width: 1.5;
+        stroke-linejoin: round;
+        filter: drop-shadow(0 0 6px var(--wireframe-glow));
+      }
+
+      .rover-diagram .connector {
+        stroke: var(--wireframe-stroke);
+        stroke-width: 1;
+        stroke-dasharray: 4 3;
+        opacity: 0.8;
+      }
+
+      .rover-diagram .connector-battery {
+        stroke: var(--slot-battery);
+      }
+      .rover-diagram .connector-engine {
+        stroke: var(--slot-engine);
+      }
+      .rover-diagram .connector-control {
+        stroke: var(--slot-control);
+      }
+      .rover-diagram .connector-shielding {
+        stroke: var(--slot-shielding);
+      }
+      .rover-diagram .connector-radar {
+        stroke: var(--slot-radar);
+      }
+      .rover-diagram .connector-blaster {
+        stroke: var(--slot-blaster);
+      }
+
+      /* Slot nodes positioned at end of each connector */
+      .slot-node {
+        position: absolute;
+        min-width: 100px;
+        max-width: 120px;
+        padding: 6px 8px;
+        background: var(--bg-slot);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        font-size: 10px;
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .slot-node .slot-name {
+        font-weight: 700;
+        display: block;
+        margin-bottom: 2px;
+      }
+
+      .slot-node .slot-equip {
+        color: var(--text-muted);
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .slot-node .level-up {
+        font-size: 8px;
+        color: var(--accent-shop);
+        background: rgba(252, 211, 77, 0.15);
+        padding: 2px 6px;
+        border-radius: 4px;
+        display: inline-block;
+      }
+
+      .slot-node.slot-battery .slot-name {
+        color: var(--slot-battery);
+      }
+      .slot-node.slot-engine .slot-name {
+        color: var(--slot-engine);
+      }
+      .slot-node.slot-control .slot-name {
+        color: var(--slot-control);
+      }
+      .slot-node.slot-shielding .slot-name {
+        color: var(--slot-shielding);
+      }
+      .slot-node.slot-radar .slot-name {
+        color: var(--slot-radar);
+      }
+      .slot-node.slot-blaster .slot-name {
+        color: var(--slot-blaster);
+      }
+
+      /* Positions: % of diagram (0–100) for left/top of slot-node */
+      .slot-node[data-position="blaster"] {
+        left: 2%;
+        top: 38%;
+      }
+      .slot-node[data-position="battery"] {
+        left: 2%;
+        top: 58%;
+      }
+      .slot-node[data-position="control"] {
+        left: 2%;
+        top: 78%;
+      }
+      .slot-node[data-position="engine"] {
+        right: 2%;
+        left: auto;
+        top: 38%;
+      }
+      .slot-node[data-position="shielding"] {
+        right: 2%;
+        left: auto;
+        top: 58%;
+      }
+      .slot-node[data-position="radar"] {
+        left: 50%;
+        top: 2%;
+        transform: translateX(-50%);
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        align-items: start;
+      }
+
+      @media (max-width: 560px) {
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+      }
+
       .goals-block {
-        text-align: center;
         margin-bottom: 20px;
       }
 
@@ -113,9 +274,6 @@
         padding-left: 2px;
       }
 
-      .section-equipment .section-title {
-        color: var(--accent-equipment);
-      }
       .section-cargo .section-title {
         color: var(--accent-cargo);
       }
@@ -123,64 +281,6 @@
         color: var(--accent-shop);
       }
 
-      /* Equipment slots grid */
-      .slots-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        margin-bottom: 18px;
-      }
-
-      .slot {
-        height: 36px;
-        background: var(--bg-slot);
-        border: 1px solid var(--border-subtle);
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 10px 0 12px;
-      }
-
-      .slot-name {
-        font-size: 11px;
-        font-weight: 700;
-      }
-
-      .slot-battery .slot-name {
-        color: var(--slot-battery);
-      }
-      .slot-engine .slot-name {
-        color: var(--slot-engine);
-      }
-      .slot-control .slot-name {
-        color: var(--slot-control);
-      }
-      .slot-shielding .slot-name {
-        color: var(--slot-shielding);
-      }
-      .slot-radar .slot-name {
-        color: var(--slot-radar);
-      }
-      .slot-blaster .slot-name {
-        color: var(--slot-blaster);
-      }
-
-      .slot-equip {
-        font-size: 10px;
-        color: var(--text-muted);
-      }
-
-      .level-up {
-        font-size: 9px;
-        color: var(--accent-shop);
-        background: rgba(252, 211, 77, 0.15);
-        padding: 4px 8px;
-        border-radius: 4px;
-        white-space: nowrap;
-      }
-
-      /* Inventory */
       .inventory-label {
         font-size: 11px;
         color: var(--text-muted);
@@ -191,7 +291,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
       }
 
       .chip {
@@ -222,12 +322,11 @@
         background: var(--slot-blaster);
       }
 
-      /* Cargo layout */
       .cargo-grid {
         display: grid;
         grid-template-columns: repeat(4, 44px);
         gap: 4px;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
       }
 
       .cargo-cell {
@@ -257,7 +356,6 @@
         background: var(--cargo-iron);
       }
 
-      /* Shop */
       .bank-line {
         font-size: 11px;
         color: var(--text-muted);
@@ -279,7 +377,6 @@
         font-size: 11px;
         color: var(--text-primary);
       }
-
       .shop-cost {
         font-size: 10px;
         color: var(--text-muted);
@@ -309,10 +406,9 @@
         margin: 12px 0 8px;
       }
 
-      /* Actions */
       .actions {
         margin-top: auto;
-        padding-top: 28px;
+        padding-top: 24px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -382,44 +478,109 @@
     <div class="screen">
       <h1>Configure Rover</h1>
 
-      <section class="goals-block">
-        <div class="goals-title">Mission goals</div>
-        <div class="goal">Collect 5 crystal</div>
-        <div class="goal">Return to base with 3 gas</div>
-        <div class="goal">Survive 2 minutes</div>
-      </section>
-
-      <section class="section-equipment">
-        <div class="section-title">Equipment (slots & inventory)</div>
-        <div class="slots-grid">
-          <div class="slot slot-battery">
+      <section class="rover-bay">
+        <div class="section-title">Equipment — tap slot to change</div>
+        <div class="rover-diagram">
+          <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="1" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <!-- Connector lines: from slot area to rover part (simplified: all from edge toward center) -->
+            <line
+              class="connector connector-blaster"
+              x1="22"
+              y1="68"
+              x2="72"
+              y2="78"
+            />
+            <line
+              class="connector connector-battery"
+              x1="22"
+              y1="104"
+              x2="72"
+              y2="92"
+            />
+            <line
+              class="connector connector-control"
+              x1="22"
+              y1="140"
+              x2="72"
+              y2="105"
+            />
+            <line
+              class="connector connector-engine"
+              x1="298"
+              y1="68"
+              x2="248"
+              y2="78"
+            />
+            <line
+              class="connector connector-shielding"
+              x1="298"
+              y1="104"
+              x2="248"
+              y2="92"
+            />
+            <line
+              class="connector connector-radar"
+              x1="160"
+              y1="18"
+              x2="160"
+              y2="52"
+            />
+            <!-- Rover wireframe (simplified side view) -->
+            <g class="rover-wireframe" filter="url(#glow)">
+              <!-- Main chassis -->
+              <rect x="78" y="62" width="164" height="56" rx="8" />
+              <!-- Left wheel -->
+              <circle cx="95" cy="122" r="14" />
+              <!-- Right wheel -->
+              <circle cx="225" cy="122" r="14" />
+              <!-- Cockpit (front) -->
+              <rect x="78" y="58" width="32" height="24" rx="4" />
+              <!-- Engine / thruster (rear) -->
+              <rect x="242" y="72" width="28" height="36" rx="4" />
+              <!-- Radar mast (top) -->
+              <rect x="148" y="38" width="24" height="28" rx="4" />
+              <!-- Blaster (front mount) -->
+              <rect x="52" y="72" width="26" height="16" rx="3" />
+            </g>
+          </svg>
+          <!-- Slot nodes at end of connectors -->
+          <div class="slot-node slot-blaster" data-position="blaster">
+            <span class="slot-name">Blaster</span>
+            <span class="slot-equip">Base (1)</span>
+            <span class="level-up">Level up</span>
+          </div>
+          <div class="slot-node slot-battery" data-position="battery">
             <span class="slot-name">Battery</span>
             <span class="slot-equip">Base (1)</span>
-            <span class="level-up">Level up (0/2/1)</span>
+            <span class="level-up">Level up</span>
           </div>
-          <div class="slot slot-engine">
-            <span class="slot-name">Engine</span>
-            <span class="slot-equip">Base (1)</span>
-            <span class="level-up">Level up (2/0/2)</span>
-          </div>
-          <div class="slot slot-control">
+          <div class="slot-node slot-control" data-position="control">
             <span class="slot-name">Control</span>
             <span class="slot-equip">Base (2)</span>
-            <span class="level-up">Level up (1/1/1)</span>
+            <span class="level-up">Level up</span>
           </div>
-          <div class="slot slot-shielding">
+          <div class="slot-node slot-engine" data-position="engine">
+            <span class="slot-name">Engine</span>
+            <span class="slot-equip">Base (1)</span>
+            <span class="level-up">Level up</span>
+          </div>
+          <div class="slot-node slot-shielding" data-position="shielding">
             <span class="slot-name">Shielding</span>
             <span class="slot-equip">Reinforced Hull (2)</span>
           </div>
-          <div class="slot slot-radar">
+          <div class="slot-node slot-radar" data-position="radar">
             <span class="slot-name">Radar</span>
             <span class="slot-equip">Base (1)</span>
-            <span class="level-up">Level up (0/2/0)</span>
-          </div>
-          <div class="slot slot-blaster">
-            <span class="slot-name">Blaster</span>
-            <span class="slot-equip">Base (1)</span>
-            <span class="level-up">Level up (1/1/0)</span>
+            <span class="level-up">Level up</span>
           </div>
         </div>
         <div class="inventory-label">Inventory (drag to slot):</div>
@@ -430,51 +591,64 @@
         </div>
       </section>
 
-      <section class="section-cargo">
-        <div class="section-title">Cargo layout</div>
-        <div class="cargo-grid">
-          <div class="cargo-cell cargo-gas">Gas</div>
-          <div class="cargo-cell cargo-gas">Gas</div>
-          <div class="cargo-cell cargo-crystal">Crystal</div>
-          <div class="cargo-cell cargo-crystal">Crystal</div>
-          <div class="cargo-cell cargo-iron">Iron</div>
-          <div class="cargo-cell cargo-iron">Iron</div>
-          <div class="cargo-cell cargo-empty">—</div>
-          <div class="cargo-cell cargo-empty">—</div>
-        </div>
-      </section>
-
-      <section class="section-shop">
-        <div class="section-title">Buy upgrades</div>
-        <div class="bank-line">Bank: 12 iron, 8 crystal, 5 gas</div>
-        <button type="button" class="shop-btn">+1 Cargo Row (8 crystal)</button>
-        <div class="catalog-title">Buy new equipment (level 0 → 1):</div>
-        <div class="shop-row">
-          <div>
-            <div class="shop-info">
-              Lava Plating — Take 1 less damage from lava
+      <div class="two-col">
+        <div>
+          <section class="goals-block">
+            <div class="goals-title">Mission goals</div>
+            <div class="goal">Collect 5 crystal</div>
+            <div class="goal">Return to base with 3 gas</div>
+            <div class="goal">Survive 2 minutes</div>
+          </section>
+          <section class="section-cargo">
+            <div class="section-title">Cargo layout</div>
+            <div class="cargo-grid">
+              <div class="cargo-cell cargo-gas">Gas</div>
+              <div class="cargo-cell cargo-gas">Gas</div>
+              <div class="cargo-cell cargo-crystal">Crystal</div>
+              <div class="cargo-cell cargo-crystal">Crystal</div>
+              <div class="cargo-cell cargo-iron">Iron</div>
+              <div class="cargo-cell cargo-iron">Iron</div>
+              <div class="cargo-cell cargo-empty">—</div>
+              <div class="cargo-cell cargo-empty">—</div>
             </div>
-            <div class="shop-cost">4 iron</div>
-          </div>
-          <button type="button" class="shop-btn">Purchase</button>
+          </section>
         </div>
-        <div class="shop-row">
-          <div>
-            <div class="shop-info">
-              Heat Resistant Treads — 10% less slow in lava
+        <div>
+          <section class="section-shop">
+            <div class="section-title">Buy upgrades</div>
+            <div class="bank-line">Bank: 12 iron, 8 crystal, 5 gas</div>
+            <button type="button" class="shop-btn">
+              +1 Cargo Row (8 crystal)
+            </button>
+            <div class="catalog-title">Buy new equipment (level 0 → 1):</div>
+            <div class="shop-row">
+              <div>
+                <div class="shop-info">
+                  Lava Plating — Take 1 less damage from lava
+                </div>
+                <div class="shop-cost">4 iron</div>
+              </div>
+              <button type="button" class="shop-btn">Purchase</button>
             </div>
-            <div class="shop-cost">3 iron</div>
-          </div>
-          <button type="button" class="shop-btn">Purchase</button>
+            <div class="shop-row">
+              <div>
+                <div class="shop-info">
+                  Heat Resistant Treads — 10% less slow in lava
+                </div>
+                <div class="shop-cost">3 iron</div>
+              </div>
+              <button type="button" class="shop-btn">Purchase</button>
+            </div>
+            <div class="shop-row">
+              <div>
+                <div class="shop-info">Extended Mag — +1 blaster damage</div>
+                <div class="shop-cost">2 iron, 1 crystal</div>
+              </div>
+              <button type="button" class="shop-btn" disabled>Purchase</button>
+            </div>
+          </section>
         </div>
-        <div class="shop-row">
-          <div>
-            <div class="shop-info">Extended Mag — +1 blaster damage</div>
-            <div class="shop-cost">2 iron, 1 crystal</div>
-          </div>
-          <button type="button" class="shop-btn" disabled>Purchase</button>
-        </div>
-      </section>
+      </div>
 
       <div class="actions">
         <button type="button" class="btn btn-primary">Start Mission</button>

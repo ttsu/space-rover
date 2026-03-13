@@ -1,12 +1,13 @@
 import {
   Actor,
+  Animation,
   Color,
   CollisionType,
   Engine,
   Keys,
+  Shape,
   SpriteSheet,
   vec,
-  Shape,
 } from "excalibur";
 import type {
   RoverDamageEvent,
@@ -27,12 +28,7 @@ import {
   setTouchInput,
   getTouchControlsEnabled,
 } from "../input/TouchInputState";
-import {
-  ROVER_SPRITE_COLUMNS,
-  ROVER_SPRITE_HEIGHT,
-  ROVER_SPRITE_ROWS,
-  ROVER_SPRITE_WIDTH,
-} from "../config/gameConfig";
+import { ROVER_SPRITE_HEIGHT, ROVER_SPRITE_WIDTH } from "../config/gameConfig";
 import type { RoverStats } from "../upgrades/RoverStats";
 import { getDamageReductionForType } from "../upgrades/RoverStats";
 import type { DamageType } from "../types/DamageTypes";
@@ -85,6 +81,7 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
   private readonly brakeDeceleration = 600;
   private readonly naturalFriction = 200;
   private readonly turnSpeed: number;
+  private spriteAnimation: Animation | null = null;
 
   constructor(
     x: number,
@@ -122,16 +119,18 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
     const spriteSheet = SpriteSheet.fromImageSource({
       image: Resources.RoverSprite,
       grid: {
-        rows: ROVER_SPRITE_ROWS,
-        columns: ROVER_SPRITE_COLUMNS,
-        spriteWidth: ROVER_SPRITE_WIDTH,
-        spriteHeight: ROVER_SPRITE_HEIGHT,
+        rows: 1,
+        columns: 4,
+        spriteWidth: 128,
+        spriteHeight: 64,
       },
     });
-    const sprite = spriteSheet.getSprite(0, 0);
-    if (sprite) {
-      this.graphics.use(sprite);
-    }
+
+    const animation = Animation.fromSpriteSheet(spriteSheet, [0, 1, 2, 3], 150);
+    animation.scale.setTo(ROVER_SPRITE_WIDTH / 128, ROVER_SPRITE_HEIGHT / 64);
+    animation.pause();
+    this.spriteAnimation = animation;
+    this.graphics.use(animation);
   }
 
   /** Reset rover state for starting a new mission (scene re-use). */
@@ -228,11 +227,6 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
   }
 
   onPreUpdate(engine: Engine, delta: number): void {
-    if (this.isDisabled) {
-      this.vel = vec(0, 0);
-      return;
-    }
-
     const dt = delta / 1000;
     this.battery -= this.roverStats.batteryDrainPerSecond * dt;
     if (this.battery <= 0) {
@@ -327,7 +321,9 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
     }
 
     const forward = vec(Math.cos(this.rotation), Math.sin(this.rotation));
-    this.vel = forward.scale(this.currentSpeed * this.slowFactorThisFrame);
+    this.vel = this.isDisabled
+      ? vec(0, 0)
+      : forward.scale(this.currentSpeed * this.slowFactorThisFrame);
     const windReceiver = this.get(WindReceiverComponent);
     if (windReceiver) {
       this.vel = this.vel.add(windReceiver.velocityDelta);
@@ -364,6 +360,20 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
         range,
       } as RoverFireBlasterEvent);
       this.onFireBlaster?.(x, y, angle, damage, speed, range);
+    }
+
+    if (this.spriteAnimation) {
+      const speedMagnitude = Math.abs(this.currentSpeed);
+      if (!this.isDisabled && speedMagnitude > 1) {
+        const normalized = Math.min(1, speedMagnitude / this.maxForwardSpeed);
+        const minFps = 4;
+        const maxFps = 10;
+        this.spriteAnimation.speed = minFps + (maxFps - minFps) * normalized;
+        this.spriteAnimation.play();
+      } else {
+        this.spriteAnimation.pause();
+        this.spriteAnimation.reset();
+      }
     }
 
     if (this.damageFlashTimer > 0) {

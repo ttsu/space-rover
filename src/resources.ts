@@ -2,9 +2,7 @@ import { ImageSource, Loader } from "excalibur";
 import { getAllTerrainImageSources } from "./resources/terrainAssets";
 
 export const Resources = {
-  RoverSprite: new ImageSource(
-    `${import.meta.env.BASE_URL}assets/rover_sprite.png`
-  ),
+  RoverSprite: new ImageSource(`${import.meta.env.BASE_URL}assets/rover.png`),
   IronSprite: new ImageSource(`${import.meta.env.BASE_URL}assets/iron.png`),
   CrystalSprite: new ImageSource(
     `${import.meta.env.BASE_URL}assets/crystal.png`
@@ -14,6 +12,9 @@ export const Resources = {
   ),
   CrystalDepositSprite: new ImageSource(
     `${import.meta.env.BASE_URL}assets/crystal_deposit.png`
+  ),
+  GasVentSprite: new ImageSource(
+    `${import.meta.env.BASE_URL}assets/gas_vent.png`
   ),
   ButtonSquareDepth: new ImageSource(
     `${import.meta.env.BASE_URL}assets/button_square_depth.png`

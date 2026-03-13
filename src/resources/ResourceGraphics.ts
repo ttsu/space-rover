@@ -17,6 +17,9 @@ function getResourceSpriteImage(
       ? Resources.CrystalDepositSprite
       : Resources.CrystalSprite;
   }
+  if (resource.id === "gas" && kind === "node") {
+    return Resources.GasVentSprite;
+  }
   return null;
 }
 

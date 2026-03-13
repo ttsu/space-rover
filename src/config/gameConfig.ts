@@ -1,9 +1,9 @@
 export const TILE_SIZE = 32;
 
-// Rover spritesheet grid (rover_sprite.png)
+// Rover sprite dimensions (displayed size in pixels)
 export const ROVER_SPRITE_COLUMNS = 1;
 export const ROVER_SPRITE_ROWS = 1;
-export const ROVER_SPRITE_WIDTH = 32;
+export const ROVER_SPRITE_WIDTH = 64;
 export const ROVER_SPRITE_HEIGHT = 32;
 
 export const PLANET_WIDTH_TILES = 50;
