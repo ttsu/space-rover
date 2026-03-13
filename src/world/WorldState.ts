@@ -7,9 +7,22 @@ export interface DepositState {
   hp: number;
 }
 
+export interface CargoCountsMutable {
+  iron: number;
+  crystal: number;
+  gas: number;
+}
+
+export interface DroppedCargoEntry {
+  x: number;
+  y: number;
+  cargo: CargoCountsMutable;
+}
+
 export interface WorldState {
   clearedTileKeys: Set<string>;
   depositState: Map<string, DepositState>;
+  droppedCargo: DroppedCargoEntry[];
 }
 
 const MAX_CLEARED_TILE_KEYS = 25000;
@@ -21,7 +34,26 @@ export function createEmptyWorldState(): WorldState {
   return {
     clearedTileKeys: new Set<string>(),
     depositState: new Map<string, DepositState>(),
+    droppedCargo: [],
   };
+}
+
+export function isCargoEmpty(cargo: CargoCountsMutable): boolean {
+  return cargo.iron <= 0 && cargo.crystal <= 0 && cargo.gas <= 0;
+}
+
+export function addDroppedCargo(
+  state: WorldState,
+  x: number,
+  y: number,
+  cargo: CargoCountsMutable
+): void {
+  if (isCargoEmpty(cargo)) return;
+  state.droppedCargo.push({
+    x,
+    y,
+    cargo: { iron: cargo.iron, crystal: cargo.crystal, gas: cargo.gas },
+  });
 }
 
 export function worldStateFromSave(save?: WorldStateSave): WorldState {
@@ -41,6 +73,19 @@ export function worldStateFromSave(save?: WorldStateSave): WorldState {
       hp,
     });
   }
+  for (const d of save.droppedCargo ?? []) {
+    if (d.cargo.iron > 0 || d.cargo.crystal > 0 || d.cargo.gas > 0) {
+      out.droppedCargo.push({
+        x: d.x,
+        y: d.y,
+        cargo: {
+          iron: Math.max(0, d.cargo.iron),
+          crystal: Math.max(0, d.cargo.crystal),
+          gas: Math.max(0, d.cargo.gas),
+        },
+      });
+    }
+  }
   return out;
 }
 
@@ -53,12 +98,25 @@ export function worldStateToSave(state: WorldState): WorldStateSave {
   for (const [key, value] of limitedDepositEntries) {
     depositState[key] = { resourceId: value.resourceId, hp: value.hp };
   }
+  const droppedCargo = state.droppedCargo
+    .filter((d) => !isCargoEmpty(d.cargo))
+    .map((d) => ({
+      x: d.x,
+      y: d.y,
+      cargo: {
+        iron: d.cargo.iron,
+        crystal: d.cargo.crystal,
+        gas: d.cargo.gas,
+      },
+    }));
+
   return {
     clearedTileKeys: tailEntries(
       [...state.clearedTileKeys.values()],
       MAX_CLEARED_TILE_KEYS
     ),
     depositState,
+    droppedCargo,
   };
 }
 

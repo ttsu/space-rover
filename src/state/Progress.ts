@@ -285,6 +285,7 @@ export function spendForShipRepair(): boolean {
 const emptyWorldStateSave: WorldStateSave = {
   clearedTileKeys: [],
   depositState: {},
+  droppedCargo: [],
 };
 
 export function getWorldStateSaveForPlanet(planetId: string): WorldStateSave {

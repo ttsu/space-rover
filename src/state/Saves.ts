@@ -22,9 +22,16 @@ export interface WorldStateDepositSave {
   hp: number;
 }
 
+export interface DroppedCargoSave {
+  x: number;
+  y: number;
+  cargo: CargoCountsSave;
+}
+
 export interface WorldStateSave {
   clearedTileKeys: string[];
   depositState: Record<string, WorldStateDepositSave>;
+  droppedCargo?: DroppedCargoSave[];
 }
 
 export interface GameSave {
@@ -80,6 +87,7 @@ function createEmptyWorldState(): WorldStateSave {
   return {
     clearedTileKeys: [],
     depositState: {},
+    droppedCargo: [],
   };
 }
 
@@ -171,9 +179,22 @@ function parseWorldState(obj: unknown): WorldStateSave {
       hp,
     };
   }
+  const droppedCargo: DroppedCargoSave[] = [];
+  const rawDropped = Array.isArray(o.droppedCargo) ? o.droppedCargo : [];
+  for (const item of rawDropped) {
+    if (!item || typeof item !== "object") continue;
+    const d = item as Record<string, unknown>;
+    const x = typeof d.x === "number" ? d.x : 0;
+    const y = typeof d.y === "number" ? d.y : 0;
+    const cargo = parseCargo(d.cargo);
+    if (cargo.iron > 0 || cargo.crystal > 0 || cargo.gas > 0) {
+      droppedCargo.push({ x, y, cargo });
+    }
+  }
   return {
     clearedTileKeys: cleared,
     depositState: depositOut,
+    droppedCargo,
   };
 }
 

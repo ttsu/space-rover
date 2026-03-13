@@ -51,11 +51,14 @@ import type { StormRegion } from "../hazards/StormRegion";
 import type { SandstormRegion } from "../hazards/SandstormRegion";
 import { ResourceNode } from "../entities/ResourceNode";
 import { ResourceDeposit } from "../entities/ResourceDeposit";
+import { DroppedCargoPile } from "../entities/DroppedCargoPile";
 import { LightningSystem } from "../hazards/LightningSystem";
 import { DIFFICULTY_MULTIPLIERS } from "../config/difficulty";
 import { ChunkManager } from "../world/ChunkManager";
 import { MinimapTileQuery } from "../world/MinimapTileQuery";
 import {
+  addDroppedCargo,
+  isCargoEmpty,
   setActiveWorldState,
   worldStateFromSave,
   worldStateToSave,
@@ -201,6 +204,22 @@ export class PlanetScene extends Scene {
       biomePreset: save.biomePreset ?? "mixed",
     });
     this.setupBaseReturnTrigger();
+    this.spawnDroppedCargoPiles();
+  }
+
+  private spawnDroppedCargoPiles(): void {
+    if (!this.worldState) return;
+    const state = this.worldState;
+    for (const entry of state.droppedCargo) {
+      if (isCargoEmpty(entry.cargo)) continue;
+      const onEmpty = () => {
+        const i = state.droppedCargo.indexOf(entry);
+        if (i >= 0) state.droppedCargo.splice(i, 1);
+      };
+      const pile = new DroppedCargoPile(entry, onEmpty);
+      this.add(pile);
+      this.worldActors.push(pile);
+    }
   }
 
   onInitialize() {
@@ -414,6 +433,14 @@ export class PlanetScene extends Scene {
 
   private triggerDeath(): void {
     this.runEnded = true;
+    if (this.worldState && !isCargoEmpty(this.rover.cargo)) {
+      addDroppedCargo(
+        this.worldState,
+        this.rover.pos.x,
+        this.rover.pos.y,
+        this.rover.cargo
+      );
+    }
     this.persistWorldState();
     runFlowDeath(this, this.engine, {
       cargo: this.rover.cargo,
