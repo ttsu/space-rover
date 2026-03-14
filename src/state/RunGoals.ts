@@ -55,7 +55,7 @@ export function generateGoalChoices(
   count = 3,
   context?: GoalGenerationContext
 ): RunGoal[] {
-  const hazardGoals = getHazardGoalTemplates(context?.biomePreset ?? "mixed");
+  const hazardGoals = getHazardGoalTemplates(context?.biomePreset ?? "barren");
   const shuffled = [...BASE_GOAL_TEMPLATES, ...hazardGoals].sort(
     () => Math.random() - 0.5
   );

@@ -221,7 +221,7 @@ function parseSave(raw: string | null): GameSave | null {
       obj.biomePreset === "storm" ||
       obj.biomePreset === "barren"
         ? obj.biomePreset
-        : "mixed";
+        : "barren";
     const bank = parseCargo(obj.bank);
     const totalResourcesCollected = parseCargo(obj.totalResourcesCollected);
     const createdAt =
@@ -370,7 +370,7 @@ export function createSave(difficulty: Difficulty): GameSave {
     id,
     seed,
     difficulty,
-    biomePreset: "mixed",
+    biomePreset: "barren",
     bank: { ...emptyCargo },
     totalResourcesCollected: { ...emptyCargo },
     createdAt: now,

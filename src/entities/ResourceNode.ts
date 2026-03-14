@@ -30,16 +30,13 @@ export class ResourceNode extends Actor {
     resource: ResourceTypeDef,
     spriteIndex?: number
   ) {
-    const hasSprite =
-      resource.id === "iron" ||
-      resource.id === "crystal" ||
-      resource.id === "gas";
     super({
       x,
       y,
-      width: hasSprite ? 32 : 20,
-      height: hasSprite ? 32 : 20,
+      width: 32,
+      height: 32,
       anchor: vec(0.5, 0.5),
+      z: -1,
     });
     this.resource = resource;
     this.sizeUnits = resource.size;

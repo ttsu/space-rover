@@ -92,7 +92,7 @@ export class PlanetRunMenuScene extends Scene {
   private refreshGoalChoices(): void {
     const save = getCurrentSave();
     this.goalChoices = generateGoalChoices(3, {
-      biomePreset: save?.biomePreset ?? "mixed",
+      biomePreset: save?.biomePreset ?? "barren",
     });
     for (let i = 0; i < 3; i++) {
       if (i < this.goalChoices.length) {

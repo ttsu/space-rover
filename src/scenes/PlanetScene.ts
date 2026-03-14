@@ -156,7 +156,7 @@ export class PlanetScene extends Scene {
       blasterTargetRegistry: this.blasterTargetRegistry,
       difficulty: save.difficulty,
       seed: save.seed,
-      biomePreset: save.biomePreset ?? "mixed",
+      biomePreset: save.biomePreset ?? "barren",
       worldActors: this.worldActors,
       stormRegions: this.stormRegions,
       windRegions: this.windRegions,
@@ -201,7 +201,7 @@ export class PlanetScene extends Scene {
       seed: save.seed,
       worldState: this.worldState,
       difficulty: save.difficulty,
-      biomePreset: save.biomePreset ?? "mixed",
+      biomePreset: save.biomePreset ?? "barren",
     });
     this.setupBaseReturnTrigger();
     this.spawnDroppedCargoPiles();

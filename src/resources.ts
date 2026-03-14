@@ -40,6 +40,9 @@ export const Resources = {
   BaseLanderSprite: new ImageSource(
     `${import.meta.env.BASE_URL}assets/base.png`
   ),
+  CargoDropSprite: new ImageSource(
+    `${import.meta.env.BASE_URL}assets/cargo_drop.png`
+  ),
   PanelGlassNotches: new ImageSource(
     `${import.meta.env.BASE_URL}assets/panel_glass_notches.png`
   ),

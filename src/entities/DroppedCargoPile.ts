@@ -5,7 +5,7 @@ import {
   Font,
   FontUnit,
   Label,
-  Rectangle,
+  SpriteSheet,
   vec,
 } from "excalibur";
 import type { IResourceCollector } from "./contracts";
@@ -17,8 +17,10 @@ import { risingBurst } from "../effects/Particles";
 import { playPickup } from "../audio/sounds";
 import { FogAffectedComponent } from "../world/FogOfWar";
 import { MagneticResourceComponent } from "../world/components/MagneticResourceComponent";
+import { Resources } from "../resources";
 
-const PILE_SIZE = 36;
+const PILE_SIZE = 32;
+const CARGO_DROP_SPRITE_SIZE = 32;
 
 /**
  * A pile of resources dropped when the rover died (battery or health).
@@ -35,7 +37,6 @@ export class DroppedCargoPile extends Actor {
       width: PILE_SIZE,
       height: PILE_SIZE,
       anchor: vec(0.5, 0.5),
-      color: Color.fromHex("#78716c"),
     });
     this.entry = entry;
     this.onEmpty = onEmpty;
@@ -96,13 +97,22 @@ export class DroppedCargoPile extends Actor {
     const c = this.entry.cargo;
     const total = c.iron + c.crystal + c.gas;
     if (total <= 0) return;
-    this.graphics.use(
-      new Rectangle({
-        width: PILE_SIZE,
-        height: PILE_SIZE,
-        color: Color.fromHex("#57534e"),
-      })
-    );
+    const spriteSheet = SpriteSheet.fromImageSource({
+      image: Resources.CargoDropSprite,
+      grid: {
+        rows: 1,
+        columns: 1,
+        spriteWidth: CARGO_DROP_SPRITE_SIZE,
+        spriteHeight: CARGO_DROP_SPRITE_SIZE,
+      },
+    });
+    const sprite = spriteSheet.getSprite(0, 0, {
+      scale: vec(
+        PILE_SIZE / CARGO_DROP_SPRITE_SIZE,
+        PILE_SIZE / CARGO_DROP_SPRITE_SIZE
+      ),
+    });
+    if (sprite) this.graphics.use(sprite);
   }
 
   private showPopup(text: string): void {
