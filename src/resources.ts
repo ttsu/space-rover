@@ -1,5 +1,7 @@
-import { ImageSource, Loader } from "excalibur";
+import { ImageSource, Loader, Sound } from "excalibur";
 import { getAllTerrainImageSources } from "./resources/terrainAssets";
+
+const BASE = `${import.meta.env.BASE_URL}assets/`;
 
 export const Resources = {
   RoverSprite: new ImageSource(`${import.meta.env.BASE_URL}assets/rover.png`),
@@ -46,6 +48,8 @@ export const Resources = {
   PanelGlassNotches: new ImageSource(
     `${import.meta.env.BASE_URL}assets/panel_glass_notches.png`
   ),
+  BlasterSound: new Sound({ paths: [`${BASE}sfx/blaster.mp3`] }),
+  DepositBreakSound: new Sound({ paths: [`${BASE}sfx/deposit_break.mp3`] }),
 } as const;
 
 export const loader = new Loader();

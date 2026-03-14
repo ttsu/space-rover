@@ -1,3 +1,5 @@
+import { Resources } from "../resources";
+
 let audioCtx: AudioContext | null = null;
 
 function ctx(): AudioContext {
@@ -57,8 +59,18 @@ function playNoise(duration: number, volume = 0.1): void {
 }
 
 export function playBlaster(): void {
+  if (Resources.BlasterSound.isLoaded()) {
+    Resources.BlasterSound.play(0.5);
+    return;
+  }
   playTone(880, 0.08, "square", 0.12, 220);
   playNoise(0.06, 0.06);
+}
+
+export function playDepositBreak(): void {
+  if (Resources.DepositBreakSound.isLoaded()) {
+    Resources.DepositBreakSound.play(0.5);
+  }
 }
 
 export function playPickup(): void {

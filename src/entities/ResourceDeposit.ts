@@ -8,6 +8,7 @@ import {
   onDepositDestroyedAtWorldPos,
 } from "../world/WorldState";
 import { applyResourceSprite } from "../resources/ResourceGraphics";
+import { playDepositBreak } from "../audio/sounds";
 
 const DEFAULT_HP = 8;
 
@@ -75,6 +76,7 @@ export class ResourceDeposit extends Actor implements IBlasterTarget {
   }
 
   private playBreakAndSpawn(): void {
+    playDepositBreak();
     const scene = this.scene;
     if (!scene) return;
     const x = this.pos.x;

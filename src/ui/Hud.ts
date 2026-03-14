@@ -76,9 +76,13 @@ export class Hud extends ScreenElement {
   private static readonly BATTERY_BAR_LERP_K = 6;
   private static readonly BATTERY_BAR_WIDTH = 200;
   private static readonly BATTERY_BAR_HEIGHT = 32;
+  /** Battery (seconds) below which the bar flashes red. */
+  private static readonly LOW_BATTERY_FLASH_THRESHOLD_SEC = 10;
   /** Small square bar assets; slice margins for nine-slice. */
   private static readonly BAR_SLICE_SOURCE_SIZE = 32;
   private static readonly BAR_SLICE_MARGIN = 8;
+  /** Accumulated ms for low-battery flash animation. */
+  private batteryLowFlashTime = 0;
   private capacityLabel!: Label;
   private cargoLabel!: Label;
   private totalLabel!: Label;
@@ -350,6 +354,19 @@ export class Hud extends ScreenElement {
       this.displayedBatteryBarWidth / Hud.BATTERY_BAR_WIDTH,
       1
     );
+
+    if (this.snapshot.battery >= Hud.LOW_BATTERY_FLASH_THRESHOLD_SEC) {
+      this.batteryLowFlashTime = 0;
+      this.batteryBarFillGraphic.tint = Color.White;
+    } else {
+      this.batteryLowFlashTime += delta;
+      const pulse = 0.5 + 0.5 * Math.sin(this.batteryLowFlashTime * 0.005);
+      this.batteryBarFillGraphic.tint = Color.lerp(
+        Color.White,
+        Color.fromHex("#ef4444"),
+        pulse
+      );
+    }
   }
 
   updateFromState(): void {
