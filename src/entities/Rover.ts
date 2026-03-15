@@ -75,6 +75,7 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
   private accelerationScaleThisFrame = 1;
   private tractionScaleThisFrame = 1;
   private damageFlashTimer = 0;
+  private batteryDepletedEmitted = false;
   private readonly maxForwardSpeed: number;
   private readonly maxReverseSpeed: number;
   private readonly acceleration: number;
@@ -82,6 +83,8 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
   private readonly naturalFriction = 200;
   private readonly turnSpeed: number;
   private spriteAnimation: Animation | null = null;
+  private static readonly TOUCH_STOP_RADIUS_PX = 22;
+  private static readonly TOUCH_SLOW_RADIUS_PX = 150;
 
   constructor(
     x: number,
@@ -144,6 +147,7 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
     this.currentSpeed = 0;
     this.blasterCooldown = 0;
     this.damageFlashTimer = 0;
+    this.batteryDepletedEmitted = false;
     this.slowFactorThisFrame = 1;
     this.accelerationScaleThisFrame = 1;
     this.tractionScaleThisFrame = 1;
@@ -204,7 +208,11 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
   onInitialize(): void {
     this.addComponent(new PlayerTagComponent());
     this.addComponent(new FogViewerComponent(this.roverStats.visibilityRadius));
-    this.addComponent(new MagnetismSourceComponent(this.roverStats.magnetism));
+    this.addComponent(
+      new MagnetismSourceComponent(
+        this.roverStats.magnetism + this.roverStats.autoCollectRadius
+      )
+    );
     this.addComponent(new WindReceiverComponent(this.getWindResist()));
   }
 
@@ -232,8 +240,11 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
     if (this.battery <= 0) {
       this.battery = 0;
       this.isDisabled = true;
-      this.events.emit("batterydepleted", undefined);
-      this.onBatteryDepleted?.();
+      if (!this.batteryDepletedEmitted) {
+        this.batteryDepletedEmitted = true;
+        this.events.emit("batterydepleted", undefined);
+        this.onBatteryDepleted?.();
+      }
       this.emitStateChanged();
       return;
     }
@@ -245,10 +256,55 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
     let accelerating = input.isHeld(Keys.Up) || input.isHeld(Keys.W);
     let braking = input.isHeld(Keys.Down) || input.isHeld(Keys.S);
     const touch = getTouchControlsEnabled() ? getTouchInput() : null;
+    const hasTouchTarget =
+      !!touch?.isHoldingMove && touch.moveTargetWorld !== null;
     const useTouchDrive =
-      touch && touch.targetAngle !== null && touch.targetAngle !== undefined;
+      hasTouchTarget ||
+      (touch && touch.targetAngle !== null && touch.targetAngle !== undefined);
 
-    if (useTouchDrive) {
+    if (hasTouchTarget && touch?.moveTargetWorld) {
+      const target = vec(touch.moveTargetWorld.x, touch.moveTargetWorld.y);
+      const toTarget = target.sub(this.pos);
+      const distToTarget = toTarget.distance();
+      const baseTargetAngle = Math.atan2(toTarget.y, toTarget.x);
+      const avoidanceOffset = this.computeTouchAvoidanceOffset(engine);
+      const targetAngle = baseTargetAngle + avoidanceOffset;
+      let diff = targetAngle - this.rotation;
+      while (diff > Math.PI) diff -= 2 * Math.PI;
+      while (diff < -Math.PI) diff += 2 * Math.PI;
+      const assistTurnBoost = 1 + Math.max(0, this.roverStats.steeringAssist);
+      const maxTurn = this.turnSpeed * assistTurnBoost * dt;
+      if (diff > maxTurn) {
+        this.rotation += maxTurn;
+      } else if (diff < -maxTurn) {
+        this.rotation -= maxTurn;
+      } else {
+        this.rotation = targetAngle;
+      }
+
+      let targetSpeed = this.maxForwardSpeed;
+      if (distToTarget <= Rover.TOUCH_STOP_RADIUS_PX) {
+        targetSpeed = 0;
+      } else if (distToTarget < Rover.TOUCH_SLOW_RADIUS_PX) {
+        const normalized =
+          (distToTarget - Rover.TOUCH_STOP_RADIUS_PX) /
+          (Rover.TOUCH_SLOW_RADIUS_PX - Rover.TOUCH_STOP_RADIUS_PX);
+        targetSpeed = this.maxForwardSpeed * (0.2 + 0.8 * Math.max(0, normalized));
+      }
+
+      const absDiff = Math.abs(diff);
+      const facingScale = Math.max(0.35, Math.cos(Math.min(absDiff, Math.PI / 2)));
+      targetSpeed *= facingScale;
+
+      const accelChange =
+        this.acceleration * this.accelerationScaleThisFrame * dt;
+      const speedDiff = targetSpeed - this.currentSpeed;
+      if (Math.abs(speedDiff) <= accelChange) {
+        this.currentSpeed = targetSpeed;
+      } else {
+        this.currentSpeed += Math.sign(speedDiff) * accelChange;
+      }
+    } else if (useTouchDrive) {
       const targetAngle = touch!.targetAngle!;
       let diff = targetAngle - this.rotation;
       while (diff > Math.PI) diff -= 2 * Math.PI;
@@ -347,7 +403,7 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
       this.blasterCooldown = msPerShot;
       const x = this.pos.x;
       const y = this.pos.y;
-      const angle = this.rotation;
+      const angle = this.getAimAssistedShotAngle(this.rotation);
       const damage = this.roverStats.blasterDamage;
       const speed = 600;
       const range = this.roverStats.blasterRange;
@@ -400,5 +456,71 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
       maxCapacity: this.maxCapacity,
       cargo: { ...this.cargo },
     } as RoverStateChangedEvent);
+  }
+
+  private computeTouchAvoidanceOffset(engine: Engine): number {
+    const assist = Math.max(0, this.roverStats.obstacleAssist);
+    if (assist <= 0) return 0;
+    const scene = engine.currentScene;
+    if (!scene) return 0;
+
+    const forward = vec(Math.cos(this.rotation), Math.sin(this.rotation));
+    const lookAhead = 90 + assist * 140;
+    let weightedSteer = 0;
+
+    for (const actor of scene.actors) {
+      if (actor === this || actor.isKilled()) continue;
+      if (actor.body.collisionType !== CollisionType.Fixed) continue;
+      const toObstacle = actor.pos.sub(this.pos);
+      const distance = toObstacle.distance();
+      if (distance <= 1 || distance > lookAhead) continue;
+      const directionToObstacle = toObstacle.normalize();
+      const inFront = forward.dot(directionToObstacle) > 0;
+      if (!inFront) continue;
+
+      const cross = forward.x * directionToObstacle.y - forward.y * directionToObstacle.x;
+      const steerDirection = cross >= 0 ? -1 : 1;
+      const closeness = 1 - distance / lookAhead;
+      weightedSteer += steerDirection * closeness;
+    }
+
+    const clamped = Math.max(-1, Math.min(1, weightedSteer));
+    return clamped * Math.min(0.65, assist * 0.6);
+  }
+
+  private getAimAssistedShotAngle(baseAngle: number): number {
+    const assist = Math.max(0, this.roverStats.aimAssistStrength);
+    if (assist <= 0) return baseAngle;
+    const scene = this.scene;
+    if (!scene) return baseAngle;
+
+    const maxRange = this.roverStats.blasterRange + 120;
+    const maxCone = 0.35 + assist * 0.45;
+    let bestDiff = 0;
+    let bestScore = Number.POSITIVE_INFINITY;
+
+    for (const actor of scene.actors) {
+      if (actor === this || actor.isKilled()) continue;
+      const maybeTarget = actor as unknown as { takeBlasterDamage?: (amount: number) => void };
+      if (typeof maybeTarget.takeBlasterDamage !== "function") continue;
+      const toTarget = actor.pos.sub(this.pos);
+      const dist = toTarget.distance();
+      if (dist <= 0 || dist > maxRange) continue;
+      const angleToTarget = Math.atan2(toTarget.y, toTarget.x);
+      let diff = angleToTarget - baseAngle;
+      while (diff > Math.PI) diff -= 2 * Math.PI;
+      while (diff < -Math.PI) diff += 2 * Math.PI;
+      const absDiff = Math.abs(diff);
+      if (absDiff > maxCone) continue;
+      const score = absDiff + dist * 0.0008;
+      if (score < bestScore) {
+        bestScore = score;
+        bestDiff = diff;
+      }
+    }
+
+    if (!Number.isFinite(bestScore)) return baseAngle;
+    const blend = Math.min(0.85, assist);
+    return baseAngle + bestDiff * blend;
   }
 }

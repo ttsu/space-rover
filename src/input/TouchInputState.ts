@@ -5,6 +5,10 @@ export interface TouchInputState {
   targetAngle: number | null;
   /** Magnitude 0–1 from joystick displacement; controls rover speed when using touch. */
   magnitude: number;
+  /** World-space move target for hold-to-move touch navigation. */
+  moveTargetWorld: { x: number; y: number } | null;
+  /** True while touch navigation is actively holding a movement target. */
+  isHoldingMove: boolean;
   fire: boolean;
   // Legacy fields (unused when targetAngle is used)
   turnLeft: boolean;
@@ -16,6 +20,8 @@ export interface TouchInputState {
 const emptyState: TouchInputState = {
   targetAngle: null,
   magnitude: 0,
+  moveTargetWorld: null,
+  isHoldingMove: false,
   fire: false,
   turnLeft: false,
   turnRight: false,

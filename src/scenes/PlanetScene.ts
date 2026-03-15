@@ -294,6 +294,7 @@ export class PlanetScene extends Scene {
     });
 
     this.rover.events.on("batterydepleted", () => {
+      if (this.runEnded) return;
       emitSceneEvent(this, "runEnded", { reason: "death" });
       this.triggerDeath();
     });
@@ -345,7 +346,7 @@ export class PlanetScene extends Scene {
   private static readonly RETURN_BUTTON_HEIGHT = 52;
 
   private addTouchControlsOverlay(): void {
-    const tc = new TouchControls(this.engine);
+    const tc = new TouchControls(this.engine, "planet-simple");
     this.touchControlsOverlay = tc;
     this.add(tc);
     const returnContainer = new ScreenElement({ x: 0, y: 0 });
@@ -357,7 +358,7 @@ export class PlanetScene extends Scene {
       pos: vec(cx, by),
       width: PlanetScene.RETURN_BUTTON_WIDTH,
       height: PlanetScene.RETURN_BUTTON_HEIGHT,
-      text: "Return to ship",
+      text: "Go Home",
       color: Color.fromHex("#1c1917"),
       font: new Font({
         family: "system-ui, sans-serif",
@@ -413,6 +414,7 @@ export class PlanetScene extends Scene {
   }
 
   private triggerReturnToBase(): void {
+    if (this.runEnded) return;
     this.runEnded = true;
     emitSceneEvent(this, "runEnded", { reason: "return" });
     this.persistWorldState();
@@ -432,6 +434,7 @@ export class PlanetScene extends Scene {
   }
 
   private triggerDeath(): void {
+    if (this.runEnded) return;
     this.runEnded = true;
     if (this.worldState && !isCargoEmpty(this.rover.cargo)) {
       addDroppedCargo(

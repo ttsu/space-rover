@@ -36,7 +36,7 @@ export class MagnetismSystem extends System {
     ]);
   }
 
-  update(elapsed: number): void {
+  update(_elapsed: number): void {
     const playerEntity = this.playerQuery.entities[0];
     if (!playerEntity) return;
     const playerTransform = playerEntity.get(TransformComponent);
@@ -45,8 +45,8 @@ export class MagnetismSystem extends System {
     const magnetism = magnetismSource.radiusPx;
     if (magnetism <= 0) return;
     const roverPos = playerTransform.pos;
-    const attractionSpeed = 80;
-    const dtScale = elapsed / 1000;
+    // Motion velocity is in px/s; keep this high so pull-in feels snappy.
+    const attractionSpeed = 280 + magnetism * 1.2;
 
     for (const entity of this.query.entities) {
       const transform = entity.get(TransformComponent);
@@ -55,7 +55,7 @@ export class MagnetismSystem extends System {
       const dist = transform.pos.distance(roverPos);
       if (dist > 0 && dist < magnetism) {
         const toRover = roverPos.sub(transform.pos).normalize();
-        motion.vel = toRover.scale(attractionSpeed * dtScale);
+        motion.vel = toRover.scale(attractionSpeed);
       } else {
         motion.vel = vec(0, 0);
       }

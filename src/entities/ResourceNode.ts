@@ -45,7 +45,9 @@ export class ResourceNode extends Actor {
 
   onInitialize(): void {
     this.applySpriteGraphicIfNeeded();
-    this.addComponent(new MagneticResourceComponent());
+    if (this.resource.id !== "gas") {
+      this.addComponent(new MagneticResourceComponent());
+    }
     if (this.resource.id === "gas") {
       const emitter = new ParticleEmitter({
         isEmitting: true,

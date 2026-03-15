@@ -25,6 +25,7 @@ import {
   type HudContextEvent,
   type RoverStateChangedEvent,
 } from "../events/GameEvents";
+import { getTouchControlsEnabled } from "../input/TouchInputState";
 import { Panel } from "./Panel";
 import { MinimapWidget } from "./MinimapWidget";
 
@@ -405,8 +406,9 @@ export class Hud extends ScreenElement {
       hazardHits: this.context.hazardHits as Record<HazardKind, number>,
     };
     const goals = getCurrentGoals();
+    const visibleGoalCount = getTouchControlsEnabled() ? 2 : this.goalLabels.length;
     for (let i = 0; i < this.goalLabels.length; i++) {
-      if (i < goals.length) {
+      if (i < goals.length && i < visibleGoalCount) {
         const goal = goals[i];
         const satisfied = isGoalSatisfied(goal, liveState);
         this.goalLabels[i].text = satisfied
@@ -421,9 +423,13 @@ export class Hud extends ScreenElement {
       }
     }
 
-    this.baseHintLabel.text = this.context.isNearBase
-      ? "Press Enter to return to ship"
-      : "";
+    if (this.context.isNearBase) {
+      this.baseHintLabel.text = getTouchControlsEnabled()
+        ? "Tap Go Home"
+        : "Press Enter to return to ship";
+    } else {
+      this.baseHintLabel.text = "";
+    }
 
     if (this.context.baseIndicator) {
       this.baseArrowActor.pos = vec(

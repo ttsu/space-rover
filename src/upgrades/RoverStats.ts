@@ -39,6 +39,14 @@ export interface RoverStats {
   blasterBehavior: number;
   /** Distance (pixels) at which resources are attracted to the rover. */
   magnetism: number;
+  /** Extra steering authority in touch guided-drive mode. */
+  steeringAssist: number;
+  /** Strength of soft obstacle avoidance while touch-guiding. */
+  obstacleAssist: number;
+  /** Bonus pickup attraction radius to make collection easier. */
+  autoCollectRadius: number;
+  /** Aiming help amount for blaster shots. */
+  aimAssistStrength: number;
   /** Minimap: show all resources (including undiscovered). 0 = off, 1 = on. */
   minimapRevealAllResources: number;
   /** Minimap: show hazards (storms, lava, ice). 0 = off, 1 = on. */
@@ -98,6 +106,10 @@ const EFFECT_REGISTRY: Record<
   },
   blasterBehavior: { default: 0, apply: "override" },
   magnetism: { default: 0, apply: "additive" },
+  steeringAssist: { default: 0.35, apply: "additive" },
+  obstacleAssist: { default: 0.25, apply: "additive" },
+  autoCollectRadius: { default: 36, apply: "additive" },
+  aimAssistStrength: { default: 0.2, apply: "additive" },
   minimapRevealAllResources: { default: 0, apply: "override" },
   minimapShowHazards: { default: 0, apply: "override" },
   minimapNoFog: { default: 0, apply: "override" },

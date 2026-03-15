@@ -25,6 +25,10 @@ export type UpgradeEffectKind =
   | "batteryDrainPerSecond"
   | "blasterBehavior"
   | "magnetism"
+  | "steeringAssist"
+  | "obstacleAssist"
+  | "autoCollectRadius"
+  | "aimAssistStrength"
   | "minimapRevealAllResources"
   | "minimapShowHazards"
   | "minimapNoFog";
@@ -190,6 +194,66 @@ const RESOURCE_MAGNET_DEF: UpgradeDef = {
   slotType: "radar",
 };
 
+const SMART_WHEELS_DEF: UpgradeDef = {
+  id: "smart-wheels",
+  cost: cost(2, 2, 0),
+  name: "Smart Wheels",
+  description: "Smoother touch steering with less overshoot",
+  effect: { kind: "steeringAssist", value: 0.2 },
+  maxStack: 2,
+  slotType: "control",
+};
+
+const SAFETY_BUBBLE_DEF: UpgradeDef = {
+  id: "safety-bubble",
+  cost: cost(2, 1, 1),
+  name: "Safety Bubble",
+  description: "Auto-nudges away from nearby obstacles",
+  effect: { kind: "obstacleAssist", value: 0.25 },
+  maxStack: 2,
+  slotType: "control",
+};
+
+const MINI_MAGNET_DEF: UpgradeDef = {
+  id: "mini-magnet",
+  cost: cost(1, 2, 0),
+  name: "Mini Magnet",
+  description: "Pull in resources from farther away",
+  effect: { kind: "autoCollectRadius", value: 40 },
+  maxStack: 1,
+  slotType: "radar",
+};
+
+const SUPER_MAGNET_DEF: UpgradeDef = {
+  id: "super-magnet",
+  cost: cost(2, 3, 1),
+  name: "Super Magnet",
+  description: "Greatly increases auto-collection range",
+  effect: { kind: "autoCollectRadius", value: 60 },
+  maxStack: 1,
+  slotType: "radar",
+};
+
+const AUTO_NAVIGATOR_DEF: UpgradeDef = {
+  id: "auto-navigator",
+  cost: cost(0, 3, 2),
+  name: "Auto Navigator",
+  description: "Better route smoothing while touch-driving",
+  effect: { kind: "steeringAssist", value: 0.25 },
+  maxStack: 1,
+  slotType: "control",
+};
+
+const HELPER_BLASTER_DEF: UpgradeDef = {
+  id: "helper-blaster",
+  cost: cost(0, 2, 2),
+  name: "Helper Blaster",
+  description: "Blaster shots get gentle aim assist",
+  effect: { kind: "aimAssistStrength", value: 0.35 },
+  maxStack: 2,
+  slotType: "blaster",
+};
+
 const MINIMAP_REVEAL_RESOURCES_DEF: UpgradeDef = {
   id: "minimap-reveal-resources",
   cost: cost(0, 3, 1),
@@ -320,6 +384,9 @@ const CRYSTAL_UPGRADES: UpgradeDef[] = [
     maxStack: 1,
     slotType: "blaster",
   },
+  SMART_WHEELS_DEF,
+  MINI_MAGNET_DEF,
+  HELPER_BLASTER_DEF,
   LIGHTNING_ROD_DEF,
   RESOURCE_MAGNET_DEF,
   MINIMAP_REVEAL_RESOURCES_DEF,
@@ -355,6 +422,9 @@ const GAS_UPGRADES: UpgradeDef[] = [
     maxStack: 2,
     slotType: "control",
   },
+  SAFETY_BUBBLE_DEF,
+  SUPER_MAGNET_DEF,
+  AUTO_NAVIGATOR_DEF,
   {
     id: "gas-lava-slow-1",
     cost: cost(0, 0, 4),
