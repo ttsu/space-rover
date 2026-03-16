@@ -122,6 +122,9 @@ export class PlanetScene extends Scene {
 
   onActivate() {
     this.ensureCoreActorsInitialized();
+    if (getTouchControlsEnabled() && !this.touchControlsOverlay) {
+      this.addTouchControlsOverlay();
+    }
     resetRunTracking();
     const save = getCurrentSave();
     if (!save) {

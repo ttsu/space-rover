@@ -40,8 +40,9 @@ export class TouchControls extends ScreenElement {
 
   onInitialize(): void {
     this.z = 1000;
-    const w = this.engineRef.drawWidth;
-    const h = this.engineRef.drawHeight;
+    const canvas = this.engineRef.canvas;
+    const w = this.engineRef.drawWidth || (canvas?.clientWidth ?? 0) || 800;
+    const h = this.engineRef.drawHeight || (canvas?.clientHeight ?? 0) || 600;
     this.basePos = vec(
       UI_MARGIN + JOYSTICK_BASE_RADIUS,
       h - UI_MARGIN - JOYSTICK_BASE_RADIUS

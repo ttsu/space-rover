@@ -49,10 +49,15 @@ function isTouchDevice(): boolean {
 }
 
 export function getTouchControlsEnabled(): boolean {
-  if (typeof window === "undefined" || !window.localStorage) return false;
-  const raw = window.localStorage.getItem(TOUCH_CONTROLS_STORAGE_KEY);
-  if (raw === null) return isTouchDevice();
-  return raw === "true";
+  if (typeof window === "undefined") return false;
+  try {
+    if (!window.localStorage) return isTouchDevice();
+    const raw = window.localStorage.getItem(TOUCH_CONTROLS_STORAGE_KEY);
+    if (raw === null) return isTouchDevice();
+    return raw === "true";
+  } catch {
+    return isTouchDevice();
+  }
 }
 
 export function setTouchControlsEnabled(enabled: boolean): void {
