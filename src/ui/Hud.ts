@@ -406,7 +406,9 @@ export class Hud extends ScreenElement {
       hazardHits: this.context.hazardHits as Record<HazardKind, number>,
     };
     const goals = getCurrentGoals();
-    const visibleGoalCount = getTouchControlsEnabled() ? 2 : this.goalLabels.length;
+    const visibleGoalCount = getTouchControlsEnabled()
+      ? 2
+      : this.goalLabels.length;
     for (let i = 0; i < this.goalLabels.length; i++) {
       if (i < goals.length && i < visibleGoalCount) {
         const goal = goals[i];

@@ -107,7 +107,10 @@ export class TouchControls extends ScreenElement {
       lineWidth: 3,
       strokeColor: Color.fromHex("#38bdf8"),
     });
-    markerRing.origin = vec(DESTINATION_MARKER_RADIUS, DESTINATION_MARKER_RADIUS);
+    markerRing.origin = vec(
+      DESTINATION_MARKER_RADIUS,
+      DESTINATION_MARKER_RADIUS
+    );
     this.destinationMarker.graphics.use(markerRing);
     this.destinationMarker.graphics.isVisible = false;
 

@@ -47,7 +47,8 @@ body {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
-  touch-action: manipulation;
+  /* Prevent browser from capturing touch for scroll/zoom so game receives events on iPad */
+  touch-action: none;
 }
 
 h1 {

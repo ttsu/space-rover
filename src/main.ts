@@ -18,6 +18,14 @@ if (!canvas) {
   throw new Error('Game canvas with id \"game\" not found');
 }
 
+// Ensure touch events are delivered to the game on iPad/iOS (Safari uses passive
+// listeners by default and can consume touches for scrolling unless we preventDefault).
+const passive = false;
+canvas.addEventListener("touchstart", (e) => e.preventDefault(), { passive });
+canvas.addEventListener("touchmove", (e) => e.preventDefault(), { passive });
+canvas.addEventListener("touchend", (e) => e.preventDefault(), { passive });
+canvas.addEventListener("touchcancel", (e) => e.preventDefault(), { passive });
+
 const engine = new Engine({
   canvasElement: canvas,
   width: 800,

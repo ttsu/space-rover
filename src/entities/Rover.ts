@@ -289,11 +289,15 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
         const normalized =
           (distToTarget - Rover.TOUCH_STOP_RADIUS_PX) /
           (Rover.TOUCH_SLOW_RADIUS_PX - Rover.TOUCH_STOP_RADIUS_PX);
-        targetSpeed = this.maxForwardSpeed * (0.2 + 0.8 * Math.max(0, normalized));
+        targetSpeed =
+          this.maxForwardSpeed * (0.2 + 0.8 * Math.max(0, normalized));
       }
 
       const absDiff = Math.abs(diff);
-      const facingScale = Math.max(0.35, Math.cos(Math.min(absDiff, Math.PI / 2)));
+      const facingScale = Math.max(
+        0.35,
+        Math.cos(Math.min(absDiff, Math.PI / 2))
+      );
       targetSpeed *= facingScale;
 
       const accelChange =
@@ -478,7 +482,8 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
       const inFront = forward.dot(directionToObstacle) > 0;
       if (!inFront) continue;
 
-      const cross = forward.x * directionToObstacle.y - forward.y * directionToObstacle.x;
+      const cross =
+        forward.x * directionToObstacle.y - forward.y * directionToObstacle.x;
       const steerDirection = cross >= 0 ? -1 : 1;
       const closeness = 1 - distance / lookAhead;
       weightedSteer += steerDirection * closeness;
@@ -501,7 +506,9 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
 
     for (const actor of scene.actors) {
       if (actor === this || actor.isKilled()) continue;
-      const maybeTarget = actor as unknown as { takeBlasterDamage?: (amount: number) => void };
+      const maybeTarget = actor as unknown as {
+        takeBlasterDamage?: (amount: number) => void;
+      };
       if (typeof maybeTarget.takeBlasterDamage !== "function") continue;
       const toTarget = actor.pos.sub(this.pos);
       const dist = toTarget.distance();
