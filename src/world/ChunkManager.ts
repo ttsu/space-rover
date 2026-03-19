@@ -5,20 +5,11 @@ import {
   type BiomePreset,
 } from "../config/biomeConfig";
 import {
-  BASE_SAFE_RADIUS_TILES,
   CHUNK_LOAD_RADIUS,
   CHUNK_TILES,
   CHUNK_UNLOAD_RADIUS,
-  DESTRUCTIBLE_OBSTACLE_DENSITY,
-  ICE_PATCH_CLUSTER_SCALE,
-  ICE_PATCH_DENSITY,
-  ICE_PATCH_DETAIL_SCALE,
-  INDESTRUCTIBLE_OBSTACLE_DENSITY,
-  INDESTRUCTIBLE_SIZE_WEIGHTS,
-  LAVA_DENSITY,
   PLANET_HEIGHT_TILES,
   PLANET_WIDTH_TILES,
-  RESOURCE_DENSITY,
   SANDSTORM_REGION_COUNT,
   SANDSTORM_REGION_RADIUS_PX,
   SANDSTORM_VISIBILITY_MULTIPLIER,
@@ -33,18 +24,19 @@ import { DestructibleObstacle } from "../entities/DestructibleObstacle";
 import { IndestructibleObstacle } from "../entities/IndestructibleObstacle";
 import { ResourceDeposit } from "../entities/ResourceDeposit";
 import { ResourceNode } from "../entities/ResourceNode";
-import type { IndestructibleSize } from "../resources/terrainAssets";
-import { LavaPool } from "../hazards/Hazards";
+import { IcePatch, LavaPool } from "../hazards/Hazards";
 import { StormRegion } from "../hazards/StormRegion";
 import { WindRegion } from "../hazards/WindRegion";
 import { SandstormRegion } from "../hazards/SandstormRegion";
-import { RESOURCE_TYPES, type ResourceId } from "../resources/ResourceTypes";
+import { RESOURCE_TYPES } from "../resources/ResourceTypes";
 import type { Difficulty } from "../state/Saves";
 import { getNoise2D } from "../utils/worldNoise";
 import { hashToUnit } from "../utils/worldHash";
 import { FogAffectedComponent } from "./FogOfWar";
 import { Tile } from "./Tile";
-import { getDepositAtTile, tileKey, type WorldState } from "./WorldState";
+import { TileContentQuery } from "./TileContentQuery";
+import { blobMask8 } from "./autotiling/WangBlob";
+import type { WorldState } from "./WorldState";
 import { HazardTargetRegistry } from "../hazards/HazardTargetRegistry";
 import type { BlasterTargetRegistry } from "../hazards/BlasterTargetRegistry";
 
@@ -85,8 +77,8 @@ export class ChunkManager {
   private worldState: WorldState;
   private blasterTargetRegistry?: BlasterTargetRegistry;
   private loaded = new Map<string, ChunkRecord>();
-  private readonly noise2D: (x: number, y: number) => number;
   private readonly biomeNoise2D: (x: number, y: number) => number;
+  private readonly tileContentQuery: TileContentQuery;
 
   constructor(params: ChunkManagerParams) {
     this.scene = params.scene;
@@ -100,8 +92,13 @@ export class ChunkManager {
     this.sandstormRegions = params.sandstormRegions;
     this.worldState = params.worldState;
     this.blasterTargetRegistry = params.blasterTargetRegistry;
-    this.noise2D = getNoise2D(this.seed);
     this.biomeNoise2D = getNoise2D((this.seed ^ 0x9e3779b1) >>> 0);
+    this.tileContentQuery = new TileContentQuery({
+      seed: this.seed,
+      worldState: this.worldState,
+      difficulty: this.difficulty,
+      biomePreset: this.biomePreset,
+    });
   }
 
   update(roverX: number, roverY: number): void {
@@ -152,7 +149,7 @@ export class ChunkManager {
   isIceHazardAtWorldPos(x: number, y: number): boolean {
     const gx = Math.floor(x / TILE_SIZE);
     const gy = Math.floor(y / TILE_SIZE);
-    return this.isIcePatchTile(gx, gy);
+    return this.tileContentQuery.getTileContent(gx, gy).hazard === "ice";
   }
 
   private loadChunk(cx: number, cy: number): void {
@@ -196,93 +193,102 @@ export class ChunkManager {
     const storms: StormRegion[] = [];
     const winds: WindRegion[] = [];
     const sandstorms: SandstormRegion[] = [];
+    const [minGx, minGy, maxGx, maxGy] = chunkBounds(cx, cy);
     const mult = DIFFICULTY_MULTIPLIERS[this.difficulty];
     const biome = this.biomeAtChunk(cx, cy);
     const biomeCfg = BIOME_CONFIGS[biome];
-    const resourceProb = clamp01(
-      RESOURCE_DENSITY *
-        mult.resourceDensity *
-        biomeCfg.hazard.resourceDensityMultiplier
+
+    const border = 2;
+    const content = this.tileContentQuery.getOverlayGrid(
+      minGx - border,
+      minGy - border,
+      maxGx + border,
+      maxGy + border
     );
-    const lavaProb = clamp01(
-      LAVA_DENSITY * mult.lavaDensity * biomeCfg.hazard.lavaDensityMultiplier
-    );
-    const destructibleProb = clamp01(
-      DESTRUCTIBLE_OBSTACLE_DENSITY *
-        mult.rockDensity *
-        biomeCfg.hazard.rockDensityMultiplier
-    );
-    const indestructibleProb = clamp01(
-      INDESTRUCTIBLE_OBSTACLE_DENSITY *
-        mult.rockDensity *
-        biomeCfg.hazard.rockDensityMultiplier
-    );
-    const [minGx, minGy, maxGx, maxGy] = chunkBounds(cx, cy);
-    const occupied = new Set<string>();
+    const cellAt = (gx: number, gy: number) => content.getCell(gx, gy);
+
+    const isIceAt = (gx: number, gy: number) => cellAt(gx, gy)?.ice ?? false;
+    const isLavaAt = (gx: number, gy: number) => cellAt(gx, gy)?.lava ?? false;
+    const isDestructibleAt = (gx: number, gy: number) =>
+      !!cellAt(gx, gy)?.destructible;
+    const isIndestructibleCoveredAt = (gx: number, gy: number) =>
+      cellAt(gx, gy)?.indestructibleCovered ?? false;
+
+    const hazardTarget = this.hazardTargetRegistry.getPrimary();
 
     for (let gy = minGy; gy < maxGy; gy++) {
       for (let gx = minGx; gx < maxGx; gx++) {
-        const isBaseTile = gx === 0 && gy === 0;
-        const isIceTile = !isBaseTile && this.isIcePatchTile(gx, gy);
-        const tileBiome = this.biomeAtTile(gx, gy);
-        const groundSpriteIndex = Math.floor(
-          hashToUnit(this.seed, "ground-sprite", gx, gy) * 16
-        );
+        const tileCell = cellAt(gx, gy);
+        if (!tileCell) continue;
+
+        const isBaseTile = tileCell.kind === "base";
         const tile = new Tile(gx, gy, {
-          kind: isBaseTile ? "base" : isIceTile ? "ice" : "ground",
-          ...(isBaseTile || isIceTile
-            ? {}
-            : { biomeId: tileBiome, groundSpriteIndex }),
+          kind: tileCell.kind,
+          ...(tileCell.kind === "ground"
+            ? {
+                biomeId: tileCell.biomeId,
+                groundSpriteIndex: tileCell.groundSpriteIndex,
+              }
+            : {}),
         });
+
         this.scene.add(tile);
         actors.push(tile);
         this.worldActors.push(tile);
 
+        if (tileCell.ice) {
+          const ice = new IcePatch(
+            gx * TILE_SIZE + TILE_SIZE / 2,
+            gy * TILE_SIZE + TILE_SIZE / 2,
+            TILE_SIZE,
+            TILE_SIZE
+          );
+          ice.blobMask = blobMask8(gx, gy, isIceAt);
+          ice.addComponent(new FogAffectedComponent());
+          this.scene.add(ice);
+          actors.push(ice);
+          this.worldActors.push(ice);
+        }
+
         if (isBaseTile) continue;
-        const key = tileKey(gx, gy);
-        if (this.worldState.clearedTileKeys.has(key)) continue;
-        if (occupied.has(key)) continue;
 
-        const savedDeposit = getDepositAtTile(this.worldState, gx, gy);
-        if (savedDeposit) {
+        if (tileCell.resource) {
           const type = RESOURCE_TYPES.find(
-            (r) => r.id === savedDeposit.resourceId
+            (r) => r.id === tileCell.resource!.resourceId
           );
-          if (!type) continue;
-          const spriteIndex = Math.floor(
-            hashToUnit(this.seed, "deposit-sprite", gx, gy) * 4
-          );
-          const deposit = new ResourceDeposit(
-            gx * TILE_SIZE + TILE_SIZE / 2,
-            gy * TILE_SIZE + TILE_SIZE / 2,
-            type,
-            savedDeposit.hp,
-            spriteIndex
-          );
-          deposit.addComponent(new FogAffectedComponent());
-          this.scene.add(deposit);
-          this.blasterTargetRegistry?.register(deposit);
-          actors.push(deposit);
-          this.worldActors.push(deposit);
+          if (type) {
+            const x = gx * TILE_SIZE + TILE_SIZE / 2;
+            const y = gy * TILE_SIZE + TILE_SIZE / 2;
+            if (tileCell.resource.resourceId === "gas") {
+              const node = new ResourceNode(x, y, type);
+              node.addComponent(new FogAffectedComponent());
+              this.scene.add(node);
+              actors.push(node);
+              this.worldActors.push(node);
+            } else {
+              const hp = tileCell.resource.hp ?? 4;
+              const spriteIndex = tileCell.resource.depositSpriteIndex ?? 0;
+              const deposit = new ResourceDeposit(x, y, type, hp, spriteIndex);
+              deposit.addComponent(new FogAffectedComponent());
+              this.scene.add(deposit);
+              this.blasterTargetRegistry?.register(deposit);
+              actors.push(deposit);
+              this.worldActors.push(deposit);
+            }
+          }
           continue;
         }
 
-        const content = normalize(this.noise2D(gx / 8, gy / 8));
-        const inBaseSafeZone = isInBaseVicinity(gx, gy);
-        if (content < resourceProb) {
-          this.spawnResource(actors, gx, gy);
-          continue;
-        }
-        if (!inBaseSafeZone && content < resourceProb + destructibleProb) {
-          const spriteIndex = Math.floor(
-            hashToUnit(this.seed, "destructible-sprite", gx, gy) * 8
-          );
+        if (tileCell.destructible) {
+          const x = gx * TILE_SIZE + TILE_SIZE / 2;
+          const y = gy * TILE_SIZE + TILE_SIZE / 2;
           const obstacle = new DestructibleObstacle(
-            gx * TILE_SIZE + TILE_SIZE / 2,
-            gy * TILE_SIZE + TILE_SIZE / 2,
-            tileBiome,
-            spriteIndex
+            x,
+            y,
+            tileCell.destructible.biomeId,
+            tileCell.destructible.spriteIndex
           );
+          obstacle.blobMask = blobMask8(gx, gy, isDestructibleAt);
           obstacle.addComponent(new FogAffectedComponent());
           this.scene.add(obstacle);
           this.blasterTargetRegistry?.register(obstacle);
@@ -290,64 +296,42 @@ export class ChunkManager {
           this.worldActors.push(obstacle);
           continue;
         }
-        if (
-          !inBaseSafeZone &&
-          content < resourceProb + destructibleProb + lavaProb
-        ) {
-          const target = this.hazardTargetRegistry.getPrimary();
-          if (!target) continue;
+
+        if (tileCell.lava) {
+          if (!hazardTarget) continue;
           const lava = new LavaPool(
             gx * TILE_SIZE + TILE_SIZE / 2,
             gy * TILE_SIZE + TILE_SIZE / 2,
             TILE_SIZE,
             TILE_SIZE,
             Color.fromHex("#b91c1c"),
-            target,
+            hazardTarget,
             "lava"
           );
+          lava.blobMask = blobMask8(gx, gy, isLavaAt);
           lava.addComponent(new FogAffectedComponent());
           this.scene.add(lava);
           actors.push(lava);
           this.worldActors.push(lava);
           continue;
         }
-        if (
-          !inBaseSafeZone &&
-          content <
-            resourceProb + destructibleProb + lavaProb + indestructibleProb
-        ) {
-          const sizeRoll = hashToUnit(this.seed, "indestructible-size", gx, gy);
-          const size: IndestructibleSize =
-            sizeRoll < INDESTRUCTIBLE_SIZE_WEIGHTS[1]
-              ? 1
-              : sizeRoll <
-                  INDESTRUCTIBLE_SIZE_WEIGHTS[1] +
-                    INDESTRUCTIBLE_SIZE_WEIGHTS[2]
-                ? 2
-                : 3;
-          const blockKeys = tileKeysForBlock(gx, gy, size);
-          const overlaps =
-            blockKeys.some((k) => occupied.has(k)) ||
-            blockKeys.some((k) => this.worldState.clearedTileKeys.has(k)) ||
-            blockKeys.some((k) => k === "0,0");
-          if (overlaps) continue;
-          const spriteIndex = Math.floor(
-            hashToUnit(this.seed, "indestructible-sprite", gx, gy) * 16
-          );
+
+        const origin = tileCell.indestructibleOrigin;
+        if (origin) {
           const obstacle = new IndestructibleObstacle(
-            gx,
-            gy,
-            size,
-            tileBiome,
-            spriteIndex
+            origin.originGx,
+            origin.originGy,
+            origin.size,
+            origin.biomeId,
+            origin.spriteIndex
           );
+          if (origin.size === 1) {
+            obstacle.blobMask = blobMask8(gx, gy, isIndestructibleCoveredAt);
+          }
           obstacle.addComponent(new FogAffectedComponent());
           this.scene.add(obstacle);
           actors.push(obstacle);
           this.worldActors.push(obstacle);
-          for (const k of blockKeys) {
-            occupied.add(k);
-          }
         }
       }
     }
@@ -414,33 +398,6 @@ export class ChunkManager {
     }
 
     return { actors, storms, winds, sandstorms };
-  }
-
-  private spawnResource(actors: Actor[], gx: number, gy: number): void {
-    const t = hashToUnit(this.seed, "res-type", gx, gy);
-    const resourceId: ResourceId =
-      t < 0.34 ? "iron" : t < 0.67 ? "crystal" : "gas";
-    const type = RESOURCE_TYPES.find((r) => r.id === resourceId);
-    if (!type) return;
-    const x = gx * TILE_SIZE + TILE_SIZE / 2;
-    const y = gy * TILE_SIZE + TILE_SIZE / 2;
-    if (resourceId === "gas") {
-      const node = new ResourceNode(x, y, type);
-      node.addComponent(new FogAffectedComponent());
-      this.scene.add(node);
-      actors.push(node);
-      this.worldActors.push(node);
-      return;
-    }
-    const spriteIndex = Math.floor(
-      hashToUnit(this.seed, "deposit-sprite", gx, gy) * 4
-    );
-    const deposit = new ResourceDeposit(x, y, type, 4, spriteIndex);
-    deposit.addComponent(new FogAffectedComponent());
-    this.scene.add(deposit);
-    this.blasterTargetRegistry?.register(deposit);
-    actors.push(deposit);
-    this.worldActors.push(deposit);
   }
 
   private createStorm(cx: number, cy: number): StormRegion | null {
@@ -541,38 +498,10 @@ export class ChunkManager {
     if (blend < 0.83) return "ice";
     return "storm";
   }
-
-  private isIcePatchTile(gx: number, gy: number): boolean {
-    if (this.biomeAtTile(gx, gy) !== "ice") return false;
-    const cluster = normalize(
-      this.noise2D(gx / ICE_PATCH_CLUSTER_SCALE, gy / ICE_PATCH_CLUSTER_SCALE)
-    );
-    const detail = normalize(
-      this.noise2D(
-        (gx + 2048) / ICE_PATCH_DETAIL_SCALE,
-        gy / ICE_PATCH_DETAIL_SCALE
-      )
-    );
-    return cluster > 1 - ICE_PATCH_DENSITY && detail > 0.35;
-  }
 }
 
 function chunkKey(cx: number, cy: number): string {
   return `${cx},${cy}`;
-}
-
-function tileKeysForBlock(
-  originGx: number,
-  originGy: number,
-  size: IndestructibleSize
-): string[] {
-  const keys: string[] = [];
-  for (let dy = 0; dy < size; dy++) {
-    for (let dx = 0; dx < size; dx++) {
-      keys.push(tileKey(originGx + dx, originGy + dy));
-    }
-  }
-  return keys;
 }
 
 function tileToChunk(grid: number): number {
@@ -583,14 +512,6 @@ function chunkBounds(cx: number, cy: number): [number, number, number, number] {
   const minGx = cx * CHUNK_TILES;
   const minGy = cy * CHUNK_TILES;
   return [minGx, minGy, minGx + CHUNK_TILES, minGy + CHUNK_TILES];
-}
-
-function isInBaseVicinity(gridX: number, gridY: number): boolean {
-  return Math.max(Math.abs(gridX), Math.abs(gridY)) <= BASE_SAFE_RADIUS_TILES;
-}
-
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
 }
 
 function normalize(value: number): number {

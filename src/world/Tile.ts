@@ -3,13 +3,7 @@ import { TILE_SIZE } from "../config/gameConfig";
 import type { BiomeId } from "../config/biomeConfig";
 import { applyGroundSprite } from "./TerrainGraphics";
 
-export type TileKind =
-  | "ground"
-  | "lava"
-  | "rockField"
-  | "storm"
-  | "base"
-  | "ice";
+export type TileKind = "ground" | "lava" | "rockField" | "storm" | "base";
 
 export interface TileOptions {
   kind: TileKind;
@@ -78,8 +72,6 @@ function colorForKind(kind: TileKind): Color {
       return Color.fromHex("#1e293b");
     case "base":
       return Color.fromHex("#0369a1");
-    case "ice":
-      return Color.fromHex("#1d4ed8");
     default:
       return Color.Gray;
   }

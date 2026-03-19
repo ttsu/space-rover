@@ -11,9 +11,13 @@ import {
 import type { IHazardTarget } from "../entities/contracts";
 import type { DamageType } from "../types/DamageTypes";
 import { recordHazardHit, type HazardKind } from "../state/GameState";
-import { LAVA_SLOW_FACTOR } from "../config/gameConfig";
+import { LAVA_SLOW_FACTOR, WORLD_OVERLAY_Z } from "../config/gameConfig";
 import { random } from "../utils/seedRandom";
 import { createAmbientEmitter } from "../effects/Particles";
+import {
+  applyIceBlobSprite,
+  applyLavaBlobSprite,
+} from "../world/TerrainGraphics";
 
 abstract class HazardBase extends Actor {
   protected target: IHazardTarget;
@@ -42,9 +46,17 @@ abstract class HazardBase extends Actor {
 export class LavaPool extends HazardBase {
   private tickTimer = 0;
   private roverInLava = false;
+  /** When set, overrides the rectangle fill with a Wang-blob sprite. */
+  blobMask?: number;
 
   onInitialize(): void {
+    this.z = WORLD_OVERLAY_Z;
     this.body.collisionType = CollisionType.Passive;
+
+    if (this.blobMask !== undefined) {
+      applyLavaBlobSprite(this, this.blobMask);
+    }
+
     this.on("collisionstart", (evt) => {
       if (evt.other.owner === this.target.getActor()) this.roverInLava = true;
     });
@@ -84,8 +96,27 @@ export class LavaPool extends HazardBase {
   }
 }
 
+/** Ice overlay hazard (slippery); drawn on top of ground tiles like lava. */
+export class IcePatch extends Actor {
+  /** When set, uses Wang-blob sprite for connected visuals. */
+  blobMask?: number;
+
+  constructor(x: number, y: number, width: number, height: number) {
+    super({ x, y, width, height, color: Color.fromHex("#7dd3fc") });
+  }
+
+  onInitialize(): void {
+    this.z = WORLD_OVERLAY_Z;
+    this.body.collisionType = CollisionType.Passive;
+    if (this.blobMask !== undefined) {
+      applyIceBlobSprite(this, this.blobMask);
+    }
+  }
+}
+
 export class RockObstacle extends HazardBase {
   onInitialize(): void {
+    this.z = WORLD_OVERLAY_Z;
     this.body.collisionType = CollisionType.Fixed;
   }
 }
@@ -107,6 +138,7 @@ export class WindZone extends HazardBase {
   }
 
   onInitialize(): void {
+    this.z = WORLD_OVERLAY_Z;
     this.body.collisionType = CollisionType.Passive;
     this.on("collisionstart", (evt) => {
       if (evt.other.owner === this.target.getActor()) this.roverInWind = true;
@@ -157,6 +189,7 @@ export class LightningZone extends HazardBase {
   }
 
   onInitialize(): void {
+    this.z = WORLD_OVERLAY_Z;
     this.body.collisionType = CollisionType.Passive;
     this.on("collisionstart", (evt) => {
       if (evt.other.owner === this.target.getActor()) this.roverInZone = true;

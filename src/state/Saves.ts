@@ -370,7 +370,7 @@ export function createSave(difficulty: Difficulty): GameSave {
     id,
     seed,
     difficulty,
-    biomePreset: "barren",
+    biomePreset: "mixed",
     bank: { ...emptyCargo },
     totalResourcesCollected: { ...emptyCargo },
     createdAt: now,

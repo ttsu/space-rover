@@ -2,9 +2,12 @@ import { Actor, Color, CollisionType, vec } from "excalibur";
 import type { IBlasterTarget } from "./BlasterProjectile";
 import { burst } from "../effects/Particles";
 import { onDepositDestroyedAtWorldPos } from "../world/WorldState";
-import { applyDestructibleSprite } from "../world/TerrainGraphics";
+import {
+  applyDestructibleBlobSprite,
+  applyDestructibleSprite,
+} from "../world/TerrainGraphics";
 import type { BiomeId } from "../config/biomeConfig";
-import { TILE_SIZE } from "../config/gameConfig";
+import { TILE_SIZE, WORLD_OVERLAY_Z } from "../config/gameConfig";
 
 const DEFAULT_HP = 4;
 
@@ -13,6 +16,8 @@ export class DestructibleObstacle extends Actor implements IBlasterTarget {
   private breaking = false;
   private readonly biomeId: BiomeId;
   private readonly spriteIndex: number;
+  /** When set, overrides the random sprite selection with a Wang-blob sprite. */
+  blobMask?: number;
 
   constructor(
     x: number,
@@ -35,6 +40,15 @@ export class DestructibleObstacle extends Actor implements IBlasterTarget {
   }
 
   onInitialize(): void {
+    this.z = WORLD_OVERLAY_Z;
+    if (this.blobMask !== undefined) {
+      const applied = applyDestructibleBlobSprite(
+        this,
+        this.biomeId,
+        this.blobMask
+      );
+      if (applied) return;
+    }
     applyDestructibleSprite(this, this.biomeId, this.spriteIndex);
   }
 

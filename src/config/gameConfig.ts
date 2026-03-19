@@ -1,5 +1,10 @@
 export const TILE_SIZE = 32;
 
+/** Z-index for hazards and obstacles so they draw below the rover. */
+export const WORLD_OVERLAY_Z = -1;
+/** Z-index for the rover so it draws above terrain overlays. */
+export const ROVER_Z = 1;
+
 // Rover sprite dimensions (displayed size in pixels)
 export const ROVER_SPRITE_COLUMNS = 1;
 export const ROVER_SPRITE_ROWS = 1;

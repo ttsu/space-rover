@@ -28,7 +28,11 @@ import {
   setTouchInput,
   getTouchControlsEnabled,
 } from "../input/TouchInputState";
-import { ROVER_SPRITE_HEIGHT, ROVER_SPRITE_WIDTH } from "../config/gameConfig";
+import {
+  ROVER_SPRITE_HEIGHT,
+  ROVER_SPRITE_WIDTH,
+  ROVER_Z,
+} from "../config/gameConfig";
 import type { RoverStats } from "../upgrades/RoverStats";
 import { getDamageReductionForType } from "../upgrades/RoverStats";
 import type { DamageType } from "../types/DamageTypes";
@@ -206,6 +210,7 @@ export class Rover extends Actor implements IHazardTarget, IResourceCollector {
   }
 
   onInitialize(): void {
+    this.z = ROVER_Z;
     this.addComponent(new PlayerTagComponent());
     this.addComponent(new FogViewerComponent(this.roverStats.visibilityRadius));
     this.addComponent(

@@ -3,6 +3,7 @@ import type { BiomeId } from "../config/biomeConfig";
 import { TILE_SIZE } from "../config/gameConfig";
 import { TerrainResources } from "../resources/terrainAssets";
 import type { IndestructibleSize } from "../resources/terrainAssets";
+import { mask8ToColRow } from "./autotiling/WangBlob";
 
 const GROUND_GRID_COLS = 4;
 const GROUND_GRID_ROWS = 4;
@@ -14,6 +15,9 @@ const INDESTRUCTIBLE_2X2_COLS = 3;
 const INDESTRUCTIBLE_2X2_ROWS = 1;
 const INDESTRUCTIBLE_3X3_COLS = 2;
 const INDESTRUCTIBLE_3X3_ROWS = 1;
+
+const BLOB_GRID_COLS = 7;
+const BLOB_GRID_ROWS = 7;
 
 export function applyGroundSprite(
   actor: Actor,
@@ -64,6 +68,63 @@ export function applyDestructibleSprite(
   const row = Math.floor(index / cols);
   const sprite = sheet.getSprite(col, row);
   if (sprite) actor.graphics.use(sprite);
+}
+
+function applyBlobSprite(
+  actor: Actor,
+  image: (typeof TerrainResources)["blobIce"],
+  mask: number
+): boolean {
+  if (!image?.isLoaded()) return false;
+  const sheet = SpriteSheet.fromImageSource({
+    image,
+    grid: {
+      rows: BLOB_GRID_ROWS,
+      columns: BLOB_GRID_COLS,
+      spriteWidth: TILE_SIZE,
+      spriteHeight: TILE_SIZE,
+    },
+  });
+
+  const { col, row } = mask8ToColRow(mask);
+  const sprite = sheet.getSprite(col, row);
+  if (sprite) {
+    actor.graphics.use(sprite);
+    return true;
+  }
+  return false;
+}
+
+export function applyIceBlobSprite(actor: Actor, mask: number): boolean {
+  return applyBlobSprite(actor, TerrainResources.blobIce, mask);
+}
+
+export function applyLavaBlobSprite(actor: Actor, mask: number): boolean {
+  return applyBlobSprite(actor, TerrainResources.blobLava, mask);
+}
+
+export function applyDestructibleBlobSprite(
+  actor: Actor,
+  biomeId: BiomeId,
+  mask: number
+): boolean {
+  return applyBlobSprite(
+    actor,
+    TerrainResources.destructibleBlob[biomeId],
+    mask
+  );
+}
+
+export function applyIndestructibleBlobSprite(
+  actor: Actor,
+  biomeId: BiomeId,
+  mask: number
+): boolean {
+  return applyBlobSprite(
+    actor,
+    TerrainResources.indestructibleBlob[biomeId],
+    mask
+  );
 }
 
 function indestructiblePixelSize(size: IndestructibleSize): number {
