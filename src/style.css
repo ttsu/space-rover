@@ -1,117 +1,387 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: #f8fafc;
+  background: #050816;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
 html,
 body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: #050816;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
 body {
-  margin: 0;
   display: flex;
-  place-items: center;
   justify-content: center;
-  min-width: 320px;
-  min-height: 100vh;
-  background: #050816;
+  align-items: center;
+  overflow: hidden;
+}
+
+#game-wrap {
+  position: relative;
+  width: fit-content;
+  max-width: 100vw;
+  max-height: 100vh;
 }
 
 #game {
   display: block;
   width: 800px;
   height: 600px;
-  max-width: 100%;
+  max-width: 100vw;
+  max-height: 100vh;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
-  /* Prevent browser from capturing touch for scroll/zoom so game receives events on iPad */
   touch-action: none;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+#ui-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
 }
 
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+#ui-overlay[data-active="true"] {
+  pointer-events: auto;
+}
+
+.ui-overlay-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center center;
+}
+
+.ui-overlay-app {
+  width: 100%;
+  height: 100%;
+}
+
+.react-menu-screen {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.16), transparent 40%),
+    linear-gradient(180deg, rgba(5, 8, 22, 0.82), rgba(2, 6, 23, 0.95));
+}
+
+.react-menu-panel {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 24px 60px rgba(2, 6, 23, 0.45);
+}
+
+.react-menu-panel--compact {
+  max-width: 440px;
+  height: auto;
+  min-height: 480px;
+  margin: auto;
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #3178c6aa);
+.react-menu-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
 }
 
-.card {
-  padding: 2em;
+.react-menu-title {
+  margin: 0;
+  font-size: 36px;
+  line-height: 1.1;
+  color: #f8fafc;
 }
 
-.read-the-docs {
-  color: #888;
+.react-menu-subtitle {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 16px;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+.react-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.react-menu-section-title {
+  margin: 0;
+  color: #fbbf24;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.react-menu-goals {
+  display: grid;
+  gap: 8px;
+}
+
+.react-menu-goal {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(30, 41, 59, 0.88);
+  color: #e2e8f0;
+  font-size: 15px;
+}
+
+.react-button,
+.react-chip-button {
+  appearance: none;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  color: #f8fafc;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition:
+    transform 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease,
+    opacity 120ms ease;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.react-button {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 16px;
+  background: rgba(30, 41, 59, 0.96);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.react-button:hover:not(:disabled),
+.react-chip-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(148, 163, 184, 0.55);
+}
+
+.react-button:disabled,
+.react-chip-button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.react-button--primary {
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+}
+
+.react-button--highlight {
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.35);
+}
+
+.react-button--warning {
+  background: linear-gradient(180deg, #d97706, #b45309);
+}
+
+.react-button--subtle {
+  background: rgba(51, 65, 85, 0.9);
+}
+
+.react-button-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.react-config-layout {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 16px;
+  min-height: 0;
+  flex: 1;
+}
+
+.react-config-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.react-card {
+  position: relative;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.92);
+}
+
+.react-card-title {
+  margin: 0 0 10px;
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.react-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.react-slot-card {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(30, 41, 59, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.react-slot-card--selected {
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.45);
+}
+
+.react-slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.react-slot-label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.react-slot-detail {
+  color: #e2e8f0;
+  font-size: 13px;
+}
+
+.react-slot-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.react-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.react-chip-button {
+  min-height: 30px;
+  padding: 6px 10px;
+  background: rgba(30, 41, 59, 0.96);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.react-chip-button--selected {
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.45);
+}
+
+.react-muted {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.react-cargo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.react-cargo-cell {
+  min-height: 54px;
+  padding: 6px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.react-shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.react-shop-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(30, 41, 59, 0.88);
+}
+
+.react-shop-name {
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.react-shop-description {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.react-shop-cost {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.react-tooltip {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(2, 6, 23, 0.96);
+  color: #e2e8f0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.react-bottom-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.react-bottom-actions > * {
+  flex: 1;
 }
