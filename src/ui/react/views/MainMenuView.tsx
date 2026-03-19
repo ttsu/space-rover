@@ -29,7 +29,7 @@ export function MainMenuView(props: MainMenuViewProps) {
     <div className="react-menu-screen">
       <div className="react-menu-panel react-menu-panel--compact">
         <div className="react-menu-header">
-          <h1 className="react-menu-title">Starship Rover</h1>
+          <h1 className="react-menu-title">Space Rover Mission</h1>
         </div>
 
         <div className="react-button-row">

@@ -155,6 +155,7 @@ body {
 .react-menu-title {
   margin: 0;
   font-size: 36px;
+  font-family: "Honk", system-ui, sans-serif;
   line-height: 1.1;
   color: #f8fafc;
 }

@@ -5,6 +5,7 @@ const BACKGROUND = "#050816";
 const TITLE_COLOR = "#f8fafc";
 const BAR_BG = "#1e293b";
 const BAR_FILL = "#3b82f6";
+const TITLE_FONT_FAMILY = "Honk";
 
 type Star = { x: number; y: number; size: number; alpha: number };
 type StarLayer = {
@@ -82,11 +83,12 @@ function fbm2D(x: number, y: number, seed: number): number {
 }
 
 /**
- * Custom loader that replaces the splash screen: shows "Starship Rover",
+ * Custom loader that replaces the splash screen: shows "Space Rover Mission",
  * a progress bar, and a Start button (unlocks audio, optionally fullscreen).
  */
 export class GameLoader extends DefaultLoader {
   private _userActionResolve: (() => void) | null = null;
+  private _titleFontLoaded = false;
 
   // Starfield (animated while the loader is visible).
   private _starLayers: StarLayer[] = [];
@@ -101,6 +103,7 @@ export class GameLoader extends DefaultLoader {
 
   constructor() {
     super();
+    this._requestTitleFont();
     console.log("GameLoader constructor");
     this.on("beforeload", () => {
       console.log("beforeload");
@@ -154,10 +157,12 @@ export class GameLoader extends DefaultLoader {
 
     // Title
     ctx.fillStyle = TITLE_COLOR;
-    ctx.font = "48px system-ui, sans-serif";
+    ctx.font = this._titleFontLoaded
+      ? `64px "${TITLE_FONT_FAMILY}", system-ui, sans-serif`
+      : "64px system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("Starship Rover", cx, h / 2 - 80);
+    ctx.fillText("Space Rover Mission", cx, h / 2 - 80);
 
     // Progress bar (only while loading)
     const progress = this.progress;
@@ -175,6 +180,21 @@ export class GameLoader extends DefaultLoader {
     ctx.beginPath();
     ctx.roundRect(barX, barY - barH / 2, barW * progress, barH, 6);
     ctx.fill();
+  }
+
+  private _requestTitleFont(): void {
+    if (typeof document === "undefined" || !("fonts" in document)) return;
+
+    void document.fonts
+      .load(`48px "${TITLE_FONT_FAMILY}"`)
+      .then(() => {
+        if (document.fonts.check(`48px "${TITLE_FONT_FAMILY}"`)) {
+          this._titleFontLoaded = true;
+        }
+      })
+      .catch(() => {
+        // Fall back to system font if web font fails to load.
+      });
   }
 
   private ensureStarfield(w: number, h: number): void {
