@@ -1,5 +1,6 @@
-import { ImageSource, Loader, Sound } from "excalibur";
+import { ImageSource, Sound } from "excalibur";
 import { getAllTerrainImageSources } from "./resources/terrainAssets";
+import { GameLoader } from "./GameLoader";
 
 const BASE = `${import.meta.env.BASE_URL}assets/`;
 
@@ -52,7 +53,7 @@ export const Resources = {
   DepositBreakSound: new Sound({ paths: [`${BASE}sfx/deposit_break.mp3`] }),
 } as const;
 
-export const loader = new Loader();
+export const loader = new GameLoader();
 for (const res of Object.values(Resources)) {
   loader.addResource(res);
 }

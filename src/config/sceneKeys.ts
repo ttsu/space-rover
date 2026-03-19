@@ -1,7 +1,6 @@
 import type { Engine } from "excalibur";
 
 export const SCENE_KEYS = {
-  splash: "splash",
   mainMenu: "mainMenu",
   difficultySelect: "difficultySelect",
   planetRunMenu: "planetRunMenu",
