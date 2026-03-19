@@ -88,6 +88,7 @@ function fbm2D(x: number, y: number, seed: number): number {
  */
 export class GameLoader extends DefaultLoader {
   private _userActionResolve: (() => void) | null = null;
+  private _hasCompletedUserAction = false;
   private _titleFontLoaded = false;
 
   // Starfield (animated while the loader is visible).
@@ -677,8 +678,10 @@ export class GameLoader extends DefaultLoader {
   }
 
   private _showPlayButton(): void {
+    if (this._hasCompletedUserAction) return;
     const wrap = document.getElementById("game-wrap");
     if (!wrap) return;
+    if (wrap.querySelector(".game-loader-button-root")) return;
 
     const root = document.createElement("div");
     root.className = "game-loader-button-root";
@@ -689,10 +692,10 @@ export class GameLoader extends DefaultLoader {
     if (btn) {
       btn.addEventListener("click", () => {
         requestFullscreen().finally(() => {
+          this._hasCompletedUserAction = true;
           this._userActionResolve?.();
           this._userActionResolve = null;
           root.remove();
-          wrap.removeChild(root);
         });
       });
     }
