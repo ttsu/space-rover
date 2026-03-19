@@ -18,6 +18,9 @@ export class DifficultySelectScene extends Scene {
         onDifficultySelected: () => {
           goToScene(this.engine, SCENE_KEYS.planetRunMenu);
         },
+        onBack: () => {
+          goToScene(this.engine, SCENE_KEYS.mainMenu);
+        },
       }),
       {
         width: this.engine.drawWidth,

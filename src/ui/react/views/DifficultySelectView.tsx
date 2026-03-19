@@ -3,6 +3,7 @@ import { createSave, type Difficulty } from "../../../state/Saves";
 
 interface DifficultySelectViewProps {
   onDifficultySelected: () => void;
+  onBack: () => void;
 }
 
 const DIFFICULTIES: { id: Difficulty; label: string }[] = [
@@ -34,6 +35,19 @@ export function DifficultySelectView(props: DifficultySelectViewProps) {
               {difficulty.label}
             </button>
           ))}
+        </div>
+
+        <div className="react-bottom-actions">
+          <button
+            className="react-button react-button--subtle"
+            onClick={() => {
+              playClick();
+              props.onBack();
+            }}
+            type="button"
+          >
+            Back
+          </button>
         </div>
       </div>
     </div>

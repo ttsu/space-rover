@@ -12,8 +12,7 @@ const BAR_FILL = "#3b82f6";
  */
 export class GameLoader extends DefaultLoader {
   private _userActionResolve: (() => void) | null = null;
-  private _playButtonRoot: HTMLElement | null = null;
-  
+
   constructor() {
     super();
     console.log("GameLoader constructor");
@@ -97,12 +96,10 @@ export class GameLoader extends DefaultLoader {
           this._userActionResolve?.();
           this._userActionResolve = null;
           root.remove();
-          this._playButtonRoot = null;
           wrap.removeChild(root);
         });
       });
     }
     wrap.appendChild(root);
-    this._playButtonRoot = root;
   }
 }
