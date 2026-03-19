@@ -332,6 +332,53 @@ body {
   color: #f8fafc;
 }
 
+.react-save-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.react-save-empty {
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(30, 41, 59, 0.88);
+  color: #94a3b8;
+  text-align: center;
+}
+
+.react-save-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(30, 41, 59, 0.88);
+}
+
+.react-save-desc {
+  color: #e2e8f0;
+  font-size: 14px;
+  text-align: left;
+}
+
+.react-save-desc--highlight {
+  color: #fbbf24;
+}
+
+.react-save-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.react-difficulty-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .react-shop-list {
   display: flex;
   flex-direction: column;
@@ -384,4 +431,35 @@ body {
 
 .react-bottom-actions > * {
   flex: 1;
+}
+
+.react-summary-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(30, 41, 59, 0.88);
+  text-align: left;
+}
+
+.react-summary-block--goal {
+  border: 1px solid rgba(251, 191, 36, 0.24);
+}
+
+.react-summary-block--failed {
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.react-summary-line {
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.react-summary-bonus {
+  margin-top: 8px;
+  color: #fbbf24;
+  font-size: 14px;
+  font-weight: 700;
 }
