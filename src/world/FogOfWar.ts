@@ -1,4 +1,5 @@
 import {
+  Canvas,
   Component,
   System,
   SystemType,
@@ -6,23 +7,19 @@ import {
   type Scene,
   TransformComponent,
   GraphicsComponent,
-  Color,
   SystemPriority,
-  vec,
   ParticleEmitter,
 } from "excalibur";
 import { TILE_SIZE } from "../config/gameConfig";
 import { GameState } from "../state/GameState";
-import type { ExcaliburGraphicsContext } from "excalibur";
-import type { Camera } from "excalibur";
 import {
   FogViewerComponent,
   PlayerTagComponent,
 } from "./components/PlayerComponents";
 
 const EXPLORED_OPACITY = 0.4;
-const FOG_COLOR = Color.fromHex("#0a0a0f");
-const FOG_SOFT_TILES = 1.5;
+const FOG_SOFT_TILES = 2.5;
+const FOG_COLOR_CSS = "rgba(10, 10, 15, 1)";
 
 export interface FogAffectedOptions {
   gridX?: number;
@@ -70,6 +67,14 @@ function entityTilePosition(
 export interface FogViewerData {
   pos: { x: number; y: number };
   visibilityRadiusTiles: number;
+}
+
+export interface FogOverlayState {
+  viewerPos: { x: number; y: number } | null;
+  visibilityRadiusTiles: number;
+  cameraPos: { x: number; y: number };
+  drawWidth: number;
+  drawHeight: number;
 }
 
 export function getPrimaryFogViewerData(world: World): FogViewerData | null {
@@ -252,61 +257,72 @@ function applyFogToParticleEmitter(
 }
 
 /**
- * Draws the soft-edged fog overlay in screen space so the visible circle stays
- * centered on the rover. Call from Scene.onPostDraw.
+ * Canvas-backed full-screen fog overlay with an inverted visibility circle.
+ * Screen-space rendering avoids the old per-tile rectangle loop.
  */
-export function drawFogOverlay(
-  ctx: ExcaliburGraphicsContext,
-  viewerPos: { x: number; y: number },
-  visibilityRadiusTiles: number,
-  camera: Camera,
-  drawWidth: number,
-  drawHeight: number
-): void {
-  const roverPos = viewerPos;
-  const camPos = camera.pos;
-  const radiusTiles = visibilityRadiusTiles;
-  const radiusPx = radiusTiles * TILE_SIZE;
-  const halfW = drawWidth / 2;
-  const halfH = drawHeight / 2;
+export class FogOverlayGraphic extends Canvas {
+  private state: FogOverlayState = {
+    viewerPos: null,
+    visibilityRadiusTiles: 0,
+    cameraPos: { x: 0, y: 0 },
+    drawWidth: 1,
+    drawHeight: 1,
+  };
 
-  ctx.save();
-  ctx.z = 50;
-
-  const minGx = Math.floor((camPos.x - halfW) / TILE_SIZE) - 1;
-  const maxGx = Math.ceil((camPos.x + halfW) / TILE_SIZE) + 1;
-  const minGy = Math.floor((camPos.y - halfH) / TILE_SIZE) - 1;
-  const maxGy = Math.ceil((camPos.y + halfH) / TILE_SIZE) + 1;
-
-  for (let gy = minGy; gy <= maxGy; gy++) {
-    for (let gx = minGx; gx <= maxGx; gx++) {
-      const worldX = gx * TILE_SIZE + TILE_SIZE / 2;
-      const worldY = gy * TILE_SIZE + TILE_SIZE / 2;
-      const dx = worldX - roverPos.x;
-      const dy = worldY - roverPos.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      const screenX = gx * TILE_SIZE - camPos.x + halfW;
-      const screenY = gy * TILE_SIZE - camPos.y + halfH;
-
-      if (dist >= radiusPx + FOG_SOFT_TILES * TILE_SIZE) {
-        ctx.drawRectangle(
-          vec(screenX, screenY),
-          TILE_SIZE,
-          TILE_SIZE,
-          FOG_COLOR
-        );
-      } else if (dist > radiusPx) {
-        const t = (dist - radiusPx) / (FOG_SOFT_TILES * TILE_SIZE);
-        const opacity = Math.min(1, t);
-        const c = FOG_COLOR.clone();
-        c.a = opacity;
-        ctx.opacity = opacity;
-        ctx.drawRectangle(vec(screenX, screenY), TILE_SIZE, TILE_SIZE, c);
-        ctx.opacity = 1;
-      }
-    }
+  constructor() {
+    super({
+      width: 1,
+      height: 1,
+      cache: false,
+      draw: (ctx) => this.drawOverlay(ctx),
+    });
   }
 
-  ctx.restore();
+  updateState(state: FogOverlayState): void {
+    this.state = state;
+    if (this.width !== state.drawWidth) {
+      this.width = Math.max(1, state.drawWidth);
+    }
+    if (this.height !== state.drawHeight) {
+      this.height = Math.max(1, state.drawHeight);
+    }
+    this.flagDirty();
+  }
+
+  private drawOverlay(ctx: CanvasRenderingContext2D): void {
+    const width = Math.max(1, this.state.drawWidth);
+    const height = Math.max(1, this.state.drawHeight);
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = FOG_COLOR_CSS;
+    ctx.fillRect(0, 0, width, height);
+
+    const { viewerPos, visibilityRadiusTiles, cameraPos } = this.state;
+    if (!viewerPos || visibilityRadiusTiles <= 0) {
+      return;
+    }
+
+    const roverScreenX = viewerPos.x - cameraPos.x + width / 2;
+    const roverScreenY = viewerPos.y - cameraPos.y + height / 2;
+    const radiusPx = (visibilityRadiusTiles - 3) * TILE_SIZE;
+    const outerRadius = radiusPx + FOG_SOFT_TILES * TILE_SIZE;
+    const gradient = ctx.createRadialGradient(
+      roverScreenX,
+      roverScreenY,
+      radiusPx,
+      roverScreenX,
+      roverScreenY,
+      outerRadius
+    );
+
+    gradient.addColorStop(0, "rgba(0, 0, 0, 1)");
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.beginPath();
+    ctx.arc(roverScreenX, roverScreenY, outerRadius, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.restore();
+  }
 }

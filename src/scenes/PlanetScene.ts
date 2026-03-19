@@ -9,15 +9,14 @@ import {
   ScreenElement,
   Actor,
   CollisionType,
-  type ExcaliburGraphicsContext,
 } from "excalibur";
 import { Button } from "../ui/Button";
 import { Rover } from "../entities/Rover";
 import { BlasterProjectile } from "../entities/BlasterProjectile";
 import { BaseLander } from "../entities/BaseLander";
 import {
+  FogOverlayGraphic,
   FogVisibilitySystem,
-  drawFogOverlay,
   getPrimaryFogViewerData,
 } from "../world/FogOfWar";
 import { TILE_SIZE } from "../config/gameConfig";
@@ -97,6 +96,7 @@ export class PlanetScene extends Scene {
   private returnToShipBtn?: Button;
   private touchControlsOverlay?: TouchControls;
   private touchReturnContainer?: ScreenElement;
+  private fogOverlayGraphic?: FogOverlayGraphic;
   private basePos = vec(0, 0);
   private worldActors: Actor[] = [];
   private stormRegions: StormRegion[] = [];
@@ -313,6 +313,13 @@ export class PlanetScene extends Scene {
       this.addTouchControlsOverlay();
     }
 
+    const fogOverlay = new ScreenElement({ x: 0, y: 0, anchor: vec(0, 0) });
+    fogOverlay.z = 50;
+    this.fogOverlayGraphic = new FogOverlayGraphic();
+    this.fogOverlayGraphic.origin = vec(0, 0);
+    fogOverlay.graphics.use(this.fogOverlayGraphic);
+    this.add(fogOverlay);
+
     this.camera.strategy.lockToActor(this.rover);
 
     this.world.add(new FogVisibilitySystem(this.world, this));
@@ -330,19 +337,6 @@ export class PlanetScene extends Scene {
       chunkManager: this.chunkManager,
     });
     this.setupBaseReturnTrigger();
-  }
-
-  onPostDraw(ctx: ExcaliburGraphicsContext, _elapsed: number): void {
-    const viewer = getPrimaryFogViewerData(this.world);
-    if (!viewer) return;
-    drawFogOverlay(
-      ctx,
-      viewer.pos,
-      viewer.visibilityRadiusTiles,
-      this.camera,
-      this.engine.drawWidth,
-      this.engine.drawHeight
-    );
   }
 
   private static readonly RETURN_BUTTON_WIDTH = 220;
@@ -523,6 +517,13 @@ export class PlanetScene extends Scene {
     } satisfies HudContextEvent);
 
     const viewer = getPrimaryFogViewerData(this.world);
+    this.fogOverlayGraphic?.updateState({
+      viewerPos: viewer?.pos ?? null,
+      visibilityRadiusTiles: viewer?.visibilityRadiusTiles ?? 0,
+      cameraPos: this.camera.pos,
+      drawWidth: this.engine.drawWidth,
+      drawHeight: this.engine.drawHeight,
+    });
     const stats = this.rover.roverStats;
     const options = {
       revealAllResources: (stats.minimapRevealAllResources ?? 0) > 0,
