@@ -389,9 +389,9 @@ export class GameLoader extends DefaultLoader {
           const depth = clamp01((seaLevel - heightSeamed) / seaLevel);
           const shallow = 1 - depth;
 
-          r = lerp(6, 20, shallow);
-          g = lerp(25, 120, shallow);
-          b = lerp(70, 190, shallow);
+          r = lerp(4, 14, shallow);
+          g = lerp(14, 82, shallow);
+          b = lerp(48, 148, shallow);
 
           // Subtle ocean variation / swells.
           const swell = fbm2D(u * 14 + 2.1, v * 14 - 3.2, seed + 707);
@@ -415,9 +415,9 @@ export class GameLoader extends DefaultLoader {
             const desert = clamp01((0.6 - moistureSeamed) / 0.6);
 
             // Base tones (desert -> sandy browns, wet -> greener).
-            const baseR = lerp(110, 55, desert);
-            const baseG = lerp(170, 120, desert);
-            const baseB = lerp(70, 85, desert);
+            const baseR = lerp(90, 45, desert);
+            const baseG = lerp(128, 88, desert);
+            const baseB = lerp(58, 72, desert);
 
             const rock = clamp01((hLand - 0.45) / 0.55);
             const snow = clamp01((hLand - 0.82) / 0.18);
@@ -428,9 +428,9 @@ export class GameLoader extends DefaultLoader {
 
             // Forest overlay.
             const forestT = clamp01(forest * (1 - desert) * 0.9);
-            r = lerp(r, 30, forestT);
-            g = lerp(g, 95, forestT);
-            b = lerp(b, 45, forestT);
+            r = lerp(r, 20, forestT);
+            g = lerp(g, 70, forestT);
+            b = lerp(b, 32, forestT);
 
             // Subtle variation.
             const micro = fbm2D(u * 18 + 9, v * 18 - 8, seed + 909) / 1.15;
@@ -453,20 +453,29 @@ export class GameLoader extends DefaultLoader {
 
         // Clouds: higher-frequency noise over both ocean and land, stronger near
         // mid-latitudes and slightly biased toward wet/ocean regions.
+        const cloudMacro = clamp01(
+          fbm2D(u * 4.2 + 120.3, v * 4.2 - 210.7, seed + 2000) / 1.12
+        );
+        const cloudDetail = clamp01(
+          fbm2D(u * 17.0 - 50.5, v * 17.0 + 80.5, seed + 3000) / 1.1
+        );
+        const cloudRidge = 1 - Math.abs(2 * cloudDetail - 1);
         const cloudField =
-          fbm2D(u * 9.5 + 120.3, v * 9.5 - 210.7, seed + 2000) * 0.65 +
-          fbm2D(u * 20.0 - 50.5, v * 20.0 + 80.5, seed + 3000) * 0.35;
-        // Lower the threshold and widen the transition for higher cloud cover.
-        const cloudMask = clamp01((cloudField - 0.48) / 0.3);
+          cloudMacro * 0.74 +
+          cloudDetail * 0.16 +
+          Math.pow(cloudRidge, 1.6) * 0.1;
+        // Chunkier clouds: threshold by macro coverage, then carve textured edges.
+        const cloudMask = clamp01((cloudField - 0.45) / 0.26);
+        const cloudPuff = Math.pow(cloudMask, 0.78);
         const oceanT = clamp01((seaLevel - heightSeamed) / seaLevel);
         const landT = clamp01((heightSeamed - seaLevel) / (1 - seaLevel));
         const cloudOceanBias = oceanT * 0.95 + landT * 0.35;
         const cloudLat = clamp01(1 - absLat * 0.9);
         const cloudStrength = Math.pow(
-          cloudMask * cloudOceanBias * cloudLat,
-          1.15
+          cloudPuff * cloudOceanBias * cloudLat,
+          0.92
         );
-        const brighten = cloudStrength * 0.95;
+        const brighten = clamp01(cloudStrength * 1.2);
         r = lerp(r, 240, brighten);
         g = lerp(g, 248, brighten);
         b = lerp(b, 255, brighten);
